@@ -25,7 +25,13 @@ export default function WalletPage() {
           <ArrowLeft className="w-4 h-4" />
           Back to rvchain
         </Link>
-        <WalletOnboarding userId={userId} embedded />
+        <WalletOnboarding
+          userId={userId}
+          embedded
+          onRequestSignIn={() => {
+            window.location.href = '/?auth=wallet';
+          }}
+        />
       </div>
     </div>
   );

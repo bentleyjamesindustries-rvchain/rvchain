@@ -30,6 +30,7 @@ interface WalletOnboardingProps {
   userId?: string | null;
   onComplete?: (profile: WalletProfile) => void;
   onClose?: () => void;
+  onRequestSignIn?: () => void;
   embedded?: boolean;
 }
 
@@ -37,8 +38,10 @@ export default function WalletOnboarding({
   userId,
   onComplete,
   onClose,
+  onRequestSignIn,
   embedded = false,
 }: WalletOnboardingProps) {
+  const isSignedIn = Boolean(userId);
   const uid = getWalletUserId(userId);
   const [step, setStep] = useState<Step>('choose');
   const [showWalletDetails, setShowWalletDetails] = useState(false);
@@ -75,6 +78,11 @@ export default function WalletOnboarding({
   );
 
   const handleCreateWallet = () => {
+    if (!isSignedIn) {
+      toast.error('Sign in to create a wallet.');
+      onRequestSignIn?.();
+      return;
+    }
     try {
       const generated = createNewBitcoinWallet();
       setMnemonic(generated.mnemonic);
@@ -87,6 +95,11 @@ export default function WalletOnboarding({
   };
 
   const handleConfirmNewWallet = () => {
+    if (!isSignedIn) {
+      toast.error('Sign in to create a wallet.');
+      onRequestSignIn?.();
+      return;
+    }
     if (!seedConfirmed) return toast.error('Please confirm you have backed up your seed phrase.');
     if (!newAddress) return;
 
@@ -199,21 +212,39 @@ export default function WalletOnboarding({
               <p className="text-sm text-slate-400">Choose how you want to attach a Bitcoin address:</p>
 
               <button
+                type="button"
                 onClick={handleCreateWallet}
-                className="w-full text-left p-4 rounded-2xl border-2 border-emerald-700/60 bg-emerald-950/30 hover:bg-emerald-950/50 transition group"
+                className={`w-full text-left p-4 rounded-2xl border-2 transition group ${
+                  isSignedIn
+                    ? 'border-emerald-700/60 bg-emerald-950/30 hover:bg-emerald-950/50'
+                    : 'border-slate-700 bg-slate-950/80 opacity-80'
+                }`}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-800/50 flex items-center justify-center shrink-0">
-                    <Plus className="w-5 h-5 text-emerald-300" />
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
+                    isSignedIn ? 'bg-emerald-800/50' : 'bg-slate-800'
+                  }`}>
+                    <Plus className={`w-5 h-5 ${isSignedIn ? 'text-emerald-300' : 'text-slate-500'}`} />
                   </div>
                   <div>
-                    <div className="font-semibold flex items-center gap-2">
+                    <div className="font-semibold flex items-center gap-2 flex-wrap">
                       Create a New Wallet
-                      <span className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded-full">Recommended</span>
+                      {isSignedIn ? (
+                        <span className="text-[10px] bg-emerald-700 text-white px-2 py-0.5 rounded-full">Recommended</span>
+                      ) : (
+                        <span className="text-[10px] bg-slate-700 text-slate-300 px-2 py-0.5 rounded-full">Sign in required</span>
+                      )}
                     </div>
                     <p className="text-xs text-slate-400 mt-1">
-                      Generate a non-custodial wallet in your browser. You get a seed phrase — we only save your public address.
+                      {isSignedIn
+                        ? 'Generate a non-custodial wallet in your browser. You get a seed phrase — we only save your public address.'
+                        : 'Create an account first so your wallet is tied to your profile — not a guest session on this device.'}
                     </p>
+                    {!isSignedIn && onRequestSignIn && (
+                      <span className="inline-block mt-2 text-xs font-semibold text-sky-400 group-hover:text-sky-300">
+                        Sign in to continue →
+                      </span>
+                    )}
                   </div>
                 </div>
               </button>

@@ -228,6 +228,16 @@ export default function RVChainApp() {
     return () => subscription.unsubscribe();
   }, []);
 
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('auth') === 'wallet') {
+      setShowAuthModal(true);
+      params.delete('auth');
+      const next = params.toString();
+      window.history.replaceState(null, '', next ? `?${next}` : '/');
+    }
+  }, []);
+
   // Fetch parks from Supabase (fallback to seed if empty or error)
   useEffect(() => {
     const fetchParks = async () => {
@@ -1299,6 +1309,10 @@ export default function RVChainApp() {
               userId={user?.id}
               onComplete={(profile) => setWalletProfile(profile)}
               onClose={() => setShowWalletModal(false)}
+              onRequestSignIn={() => {
+                setShowWalletModal(false);
+                setShowAuthModal(true);
+              }}
             />
           </div>
         </div>
