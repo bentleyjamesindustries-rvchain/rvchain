@@ -6,12 +6,12 @@ import { toast } from 'sonner';
 import {
   RecoveryChannel,
   sendRecoveryCode,
-  sendRecoveryEmailLink,
   verifyRecoveryCode,
   updateUserPassword,
   explainRecoveryError,
   isValidEmail,
   isValidPhone,
+  normalizePhone,
 } from '@/lib/passwordRecovery';
 
 type Step = 'contact' | 'verify' | 'action';
@@ -29,7 +29,8 @@ export default function ForgotPasswordModal({
 }: ForgotPasswordModalProps) {
   const [step, setStep] = useState<Step>('contact');
   const [channel, setChannel] = useState<RecoveryChannel>('email');
-  const [contact, setContact] = useState(initialEmail);
+  const [email, setEmail] = useState(initialEmail);
+  const [phone, setPhone] = useState('');
   const [code, setCode] = useState('');
   const [loading, setLoading] = useState(false);
   const [verified, setVerified] = useState(false);
@@ -40,18 +41,31 @@ export default function ForgotPasswordModal({
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showResetForm, setShowResetForm] = useState(false);
 
+  const contact = channel === 'email' ? email : phone;
+  const contactValid = channel === 'email' ? isValidEmail(email) : isValidPhone(phone);
+  const contactDisplay =
+    channel === 'email' ? email.trim() : normalizePhone(phone);
+
   useEffect(() => {
     if (resendCooldown <= 0) return;
     const t = setTimeout(() => setResendCooldown((c) => c - 1), 1000);
     return () => clearTimeout(t);
   }, [resendCooldown]);
 
-  const contactValid =
-    channel === 'email' ? isValidEmail(contact) : isValidPhone(contact);
+  const selectChannel = (next: RecoveryChannel) => {
+    if (next === channel) return;
+    setChannel(next);
+    setCode('');
+    setStep('contact');
+    setVerified(false);
+    setResendCooldown(0);
+  };
 
   const handleSendCode = async () => {
     if (!contactValid) {
-      toast.error(channel === 'email' ? 'Enter a valid email address.' : 'Enter a valid phone number.');
+      toast.error(
+        channel === 'email' ? 'Enter a valid email address.' : 'Enter a valid phone number.'
+      );
       return;
     }
 
@@ -61,32 +75,13 @@ export default function ForgotPasswordModal({
       if (error) throw error;
       toast.success(
         channel === 'email'
-          ? 'Check your email for a 6-digit code.'
-          : 'Check your phone for a text message with your code.'
+          ? '6-digit code sent to your email only.'
+          : '6-digit code sent to your phone only.'
       );
       setStep('verify');
       setResendCooldown(60);
     } catch (err: unknown) {
       const raw = err instanceof Error ? err.message : 'Could not send code.';
-      toast.error(explainRecoveryError(raw));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleSendResetLink = async () => {
-    if (!isValidEmail(contact)) {
-      toast.error('Enter a valid email address.');
-      return;
-    }
-    setLoading(true);
-    try {
-      const { error } = await sendRecoveryEmailLink(contact);
-      if (error) throw error;
-      toast.success('Reset link sent! Check your email and open the link on this device.');
-      onClose();
-    } catch (err: unknown) {
-      const raw = err instanceof Error ? err.message : 'Could not send reset link.';
       toast.error(explainRecoveryError(raw));
     } finally {
       setLoading(false);
@@ -161,8 +156,8 @@ export default function ForgotPasswordModal({
           <div>
             <h3 className="text-xl font-semibold">Forgot password</h3>
             <p className="text-sm text-slate-400 mt-0.5">
-              {step === 'contact' && 'We’ll send a temporary passcode'}
-              {step === 'verify' && 'Enter your passcode'}
+              {step === 'contact' && 'Choose email or text — we send to one only'}
+              {step === 'verify' && `Enter the code from ${channel === 'email' ? 'email' : 'text'}`}
               {step === 'action' && 'You’re verified'}
             </p>
           </div>
@@ -173,72 +168,100 @@ export default function ForgotPasswordModal({
 
         {step === 'contact' && (
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setChannel('email')}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-medium border transition ${
-                  channel === 'email'
-                    ? 'border-sky-600 bg-sky-950/40 text-sky-200'
-                    : 'border-slate-700 text-slate-400 hover:border-slate-500'
-                }`}
-              >
-                <Mail className="w-4 h-4" />
-                Email
-              </button>
-              <button
-                type="button"
-                disabled
-                title="Requires Twilio setup in Supabase"
-                className="flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-medium border border-slate-800 text-slate-600 cursor-not-allowed opacity-60"
-              >
-                <Smartphone className="w-4 h-4" />
-                Text (soon)
-              </button>
+            <div>
+              <div className="text-xs font-medium text-slate-400 mb-2 uppercase tracking-wider">
+                Send passcode via
+              </div>
+              <div className="grid grid-cols-2 gap-2 p-1 rounded-2xl bg-slate-950 border border-slate-800">
+                <button
+                  type="button"
+                  onClick={() => selectChannel('email')}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition ${
+                    channel === 'email'
+                      ? 'bg-sky-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Mail className="w-4 h-4" />
+                  Email
+                </button>
+                <button
+                  type="button"
+                  onClick={() => selectChannel('sms')}
+                  className={`flex items-center justify-center gap-2 py-2.5 rounded-xl text-sm font-semibold transition ${
+                    channel === 'sms'
+                      ? 'bg-emerald-700 text-white shadow-sm'
+                      : 'text-slate-400 hover:text-slate-200'
+                  }`}
+                >
+                  <Smartphone className="w-4 h-4" />
+                  Text
+                </button>
+              </div>
             </div>
 
-            <div>
-              <label className="text-xs text-slate-400 mb-1 block">
-                {channel === 'email' ? 'Email address' : 'Mobile number'}
-              </label>
-              <input
-                type={channel === 'email' ? 'email' : 'tel'}
-                value={contact}
-                onChange={(e) => setContact(e.target.value)}
-                placeholder={channel === 'email' ? 'you@rv.com' : '(555) 123-4567'}
-                className="w-full bg-slate-800 border border-slate-600 px-4 h-11 rounded-2xl text-sm outline-none focus:border-sky-600"
-                autoComplete={channel === 'email' ? 'email' : 'tel'}
-              />
-              <p className="text-[10px] text-slate-500 mt-1.5">
-                Use the email you signed up with. New accounts must sign up first.
-              </p>
-            </div>
+            {channel === 'email' ? (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Email address</label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="you@rv.com"
+                  className="w-full bg-slate-800 border border-sky-700/50 px-4 h-11 rounded-2xl text-sm outline-none focus:border-sky-600"
+                  autoComplete="email"
+                />
+                <p className="text-[10px] text-slate-500 mt-1.5">
+                  Code goes to this email only — not your phone.
+                </p>
+              </div>
+            ) : (
+              <div>
+                <label className="text-xs text-slate-400 mb-1 block">Mobile number</label>
+                <input
+                  type="tel"
+                  value={phone}
+                  onChange={(e) => setPhone(e.target.value)}
+                  placeholder="(555) 123-4567"
+                  className="w-full bg-slate-800 border border-emerald-700/50 px-4 h-11 rounded-2xl text-sm outline-none focus:border-emerald-600"
+                  autoComplete="tel"
+                />
+                <p className="text-[10px] text-slate-500 mt-1.5">
+                  Code goes to this number only — not your email. Use the phone on your account.
+                </p>
+              </div>
+            )}
 
             <button
               onClick={handleSendCode}
               disabled={loading || !contactValid}
-              className="w-full bg-sky-700 hover:bg-sky-600 disabled:opacity-40 h-11 rounded-2xl font-semibold text-sm transition"
+              className={`w-full disabled:opacity-40 h-11 rounded-2xl font-semibold text-sm transition ${
+                channel === 'email'
+                  ? 'bg-sky-700 hover:bg-sky-600'
+                  : 'bg-emerald-700 hover:bg-emerald-600'
+              }`}
             >
-              {loading ? 'Sending…' : 'Send 6-digit passcode'}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSendResetLink}
-              disabled={loading || !isValidEmail(contact)}
-              className="w-full border border-slate-600 hover:bg-slate-800 disabled:opacity-40 h-10 rounded-2xl text-xs text-slate-300 transition"
-            >
-              Or email me a reset link instead
+              {loading
+                ? 'Sending…'
+                : channel === 'email'
+                  ? 'Send code to email'
+                  : 'Send code to phone'}
             </button>
           </div>
         )}
 
         {step === 'verify' && (
           <div className="space-y-4">
-            <p className="text-sm text-slate-400">
-              Enter the 6-digit code sent to{' '}
-              <span className="text-slate-200">{contact}</span>
-            </p>
+            <div
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-full ${
+                channel === 'email'
+                  ? 'bg-sky-950 text-sky-300 border border-sky-800'
+                  : 'bg-emerald-950 text-emerald-300 border border-emerald-800'
+              }`}
+            >
+              {channel === 'email' ? <Mail className="w-3 h-3" /> : <Smartphone className="w-3 h-3" />}
+              Sent via {channel === 'email' ? 'email' : 'text'} to {contactDisplay}
+            </div>
 
             <input
               type="text"
@@ -262,11 +285,14 @@ export default function ForgotPasswordModal({
             <div className="flex items-center justify-between text-xs">
               <button
                 type="button"
-                onClick={() => setStep('contact')}
+                onClick={() => {
+                  setStep('contact');
+                  setCode('');
+                }}
                 className="text-slate-400 hover:text-slate-200 flex items-center gap-1"
               >
                 <ArrowLeft className="w-3 h-3" />
-                Change {channel === 'email' ? 'email' : 'number'}
+                Choose {channel === 'email' ? 'text' : 'email'} instead
               </button>
               <button
                 type="button"

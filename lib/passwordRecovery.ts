@@ -45,12 +45,10 @@ export function explainRecoveryError(message: string): string {
 export async function sendRecoveryCode(channel: RecoveryChannel, contact: string) {
   if (channel === 'email') {
     const email = contact.trim().toLowerCase();
+    // No emailRedirectTo — keeps delivery focused on OTP code (not magic link) when template uses {{ .Token }}
     return supabase.auth.signInWithOtp({
       email,
-      options: {
-        shouldCreateUser: false,
-        emailRedirectTo: getAuthRedirectUrl(),
-      },
+      options: { shouldCreateUser: false },
     });
   }
 
