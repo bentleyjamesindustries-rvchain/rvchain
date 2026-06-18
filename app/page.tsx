@@ -23,7 +23,7 @@ import WalletOnboarding from '@/components/WalletOnboarding';
 import WalletInviteModal from '@/components/WalletInviteModal';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import { updateUserPassword } from '@/lib/passwordRecovery';
-import { loadWalletProfile, getWalletUserId, WalletProfile } from '@/lib/walletStorage';
+import { loadWalletProfile, WalletProfile } from '@/lib/walletStorage';
 import { truncateAddress } from '@/lib/bitcoinAddress';
 import { performCheckIn } from '@/lib/rewards';
 import {
@@ -173,7 +173,7 @@ export default function RVChainApp() {
     const data = loadUnifiedRewards(getRewardsUserId());
     setRewardPoints(getActivePoints(data));
     setActiveRewardProgram(data.activeProgram);
-    setWalletProfile(loadWalletProfile(getWalletUserId()));
+    setWalletProfile(null);
   }, []);
 
   // Persist favorites and handle
@@ -466,8 +466,18 @@ export default function RVChainApp() {
     await supabase.auth.signOut();
     setUser(null);
     setUserTrips([]);
+    setWalletProfile(null);
     syncRewardsState();
     toast.success("Signed out");
+  };
+
+  const openWalletModal = () => {
+    if (!user) {
+      toast.info('Sign in to set up your wallet.');
+      setShowAuthModal(true);
+      return;
+    }
+    setShowWalletModal(true);
   };
 
   const handleParkCheckIn = (park: Park) => {
@@ -531,7 +541,7 @@ export default function RVChainApp() {
 
   useEffect(() => {
     syncRewardsState();
-    setWalletProfile(loadWalletProfile(getWalletUserId(user?.id)));
+    setWalletProfile(user ? loadWalletProfile(user.id) : null);
   }, [user, syncRewardsState]);
 
   // === PARK SUBMISSION (real backend) ===
@@ -820,9 +830,9 @@ export default function RVChainApp() {
               </div>
 
               <button
-                onClick={() => setShowWalletModal(true)}
+                onClick={openWalletModal}
                 className="flex items-center gap-x-1 text-xs sm:text-sm bg-slate-900/40 hover:bg-slate-900/60 backdrop-blur px-2 sm:px-3 py-1.5 rounded-2xl text-slate-200 transition border border-white/10"
-                title="My Wallet"
+                title={user ? 'My Wallet' : 'Sign in to set up wallet'}
               >
                 <Wallet className="w-3.5 h-3.5 text-amber-300 shrink-0" />
                 <span className="hidden md:inline">{walletProfile ? truncateAddress(walletProfile.bitcoinAddress) : 'Wallet'}</span>
@@ -1266,7 +1276,7 @@ export default function RVChainApp() {
             walletConnected={Boolean(walletProfile)}
             onSave={handleSaveProfile}
             onClose={() => setShowProfile(false)}
-            onOpenWallet={() => setShowWalletModal(true)}
+            onOpenWallet={openWalletModal}
             onParkSelect={(park) => { showParkDetails(park); setShowProfile(false); }}
             onRemoveFavorite={removeFavorite}
             onGoToForum={() => setActiveTab('community')}

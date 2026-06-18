@@ -21,7 +21,6 @@ import {
   loadWalletProfile,
   saveWalletProfile,
   disconnectWallet,
-  getWalletUserId,
 } from '@/lib/walletStorage';
 
 type Step = 'choose' | 'create' | 'manual' | 'connected';
@@ -42,10 +41,11 @@ export default function WalletOnboarding({
   embedded = false,
 }: WalletOnboardingProps) {
   const isSignedIn = Boolean(userId);
-  const uid = getWalletUserId(userId);
   const [step, setStep] = useState<Step>('choose');
   const [showWalletDetails, setShowWalletDetails] = useState(false);
-  const [wallet, setWallet] = useState<WalletProfile | null>(() => loadWalletProfile(uid));
+  const [wallet, setWallet] = useState<WalletProfile | null>(() =>
+    userId ? loadWalletProfile(userId) : null
+  );
   const [mnemonic, setMnemonic] = useState<string | null>(null);
   const [newAddress, setNewAddress] = useState('');
   const [manualAddress, setManualAddress] = useState('');
@@ -60,29 +60,46 @@ export default function WalletOnboarding({
   const isManualAddressValid = manualValidation === 'valid';
 
   useEffect(() => {
-    const existing = loadWalletProfile(uid);
+    if (!userId) {
+      setWallet(null);
+      setStep('choose');
+      setMnemonic(null);
+      setManualAddress('');
+      return;
+    }
+    const existing = loadWalletProfile(userId);
     if (existing) {
       setWallet(existing);
       setStep('connected');
+    } else {
+      setWallet(null);
+      setStep('choose');
     }
-  }, [uid]);
+  }, [userId]);
+
+  const requireSignedIn = useCallback(
+    (action: string) => {
+      if (isSignedIn && userId) return true;
+      toast.error(`Sign in to ${action}.`);
+      onRequestSignIn?.();
+      return false;
+    },
+    [isSignedIn, userId, onRequestSignIn]
+  );
 
   const persistWallet = useCallback(
     (profile: WalletProfile) => {
-      saveWalletProfile(uid, profile);
+      if (!userId) return;
+      saveWalletProfile(userId, profile);
       setWallet(profile);
       setStep('connected');
       onComplete?.(profile);
     },
-    [uid, onComplete]
+    [userId, onComplete]
   );
 
   const handleCreateWallet = () => {
-    if (!isSignedIn) {
-      toast.error('Sign in to create a wallet.');
-      onRequestSignIn?.();
-      return;
-    }
+    if (!requireSignedIn('create a wallet')) return;
     try {
       const generated = createNewBitcoinWallet();
       setMnemonic(generated.mnemonic);
@@ -95,11 +112,7 @@ export default function WalletOnboarding({
   };
 
   const handleConfirmNewWallet = () => {
-    if (!isSignedIn) {
-      toast.error('Sign in to create a wallet.');
-      onRequestSignIn?.();
-      return;
-    }
+    if (!requireSignedIn('create a wallet')) return;
     if (!seedConfirmed) return toast.error('Please confirm you have backed up your seed phrase.');
     if (!newAddress) return;
 
@@ -112,7 +125,13 @@ export default function WalletOnboarding({
     toast.success(`Wallet created! Address: ${truncateAddress(newAddress)}`);
   };
 
+  const handleStartManualConnect = () => {
+    if (!requireSignedIn('connect a wallet')) return;
+    setStep('manual');
+  };
+
   const handleManualConnect = () => {
+    if (!requireSignedIn('connect a wallet')) return;
     const addr = normalizeBitcoinAddress(manualAddress);
     if (!isValidBitcoinAddress(addr)) {
       return toast.error('Enter a valid Bitcoin address before saving.');
@@ -126,6 +145,11 @@ export default function WalletOnboarding({
   };
 
   const handleQrScan = useCallback((raw: string) => {
+    if (!isSignedIn) {
+      toast.error('Sign in to connect a wallet.');
+      onRequestSignIn?.();
+      return;
+    }
     const extracted = extractBitcoinAddressFromQr(raw);
     setManualAddress(extracted);
     setShowQrScanner(false);
@@ -135,10 +159,11 @@ export default function WalletOnboarding({
     } else {
       toast.error('QR scanned but address is invalid. Check the code or enter manually.');
     }
-  }, []);
+  }, [isSignedIn, onRequestSignIn]);
 
   const handleDisconnect = () => {
-    disconnectWallet(uid);
+    if (!userId) return;
+    disconnectWallet(userId);
     setWallet(null);
     setMnemonic(null);
     setManualAddress('');
@@ -172,7 +197,27 @@ export default function WalletOnboarding({
         )}
       </div>
 
-      {step === 'connected' && wallet && (
+      {!isSignedIn && (
+        <div className="space-y-4 mt-2 p-5 rounded-2xl border border-slate-700 bg-slate-950/80">
+          <p className="text-sm text-slate-300 leading-relaxed">
+            Sign in to create or connect a Bitcoin wallet tied to your rvchain account.
+          </p>
+          <p className="text-xs text-slate-500">
+            Wallets are not saved for guest sessions — your address syncs with your profile after sign-in.
+          </p>
+          {onRequestSignIn && (
+            <button
+              type="button"
+              onClick={onRequestSignIn}
+              className="w-full bg-sky-700 hover:bg-sky-600 h-11 rounded-2xl font-semibold text-sm transition"
+            >
+              Sign In
+            </button>
+          )}
+        </div>
+      )}
+
+      {isSignedIn && step === 'connected' && wallet && (
         <div className="space-y-4">
           <div className="bg-emerald-950/40 border border-emerald-700/50 rounded-2xl p-5">
             <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-2">
@@ -205,7 +250,7 @@ export default function WalletOnboarding({
         </div>
       )}
 
-      {step !== 'connected' && (
+      {isSignedIn && step !== 'connected' && (
         <>
           {step === 'choose' && (
             <div className="space-y-3 mt-4">
@@ -250,8 +295,9 @@ export default function WalletOnboarding({
               </button>
 
               <button
-                onClick={() => setStep('manual')}
-                className="w-full text-left p-4 rounded-2xl border border-slate-700 bg-slate-950 hover:border-slate-500 transition"
+                type="button"
+                onClick={handleStartManualConnect}
+                className="w-full text-left p-4 rounded-2xl border border-slate-700 bg-slate-950 hover:border-slate-500 transition group"
               >
                 <div className="flex items-start gap-3">
                   <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center shrink-0">
