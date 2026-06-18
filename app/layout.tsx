@@ -4,6 +4,7 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import DeviceAdapt from "@/components/DeviceAdapt";
 import ScenicBackground from "@/components/ScenicBackground";
+import RvMouseTrail from "@/components/RvMouseTrail";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -46,6 +47,7 @@ export default function RootLayout({
     >
       <body className="min-h-full flex flex-col text-slate-200 overflow-x-hidden">
         <ScenicBackground />
+        <RvMouseTrail />
         <DeviceAdapt />
         <div className="relative z-10 flex flex-col flex-1 min-h-full">
           {children}

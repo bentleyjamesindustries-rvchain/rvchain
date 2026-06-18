@@ -150,6 +150,17 @@ body {
   will-change: object-position;
 }
 
+.rv-mouse-trail {
+  mix-blend-mode: multiply;
+  opacity: 0.92;
+}
+
+@media (prefers-reduced-motion: reduce), (pointer: coarse) {
+  .rv-mouse-trail {
+    display: none !important;
+  }
+}
+
 .rv-scene-overlay {
   position: fixed;
   inset: 0;
