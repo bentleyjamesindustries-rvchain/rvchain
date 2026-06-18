@@ -1,0 +1,1543 @@
+'use client';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { 
+  MapPin, Navigation, Heart, User, Search, X, Star, 
+  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Wallet, Eye, EyeOff
+} from 'lucide-react';
+import { parks as seedParks, Park, calculateDistance } from '@/lib/parks';
+import { supabase, Park as SupabasePark } from '@/lib/supabaseClient';
+import { checkSupabaseTables, isMissingTableError } from '@/lib/supabaseSetup';
+import {
+  listLocalTrips,
+  createLocalTrip,
+  listLocalTripParks,
+  addLocalTripPark,
+  StoredTrip,
+} from '@/lib/localTrips';
+import dynamic from 'next/dynamic';
+import Image from 'next/image';
+import { toast } from 'sonner';
+import RewardsPanel from '@/components/RewardsPanel';
+import WalletOnboarding from '@/components/WalletOnboarding';
+import WalletInviteModal from '@/components/WalletInviteModal';
+import ForgotPasswordModal from '@/components/ForgotPasswordModal';
+import { loadWalletProfile, getWalletUserId, WalletProfile } from '@/lib/walletStorage';
+import { truncateAddress } from '@/lib/bitcoinAddress';
+import { performCheckIn } from '@/lib/rewards';
+import {
+  loadUnifiedRewards,
+  saveUnifiedRewards,
+  getRewardsUserId,
+  getActivePoints,
+} from '@/lib/rewardsStorage';
+import {
+  createSiteBooking,
+  addBooking,
+  performBookingCheckIn,
+  getBookableCheckIn,
+} from '@/lib/bookingRewards';
+import BookParkModal from '@/components/BookParkModal';
+import VerifiedBitcoinBadge from '@/components/VerifiedBitcoinBadge';
+import { createSpotVerificationRecord, getParkVerificationInfo } from '@/lib/spotVerification';
+import { isModerator } from '@/lib/moderator';
+import { enrichParks, mergeParkVerification, saveLocalVerification } from '@/lib/localVerification';
+import type { BookingPayment } from '@/lib/usdcPayments';
+import ForumPanel from '@/components/ForumPanel';
+import ProfileEditor from '@/components/ProfileEditor';
+import ProfileAvatar from '@/components/ProfileAvatar';
+import {
+  UserProfile,
+  loadUserProfile,
+  saveUserProfile,
+  getProfileUserId,
+  getDisplayHandle,
+} from '@/lib/userProfile';
+import { useIsMobile } from '@/lib/useDeviceType';
+import type { RewardProgramId } from '@/lib/rewardPrograms';
+import type { LucideIcon } from 'lucide-react';
+
+const MapView = dynamic(() => import('@/components/MapView'), {
+  ssr: false,
+  loading: () => (
+    <div className="h-[min(55vh,420px)] sm:h-[520px] flex items-center justify-center bg-slate-900 rounded-3xl border border-slate-700 text-slate-400">
+      Loading interactive map...
+    </div>
+  ),
+});
+
+type Tab = 'discover' | 'map' | 'community' | 'trips' | 'rewards';
+type PriceTier = 'all' | 'budget' | 'mid' | 'premium';
+
+// Auth + Supabase state types
+interface User {
+  id: string;
+  email?: string;
+  username?: string;
+}
+
+const ALL_AMENITIES = ["Full Hookups", "WiFi", "Pet Friendly", "Pool", "Laundry", "50 Amp", "Dump Station", "Propane", "Store"] as const;
+
+const PRICE_TIERS: { label: string; value: PriceTier }[] = [
+  { label: 'Any price', value: 'all' },
+  { label: '$25–45', value: 'budget' },
+  { label: '$46–65', value: 'mid' },
+  { label: '$66+', value: 'premium' },
+];
+
+const STATES = ['AZ', 'CA', 'CO', 'FL', 'GA', 'ME', 'MI', 'MT', 'NC', 'NY', 'OR', 'SD', 'TN', 'TX', 'UT', 'WA', 'WY'];
+
+const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: 'discover', label: 'Discover', icon: Search },
+  { id: 'map', label: 'Map', icon: MapPin },
+  { id: 'community', label: 'Forum', icon: MessagesSquare },
+  { id: 'trips', label: 'Trips', icon: Calendar },
+  { id: 'rewards', label: 'Rewards', icon: Gift },
+];
+
+export default function RVChainApp() {
+  const isMobile = useIsMobile();
+  // Tab state
+  const [activeTab, setActiveTab] = useState<Tab>('discover');
+
+  // Filter states
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedState, setSelectedState] = useState('');
+  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
+  const [priceTier, setPriceTier] = useState<PriceTier>('all');
+
+  // User data
+  const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [userProfile, setUserProfile] = useState<UserProfile>(() =>
+    typeof window !== 'undefined' ? loadUserProfile(getProfileUserId()) : loadUserProfile('guest')
+  );
+
+  // Auth state (Supabase)
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [showAuthModal, setShowAuthModal] = useState(false);
+  const [authEmail, setAuthEmail] = useState('');
+  const [authPassword, setAuthPassword] = useState('');
+  const [showAuthPassword, setShowAuthPassword] = useState(false);
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
+
+  // Supabase data (replaces local state for live features)
+  const [dbParks, setDbParks] = useState<Park[]>([]);
+
+  const [userTrips, setUserTrips] = useState<StoredTrip[]>([]);
+  const [selectedTrip, setSelectedTrip] = useState<StoredTrip | null>(null);
+  const [supabaseReady, setSupabaseReady] = useState(true);
+  const [tripParks, setTripParks] = useState<any[]>([]);
+  const [newTripTitle, setNewTripTitle] = useState('');
+  const [rewardPoints, setRewardPoints] = useState(0);
+  const [activeRewardProgram, setActiveRewardProgram] = useState<RewardProgramId>('mileage');
+
+  const syncRewardsState = useCallback(() => {
+    const data = loadUnifiedRewards(getRewardsUserId(user?.id));
+    setRewardPoints(getActivePoints(data));
+    setActiveRewardProgram(data.activeProgram);
+  }, [user?.id]);
+
+  // Modals
+  const [selectedPark, setSelectedPark] = useState<Park | null>(null);
+  const [showProfile, setShowProfile] = useState(false);
+  const [showWalletModal, setShowWalletModal] = useState(false);
+  const [showWalletInvite, setShowWalletInvite] = useState(false);
+  const [walletProfile, setWalletProfile] = useState<WalletProfile | null>(null);
+  const [showSubmitPark, setShowSubmitPark] = useState(false);
+  const [bookParkTarget, setBookParkTarget] = useState<Park | null>(null);
+  const [verifyingParkId, setVerifyingParkId] = useState<string | null>(null);
+
+  // Submit park form
+  const [newPark, setNewPark] = useState({
+    name: '', city: '', state: '', lat: '', lng: '', price: '', description: '', image: ''
+  });
+
+  // Chat
+
+
+  // Load persisted data (local fallback)
+  useEffect(() => {
+    const savedFavorites = localStorage.getItem('rvchain_favorites');
+    if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
+
+    setUserProfile(loadUserProfile(getProfileUserId()));
+
+    const data = loadUnifiedRewards(getRewardsUserId());
+    setRewardPoints(getActivePoints(data));
+    setActiveRewardProgram(data.activeProgram);
+    setWalletProfile(loadWalletProfile(getWalletUserId()));
+  }, []);
+
+  // Persist favorites and handle
+  useEffect(() => {
+    localStorage.setItem('rvchain_favorites', JSON.stringify(favorites));
+  }, [favorites]);
+
+  useEffect(() => {
+    if (user) {
+      setUserProfile(loadUserProfile(getProfileUserId(user.id)));
+    }
+  }, [user]);
+
+  // Check whether Supabase tables have been created
+  useEffect(() => {
+    checkSupabaseTables().then(setSupabaseReady);
+  }, []);
+
+  // === SUPABASE AUTH + DATA SETUP ===
+  useEffect(() => {
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || undefined,
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0]
+        });
+      }
+      setAuthLoading(false);
+    });
+
+    // Listen for auth changes
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (session?.user) {
+        setUser({
+          id: session.user.id,
+          email: session.user.email || undefined,
+          username: session.user.user_metadata?.username || session.user.email?.split('@')[0]
+        });
+      } else {
+        setUser(null);
+      }
+      setAuthLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // Fetch parks from Supabase (fallback to seed if empty or error)
+  useEffect(() => {
+    const fetchParks = async () => {
+      const { data, error } = await supabase
+        .from('parks')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) {
+        setDbParks(enrichParks(seedParks));
+      } else {
+        setDbParks(enrichParks(data as Park[]));
+      }
+    };
+    fetchParks();
+  }, []);
+
+  // Load user trips when logged in
+  useEffect(() => {
+    if (!user) {
+      setUserTrips([]);
+      return;
+    }
+
+    const loadTrips = async () => {
+      if (!supabaseReady) {
+        setUserTrips(listLocalTrips(user.id));
+        return;
+      }
+      const { data, error } = await supabase
+        .from('trips')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false });
+      if (error && isMissingTableError(error)) {
+        setSupabaseReady(false);
+        setUserTrips(listLocalTrips(user.id));
+        return;
+      }
+      if (data) setUserTrips(data);
+    };
+    loadTrips();
+  }, [user, supabaseReady]);
+
+  // Computed filtered + sorted parks (from Supabase or seed)
+  const filteredParks = useMemo(() => {
+    const sourceParks = enrichParks(dbParks.length > 0 ? dbParks : seedParks);
+    let result = sourceParks.filter((park) => {
+      const term = searchTerm.toLowerCase();
+      const matchesSearch =
+        !searchTerm ||
+        park.name.toLowerCase().includes(term) ||
+        (park.city?.toLowerCase().includes(term) ?? false) ||
+        (park.state?.toLowerCase().includes(term) ?? false) ||
+        (park.description?.toLowerCase().includes(term) ?? false);
+
+      const matchesState = !selectedState || park.state === selectedState;
+
+      const matchesAmenities =
+        selectedAmenities.length === 0 ||
+        selectedAmenities.every((a) => park.amenities.includes(a));
+
+      let matchesPrice = true;
+      const price = park.price ?? 0;
+      if (priceTier === 'budget') matchesPrice = price <= 45;
+      if (priceTier === 'mid') matchesPrice = price > 45 && price <= 65;
+      if (priceTier === 'premium') matchesPrice = price > 65;
+
+      return matchesSearch && matchesState && matchesAmenities && matchesPrice;
+    });
+
+    // Attach distance and sort by nearest if we have location
+    if (userLocation) {
+      result = result
+        .filter((park) => park.lat != null && park.lng != null)
+        .map((park) => ({
+          ...park,
+          distance: calculateDistance(userLocation.lat, userLocation.lng, park.lat!, park.lng!),
+        }))
+        .sort((a, b) => (a.distance || 9999) - (b.distance || 9999));
+    }
+
+    return result;
+  }, [searchTerm, selectedState, selectedAmenities, priceTier, userLocation]);
+
+  // Handlers
+  const toggleAmenity = (amenity: string) => {
+    setSelectedAmenities((prev) =>
+      prev.includes(amenity)
+        ? prev.filter((a) => a !== amenity)
+        : [...prev, amenity]
+    );
+  };
+
+  const setPriceFilter = (tier: PriceTier) => {
+    setPriceTier(tier);
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setSelectedState('');
+    setSelectedAmenities([]);
+    setPriceTier('all');
+  };
+
+  const useMyLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error("Geolocation not supported in this browser.");
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const loc = { lat: position.coords.latitude, lng: position.coords.longitude };
+        setUserLocation(loc);
+        setActiveTab('discover');
+        toast.success(`Location found! Sorting parks by distance.`);
+      },
+      (error) => {
+        let msg = "Couldn't get your location.";
+        if (error.code === 1) msg = "Location permission denied.";
+        toast.error(msg);
+      },
+      { enableHighAccuracy: true, timeout: 9000 }
+    );
+  };
+
+  const getDirections = (park: Park) => {
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${park.lat},${park.lng}&travelmode=driving`;
+    window.open(url, '_blank');
+    toast.success(`Opening Google Maps navigation to ${park.name}`);
+  };
+
+  const showParkDetails = (park: Park) => {
+    setSelectedPark(park);
+  };
+
+  const closeModal = () => setSelectedPark(null);
+
+  const toggleFavorite = (parkId: string) => {
+    const isFav = favorites.includes(parkId);
+    if (isFav) {
+      setFavorites((prev) => prev.filter((id) => id !== parkId));
+      toast.info("Removed from My Stops");
+    } else {
+      setFavorites((prev) => [...prev, parkId]);
+      toast.success("Saved to My Stops ❤️");
+    }
+  };
+
+  const isFavorite = (parkId: string) => favorites.includes(parkId);
+
+  const profileHandle = getDisplayHandle(userProfile, user?.username);
+
+  const handleSaveProfile = async (profile: UserProfile) => {
+    const uid = getProfileUserId(user?.id);
+    const saved = saveUserProfile(uid, profile);
+    setUserProfile(saved);
+    setShowProfile(false);
+
+    if (user) {
+      const { error } = await supabase.from('profiles').upsert({
+        id: user.id,
+        username: saved.handle,
+        avatar_url: saved.avatarUrl,
+      });
+      if (error && !isMissingTableError(error)) {
+        toast.error('Profile saved locally. Cloud sync failed.');
+      }
+    }
+  };
+
+  // === AUTH FUNCTIONS ===
+  const handleAuth = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!authEmail || !authPassword) return toast.error("Enter email and password");
+
+    setAuthLoading(true);
+    try {
+      if (isSignUp) {
+        const { error } = await supabase.auth.signUp({
+          email: authEmail,
+          password: authPassword,
+          options: { data: { username: authEmail.split('@')[0] } }
+        });
+        if (error) throw error;
+        toast.success('Welcome to rvchain! Your account is ready.');
+        setShowWalletInvite(true);
+      } else {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: authEmail,
+          password: authPassword
+        });
+        if (error) throw error;
+        toast.success("Welcome back, RVer!");
+      }
+      setShowAuthModal(false);
+      setAuthEmail('');
+      setAuthPassword('');
+    } catch (err: any) {
+      toast.error(err.message || "Auth failed. Check your Supabase keys and tables.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    setUser(null);
+    setUserTrips([]);
+    syncRewardsState();
+    toast.success("Signed out");
+  };
+
+  const handleParkCheckIn = (park: Park) => {
+    const uid = getRewardsUserId(user?.id);
+    const rewards = loadUnifiedRewards(uid);
+
+    if (rewards.activeProgram === 'booking') {
+      const booking = getBookableCheckIn(rewards.booking, park.id);
+      if (!booking) {
+        toast.error('Book this park on rvchain first, then check in on arrival day.');
+        setBookParkTarget(park);
+        return;
+      }
+      const { state: next, points, error } = performBookingCheckIn(
+        rewards.booking,
+        booking,
+        userLocation?.lat,
+        userLocation?.lng,
+        park.lat,
+        park.lng
+      );
+      if (error) return toast.error(error);
+      saveUnifiedRewards(uid, { ...rewards, booking: next });
+      syncRewardsState();
+      toast.success(`+${points} points! Stay check-in at ${park.name}`);
+      return;
+    }
+
+    const { profile: next, points, error } = performCheckIn(rewards.mileage, 'campsite', park.id, park.name);
+    if (error) return toast.error(error);
+    saveUnifiedRewards(uid, { ...rewards, mileage: next });
+    syncRewardsState();
+    toast.success(`+${points} points! Checked in at ${park.name}`);
+  };
+
+  const handleConfirmBooking = (checkIn: string, checkOut: string, payment: BookingPayment) => {
+    if (!bookParkTarget) return;
+    const uid = getRewardsUserId(user?.id);
+    const rewards = loadUnifiedRewards(uid);
+    const booking = createSiteBooking(bookParkTarget, checkIn, checkOut, payment);
+    const nextBooking = addBooking(rewards.booking, booking);
+    const next = { ...rewards, activeProgram: 'booking' as const, booking: nextBooking };
+    saveUnifiedRewards(uid, next);
+    setActiveRewardProgram('booking');
+    syncRewardsState();
+    const parkName = bookParkTarget.name;
+    setBookParkTarget(null);
+    closeModal();
+
+    if (payment.method === 'usdc') {
+      toast.success(
+        `Booking confirmed! ${payment.usdcAmount} USDC paid on ${payment.usdcChain ?? 'USDC'}. Check in on ${checkIn}.`
+      );
+    } else {
+      toast.success(`Booked ${parkName}! Switch to Book & Stay Rewards and check in on ${checkIn}.`);
+    }
+    setActiveTab('rewards');
+  };
+
+  useEffect(() => {
+    syncRewardsState();
+    setWalletProfile(loadWalletProfile(getWalletUserId(user?.id)));
+  }, [user, syncRewardsState]);
+
+  // === PARK SUBMISSION (real backend) ===
+  const submitNewPark = async () => {
+    if (!user) return toast.error("Sign in to submit parks.");
+    if (!newPark.name || !newPark.city) return toast.error("Name and city required.");
+
+    try {
+      const { error } = await supabase.from('parks').insert({
+        name: newPark.name,
+        city: newPark.city,
+        state: newPark.state || null,
+        lat: newPark.lat ? parseFloat(newPark.lat) : null,
+        lng: newPark.lng ? parseFloat(newPark.lng) : null,
+        price: newPark.price ? parseInt(newPark.price) : null,
+        description: newPark.description || null,
+        image: newPark.image || 'https://picsum.photos/id/160/800/400',
+        submitted_by: user.id,
+        verified: false,
+        amenities: []  // user can expand later
+      });
+      if (error) throw error;
+
+      toast.success("Park submitted! It will appear after refresh (or verify it yourself).");
+      setShowSubmitPark(false);
+      setNewPark({ name: '', city: '', state: '', lat: '', lng: '', price: '', description: '', image: '' });
+
+      // Refresh parks list
+      const { data } = await supabase.from('parks').select('*').order('created_at', { ascending: false });
+      if (data) setDbParks(enrichParks(data as Park[]));
+    } catch (err: any) {
+      toast.error("Submission failed: " + (err.message || err));
+    }
+  };
+
+  const refreshParks = async () => {
+    const { data } = await supabase.from('parks').select('*').order('created_at', { ascending: false });
+    if (data?.length) {
+      setDbParks(enrichParks(data as Park[]));
+    } else {
+      setDbParks(enrichParks(seedParks));
+    }
+  };
+
+  const isSupabaseParkId = (id: string) =>
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
+
+  const verifyOnBitcoin = async (park: Park) => {
+    if (!user) return toast.error('Sign in to verify spots.');
+    if (!isModerator(user)) return toast.error('Only moderators can verify spots.');
+    if (park.verification_hash || getParkVerificationInfo(park)) return;
+
+    setVerifyingParkId(park.id);
+    const toastId = toast.loading('Hashing spot data & timestamping on Bitcoin…');
+
+    try {
+      const verifiedBy = user.email ?? user.username ?? 'moderator';
+      const record = await createSpotVerificationRecord(park, verifiedBy);
+      saveLocalVerification(park.id, record);
+
+      const updatedPark = mergeParkVerification({
+        ...park,
+        verified: true,
+        verification_hash: record.verificationHash,
+        verification_ots: record.verificationOts,
+        verified_at: record.verifiedAt,
+        verified_by: record.verifiedBy,
+        verification_proof_url: record.proofUrl,
+        verification_tx: record.verificationHash,
+      });
+
+      if (isSupabaseParkId(park.id)) {
+        const { error } = await supabase.from('parks').update({
+          verified: true,
+          verification_hash: record.verificationHash,
+          verification_ots: record.verificationOts,
+          verified_at: record.verifiedAt,
+          verified_by: record.verifiedBy,
+          verification_tx: record.verificationHash,
+        }).eq('id', park.id);
+
+        if (error) {
+          toast.dismiss(toastId);
+          toast.warning('Verified locally; Supabase update failed. Run the migration SQL.');
+          setDbParks((prev) =>
+            enrichParks(prev.map((p) => (p.id === park.id ? updatedPark : p)))
+          );
+          if (selectedPark?.id === park.id) setSelectedPark(updatedPark);
+          return;
+        }
+        await refreshParks();
+      } else {
+        setDbParks((prev) =>
+          enrichParks(prev.map((p) => (p.id === park.id ? updatedPark : p)))
+        );
+      }
+
+      if (selectedPark?.id === park.id) setSelectedPark(updatedPark);
+
+      toast.dismiss(toastId);
+      toast.success(
+        record.verificationOts
+          ? 'Verified on Bitcoin! OpenTimestamps proof recorded.'
+          : 'Verified! Hash saved — OpenTimestamps proof will finalize shortly.'
+      );
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Verification failed. Try again.');
+    } finally {
+      setVerifyingParkId(null);
+    }
+  };
+
+  // === TRIP PLANNER ===
+  const createTrip = async () => {
+    if (!user) return toast.error("Sign in to create trips.");
+    if (!newTripTitle.trim()) return toast.error("Give your trip a name.");
+
+    const title = newTripTitle.trim();
+
+    if (!supabaseReady) {
+      const trip = createLocalTrip(user.id, title);
+      setUserTrips([trip, ...userTrips]);
+      setNewTripTitle('');
+      setSelectedTrip(trip);
+      setTripParks([]);
+      toast.success("Trip created! (Saved on this device until Supabase is set up.)");
+      return;
+    }
+
+    const { data, error } = await supabase.from('trips').insert({
+      user_id: user.id,
+      title,
+    }).select().single();
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        setSupabaseReady(false);
+        const trip = createLocalTrip(user.id, title);
+        setUserTrips([trip, ...userTrips]);
+        setNewTripTitle('');
+        setSelectedTrip(trip);
+        setTripParks([]);
+        toast.success("Trip created! Run supabase-setup.sql in Supabase to enable cloud sync.");
+        return;
+      }
+      toast.error(error.message || "Failed to create trip.");
+      return;
+    }
+
+    setUserTrips([data, ...userTrips]);
+    setNewTripTitle('');
+    setSelectedTrip(data);
+    setTripParks([]);
+    toast.success("Trip created! Add parks below.");
+  };
+
+  const addParkToTrip = async (parkId: string) => {
+    if (!selectedTrip || !user) return;
+
+    const sourceParks = dbParks.length > 0 ? dbParks : seedParks;
+
+    if (!supabaseReady) {
+      setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, sourceParks));
+      toast.success("Added to trip!");
+      return;
+    }
+
+    const { error } = await supabase.from('trip_parks').insert({
+      trip_id: selectedTrip.id,
+      park_id: parkId,
+      visit_order: tripParks.length
+    });
+
+    if (error) {
+      if (isMissingTableError(error)) {
+        setSupabaseReady(false);
+        setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, sourceParks));
+        toast.success("Added to trip! (Saved locally until Supabase is set up.)");
+        return;
+      }
+      toast.error(error.message || "Couldn't add park to trip.");
+      return;
+    }
+
+    const { data } = await supabase
+      .from('trip_parks')
+      .select('*, parks(*)')
+      .eq('trip_id', selectedTrip.id)
+      .order('visit_order');
+    
+    if (data) setTripParks(data);
+    toast.success("Added to trip!");
+  };
+
+  const loadTripParks = async (trip: StoredTrip) => {
+    if (!user) return;
+    setSelectedTrip(trip);
+    const sourceParks = dbParks.length > 0 ? dbParks : seedParks;
+
+    if (!supabaseReady) {
+      setTripParks(listLocalTripParks(user.id, trip.id, sourceParks));
+      return;
+    }
+
+    const { data, error } = await supabase
+      .from('trip_parks')
+      .select('*, parks(*)')
+      .eq('trip_id', trip.id)
+      .order('visit_order');
+
+    if (error && isMissingTableError(error)) {
+      setSupabaseReady(false);
+      setTripParks(listLocalTripParks(user.id, trip.id, sourceParks));
+      return;
+    }
+
+    setTripParks(data || []);
+  };
+
+  // Profile / favorites
+  const openProfile = () => {
+    setShowProfile(true);
+    setActiveTab('discover'); // just in case
+  };
+
+  const removeFavorite = (parkId: string) => {
+    setFavorites((prev) => prev.filter((id) => id !== parkId));
+  };
+
+  const allParks = enrichParks(dbParks.length > 0 ? dbParks : seedParks);
+  const favoritedParks = allParks.filter((p) => favorites.includes(p.id));
+
+  // Stats
+  const totalParks = allParks.length;
+  const connectedRVers = "28,419";
+
+  return (
+    <div className="min-h-screen text-slate-200 overflow-x-hidden w-full max-w-[100vw] app-main">
+      {!supabaseReady && (
+        <div className="bg-amber-950/80 border-b border-amber-700/50 px-3 sm:px-4 py-2 text-center text-xs sm:text-sm text-amber-100 leading-snug">
+          <span className="sm:hidden">Local-only mode — run <code className="bg-amber-900/50 px-1 rounded">supabase-setup.sql</code> for cloud sync.</span>
+          <span className="hidden sm:inline">
+            Database tables not set up yet — trips and forum posts save on this device only.{' '}
+            <span className="text-amber-300 font-medium">
+              Open Supabase → SQL Editor → run <code className="text-xs bg-amber-900/50 px-1 rounded">supabase-setup.sql</code>
+            </span>
+          </span>
+        </div>
+      )}
+      {/* Header */}
+      <header className="rv-header border-b border-green-800/60 sticky top-0 z-50">
+        <div className="max-w-screen-xl mx-auto px-3 sm:px-6">
+          <div className="rv-header-inner flex items-center justify-between h-14 sm:h-16 min-w-0">
+            <div className="flex items-center gap-x-2 sm:gap-x-3 min-w-0 shrink">
+              <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl overflow-hidden shrink-0 shadow-inner ring-1 ring-white/15">
+                <Image
+                  src="/rvchain-logo.jpg"
+                  alt="rvchain logo"
+                  width={40}
+                  height={40}
+                  className="w-full h-full object-cover"
+                  priority
+                />
+              </div>
+              <div className="min-w-0">
+                <div className="rv-logo-text font-semibold text-xl sm:text-3xl tracking-tighter text-white truncate">rvchain</div>
+                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">THE RV COMMUNITY CHAIN</div>
+              </div>
+            </div>
+
+            <div className="rv-header-actions flex items-center gap-x-1.5 sm:gap-x-3 shrink-0">
+              <button
+                onClick={() => setActiveTab('rewards')}
+                className="flex items-center gap-x-1 text-xs sm:text-sm bg-amber-500/20 hover:bg-amber-500/30 backdrop-blur px-2 sm:px-3 py-1.5 rounded-2xl text-amber-200 transition"
+                title="Rewards points"
+              >
+                <Gift className="w-3.5 h-3.5 shrink-0" />
+                <span className="font-semibold text-amber-100">{rewardPoints.toLocaleString()}</span>
+                <span className="text-amber-300/80 text-[10px] sm:text-xs hidden min-[380px]:inline">pts</span>
+              </button>
+
+              <div className="hidden lg:flex items-center gap-x-2 text-sm bg-white/10 backdrop-blur px-3 py-1.5 rounded-2xl text-green-100">
+                <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
+                <span><span className="font-semibold text-white">{connectedRVers}</span> RVers connected</span>
+              </div>
+
+              <button
+                onClick={() => setShowWalletModal(true)}
+                className="flex items-center gap-x-1 text-xs sm:text-sm bg-slate-900/40 hover:bg-slate-900/60 backdrop-blur px-2 sm:px-3 py-1.5 rounded-2xl text-slate-200 transition border border-white/10"
+                title="My Wallet"
+              >
+                <Wallet className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                <span className="hidden md:inline">{walletProfile ? truncateAddress(walletProfile.bitcoinAddress) : 'Wallet'}</span>
+              </button>
+
+              {user ? (
+                <div className="flex items-center gap-x-1">
+                  <button 
+                    onClick={openProfile}
+                    className="flex items-center gap-x-1.5 bg-white/10 hover:bg-white/15 transition px-2 sm:px-3 py-1.5 rounded-2xl text-sm font-medium"
+                    title="Edit profile"
+                  >
+                    <ProfileAvatar handle={profileHandle} avatarUrl={userProfile.avatarUrl} size="sm" />
+                    <span className="hidden md:inline font-medium max-w-[6rem] truncate">{profileHandle}</span>
+                  </button>
+                  <button onClick={handleSignOut} className="hidden sm:inline text-xs px-2 py-1 hover:bg-white/10 rounded">Sign out</button>
+                </div>
+              ) : (
+                <button 
+                  onClick={() => setShowAuthModal(true)}
+                  className="flex items-center gap-x-1.5 bg-white/10 hover:bg-white/15 transition px-2.5 sm:px-3 py-1.5 rounded-2xl text-xs sm:text-sm font-medium"
+                >
+                  <LogIn className="w-4 h-4 shrink-0" />
+                  <span className="hidden min-[380px]:inline">Sign in</span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <div className="app-main">
+      {/* Hero — compact on mobile; hidden on other tabs to save space */}
+      {(!isMobile || activeTab === 'discover') && (
+      <div className="rv-hero max-w-screen-xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-3">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
+          <div>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Find your next spot.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Connect with the road.</h1>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-400 max-w-md">Nationwide RV parks &amp; campgrounds + real talk from fellow travelers.</p>
+          </div>
+
+          <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">
+            <button 
+              onClick={useMyLocation}
+              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 bg-white text-slate-900 hover:bg-amber-50 active:bg-white font-semibold rounded-3xl transition text-sm shadow-sm"
+            >
+              <Compass className="w-4 h-4 shrink-0" />
+              <span>Use My Location</span>
+            </button>
+            <button 
+              onClick={() => setActiveTab('discover')}
+              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 border border-white/30 hover:bg-white/5 font-medium rounded-3xl transition text-sm"
+            >
+              Browse {totalParks} parks
+            </button>
+          </div>
+        </div>
+      </div>
+      )}
+
+      {/* Desktop / tablet tabs */}
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 pt-2 sm:pt-4 hidden md:block">
+        <div className="desktop-tabs flex border-b border-slate-800 text-sm sm:text-base">
+          {NAV_TABS.map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`nav-tab px-4 sm:px-6 py-2.5 sm:py-3 flex items-center gap-x-2 font-medium shrink-0 ${isActive ? 'active' : 'text-slate-400 hover:text-slate-200'}`}
+              >
+                <Icon className="w-4 h-4 shrink-0" />
+                {tab.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* DISCOVER */}
+      {activeTab === 'discover' && (
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
+          {/* Filters */}
+          <div className="flex flex-col lg:flex-row gap-3 mb-5">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search parks, cities, or states..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-slate-900 border border-slate-700 focus:border-green-600 transition pl-11 pr-4 h-12 rounded-3xl text-base placeholder:text-slate-500 outline-none"
+              />
+              <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
+              {searchTerm && (
+                <button onClick={() => setSearchTerm('')} className="absolute right-4 top-3.5 text-slate-400 hover:text-white">
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+
+            <select
+              value={selectedState}
+              onChange={(e) => setSelectedState(e.target.value)}
+              className="lg:w-52 bg-slate-900 border border-slate-700 focus:border-green-600 h-12 px-4 rounded-3xl text-base outline-none"
+            >
+              <option value="">All States</option>
+              {STATES.map((s) => (
+                <option key={s} value={s}>{s}</option>
+              ))}
+            </select>
+
+            <div className="filter-scroll flex items-center bg-slate-900 border border-slate-700 rounded-3xl p-1 text-xs sm:text-sm min-w-0 w-full lg:w-auto">
+              {PRICE_TIERS.map((tier) => (
+                <button
+                  key={tier.value}
+                  onClick={() => setPriceFilter(tier.value)}
+                  className={`px-4 h-9 rounded-[20px] hover:bg-slate-800 active:bg-slate-700 font-medium transition ${priceTier === tier.value ? 'bg-green-700 text-white' : ''}`}
+                >
+                  {tier.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Amenity chips */}
+          <div className="mb-5">
+            <div className="text-xs font-medium tracking-wider text-slate-400 mb-1.5 ml-1">FILTER BY AMENITIES</div>
+            <div className="flex flex-wrap gap-2">
+              {ALL_AMENITIES.map((amenity) => {
+                const active = selectedAmenities.includes(amenity);
+                return (
+                  <button
+                    key={amenity}
+                    onClick={() => toggleAmenity(amenity)}
+                    className={`filter-chip px-3 py-1 text-xs border rounded-2xl hover:border-green-600 transition ${active ? 'active border-green-700' : 'border-slate-600'}`}
+                  >
+                    {amenity}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Results header */}
+          <div className="flex items-center justify-between mb-3 px-1">
+            <div>
+              <span className="font-semibold text-xl">{filteredParks.length}</span>
+              <span className="text-slate-400 text-sm ml-1">parks found nationwide</span>
+            </div>
+            <div className="flex items-center gap-3">
+              {user && (
+                <button onClick={() => setShowSubmitPark(true)} className="text-xs flex items-center gap-1 bg-orange-600 hover:bg-orange-500 px-3 py-1.5 rounded-2xl font-medium">
+                  <Plus className="w-3 h-3"/> Submit Park
+                </button>
+              )}
+              <button onClick={clearFilters} className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
+                <X className="w-3 h-3" /> Clear all filters
+              </button>
+            </div>
+          </div>
+
+          {/* Parks Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
+            {filteredParks.length === 0 ? (
+              <div className="col-span-full text-center py-10 text-slate-400">
+                No parks match your filters.<br />
+                <button onClick={clearFilters} className="mt-3 underline text-green-400">Clear filters</button>
+              </div>
+            ) : (
+              filteredParks.map((park) => {
+                const fav = isFavorite(park.id);
+                const dist = (park as any).distance;
+                return (
+                  <div key={park.id} onClick={() => showParkDetails(park)} className="rv-card bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden flex flex-col cursor-pointer">
+                    <div className="relative">
+                      <img src={park.image ?? ''} className="w-full h-40 object-cover" alt={park.name} />
+                      <div className="absolute top-3 right-3 bg-black/70 text-white text-xs font-medium px-2.5 py-0.5 rounded-2xl backdrop-blur flex items-center gap-1">
+                        <Star className="w-3 h-3" /> {park.rating}
+                      </div>
+                      {fav && <div className="absolute top-3 left-3 text-lg">❤️</div>}
+                      {park.verified && getParkVerificationInfo(park) && (
+                        <div className="absolute bottom-2 left-2" onClick={(e) => e.stopPropagation()}>
+                          <VerifiedBitcoinBadge
+                            verification={getParkVerificationInfo(park)!}
+                            size="sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="p-4 flex-1 flex flex-col">
+                      <div className="font-semibold text-lg leading-tight flex items-center gap-2">
+                        {park.name}
+                        {park.verified && !getParkVerificationInfo(park) && (
+                          <span className="text-[10px] font-semibold text-orange-300 bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-700/50">
+                            Verified
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-emerald-300 text-sm">{park.city}, {park.state}</div>
+
+                      {dist !== undefined && (
+                        <div className="text-xs text-emerald-300 font-medium mt-0.5">{dist.toFixed(0)} mi away</div>
+                      )}
+
+                      <div className="mt-3 flex items-baseline justify-between">
+                        <div>
+                          <span className="text-2xl font-semibold">${park.price}</span>
+                          <span className="text-xs text-slate-400">/night</span>
+                        </div>
+                      </div>
+
+                      <div className="mt-3 flex flex-wrap gap-1">
+                        {park.amenities.slice(0, 3).map((a) => (
+                          <div key={a} className="amenity-pill text-[10px] px-2 py-px">{a}</div>
+                        ))}
+                        {park.amenities.length > 3 && (
+                          <div className="amenity-pill text-[10px] px-2 py-px">+{park.amenities.length - 3}</div>
+                        )}
+                      </div>
+
+                      <div className="flex-1" />
+
+                      <div className="flex gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
+                        <button
+                          onClick={() => showParkDetails(park)}
+                          className="flex-1 bg-white text-slate-900 hover:bg-slate-100 transition font-semibold py-2 text-sm rounded-2xl"
+                        >
+                          Details
+                        </button>
+                        <button
+                          onClick={() => getDirections(park)}
+                          className="flex-1 border border-emerald-700 hover:bg-emerald-900/20 transition font-medium py-2 text-sm rounded-2xl text-emerald-300"
+                        >
+                          Navigate
+                        </button>
+                        <button
+                          onClick={() => toggleFavorite(park.id)}
+                          className="px-3 border border-slate-600 hover:bg-slate-800 rounded-2xl text-lg"
+                          title={fav ? "Remove from favorites" : "Save to My Stops"}
+                        >
+                          {fav ? "❤️" : "♡"}
+                        </button>
+                        {user && (
+                          <button
+                            onClick={() => addParkToTrip(park.id)}
+                            className="px-3 border border-emerald-700 hover:bg-emerald-900/30 rounded-2xl text-xs text-emerald-300"
+                            title="Add to current trip"
+                          >
+                            +Trip
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* MAP */}
+      {activeTab === 'map' && (
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <h2 className="font-semibold text-2xl">Explore on the map</h2>
+              <p className="text-slate-400 text-sm">Click any marker for quick info and directions</p>
+            </div>
+            <div className="text-sm bg-slate-900 px-4 py-1.5 rounded-2xl border border-slate-700">
+              Showing <span className="font-semibold">{filteredParks.length}</span> parks
+            </div>
+          </div>
+
+          <MapView 
+            parks={filteredParks} 
+            userLocation={userLocation} 
+            onParkSelect={showParkDetails} 
+            onGetDirections={getDirections} 
+          />
+
+          <div className="mt-3 text-xs text-slate-400 flex items-center gap-x-2 px-1">
+            <div className="flex items-center gap-x-1.5">
+              <div className="w-3 h-3 rounded-full bg-emerald-500" />
+              <span>Available now</span>
+            </div>
+            <span>•</span>
+            <span>Tap markers → Get Directions opens full Google Maps GPS navigation</span>
+          </div>
+        </div>
+      )}
+
+      {/* FORUM */}
+      {activeTab === 'community' && (
+        <ForumPanel
+          user={user}
+          displayHandle={profileHandle}
+          displayAvatar={userProfile.avatarUrl}
+          onRequestSignIn={() => setShowAuthModal(true)}
+          onOpenProfile={user ? openProfile : undefined}
+        />
+      )}
+
+      {/* Park Detail Modal */}
+      {selectedPark && (
+        <div 
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center"
+          onClick={closeModal}
+        >
+          <div 
+            className="modal bg-slate-900 w-full sm:w-[520px] sm:rounded-t-3xl sm:rounded-b-3xl border-t sm:border border-slate-700 rounded-t-3xl max-h-[92vh] overflow-hidden"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between px-5 pt-5 pb-2">
+              <div className="font-semibold text-2xl pr-6">{selectedPark.name}</div>
+              <button onClick={closeModal} className="text-3xl leading-none text-slate-400 hover:text-white w-9 h-9 flex items-center justify-center">×</button>
+            </div>
+
+            <div className="px-5">
+              <div className="text-emerald-300 mb-1">{selectedPark.city}, {selectedPark.state}</div>
+
+              <div className="w-full h-48 bg-cover bg-center rounded-2xl mb-4 border border-slate-700" style={{ backgroundImage: `url('${selectedPark.image}')` }} />
+
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-x-2">
+                  <div className="flex items-center text-lg font-semibold">
+                    <Star className="text-amber-400 w-5 h-5 mr-1" /> {selectedPark.rating}
+                  </div>
+                  <div className="text-xl font-semibold ml-1">${selectedPark.price}<span className="text-sm text-slate-400">/night</span></div>
+                </div>
+                {userLocation && selectedPark.lat != null && selectedPark.lng != null && (
+                  <div className="text-sm bg-slate-800 px-3 py-1 rounded-2xl">
+                    {calculateDistance(userLocation.lat, userLocation.lng, selectedPark.lat, selectedPark.lng).toFixed(0)} miles from you
+                  </div>
+                )}
+              </div>
+
+              <div className="text-slate-300 leading-relaxed text-[15px] mb-5">{selectedPark.description}</div>
+
+              {getParkVerificationInfo(selectedPark) ? (
+                <div className="mb-4 flex justify-center">
+                  <VerifiedBitcoinBadge
+                    verification={getParkVerificationInfo(selectedPark)!}
+                    size="lg"
+                  />
+                </div>
+              ) : selectedPark.verified ? (
+                <div className="mb-4 p-3 bg-orange-900/20 border border-orange-700/50 rounded-2xl text-sm text-center text-orange-300">
+                  Verified spot — full Bitcoin proof pending moderator review.
+                </div>
+              ) : null}
+
+              {user && isModerator(user) && !getParkVerificationInfo(selectedPark) && (
+                <button
+                  onClick={() => verifyOnBitcoin(selectedPark)}
+                  disabled={verifyingParkId === selectedPark.id}
+                  className="mb-4 w-full text-xs bg-orange-700 hover:bg-orange-600 disabled:opacity-50 py-2.5 rounded-2xl font-medium"
+                >
+                  {verifyingParkId === selectedPark.id
+                    ? 'Timestamping on Bitcoin…'
+                    : 'Verify on Bitcoin (moderator)'}
+                </button>
+              )}
+
+              <div>
+                <div className="uppercase text-xs tracking-widest text-slate-400 mb-2">Amenities</div>
+                <div className="flex flex-wrap gap-1.5">
+                  {selectedPark.amenities.map((a) => (
+                    <div key={a} className="amenity-pill px-3 py-1 text-xs">{a}</div>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="p-5 bg-slate-950 mt-5 border-t border-slate-700 flex flex-col gap-y-3">
+              <button 
+                onClick={() => getDirections(selectedPark)}
+                className="w-full bg-orange-600 hover:bg-orange-500 transition text-white font-semibold h-12 rounded-3xl flex items-center justify-center gap-x-2 shadow-sm active:scale-[0.985]"
+              >
+                <Navigation className="w-4 h-4" />
+                <span className="font-semibold">Get Directions in Google Maps</span>
+              </button>
+
+              <button
+                onClick={() => setBookParkTarget(selectedPark)}
+                className="w-full bg-sky-700 hover:bg-sky-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
+              >
+                <Calendar className="w-4 h-4" />
+                <span>Book on rvchain</span>
+              </button>
+
+              <button
+                onClick={() => handleParkCheckIn(selectedPark)}
+                className="w-full bg-amber-700 hover:bg-amber-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
+              >
+                <Gift className="w-4 h-4" />
+                <span>
+                  {activeRewardProgram === 'booking'
+                    ? 'Check In to Earn Points'
+                    : 'Check In (+250 pts)'}
+                </span>
+              </button>
+
+              <div className="grid grid-cols-2 gap-2 text-sm">
+                <button 
+                  onClick={() => toggleFavorite(selectedPark.id)}
+                  className="flex items-center justify-center gap-x-2 border border-slate-600 hover:bg-slate-900 h-11 rounded-3xl"
+                >
+                  <Heart className="w-4 h-4" /> 
+                  {isFavorite(selectedPark.id) ? "Remove from My Stops" : "Save to My Stops"}
+                </button>
+                <button 
+                  onClick={() => {
+                    setActiveTab('map');
+                    closeModal();
+                    // The map component will auto center via props
+                  }}
+                  className="flex items-center justify-center gap-x-2 border border-slate-600 hover:bg-slate-900 h-11 rounded-3xl"
+                >
+                  <MapPin className="w-4 h-4" /> View on Map
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Profile editor */}
+      {showProfile && user && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[100] flex items-end sm:items-center justify-center"
+          onClick={() => setShowProfile(false)}
+        >
+          <ProfileEditor
+            profile={userProfile}
+            userEmail={user.email}
+            favoritesCount={favorites.length}
+            favoritedParks={favoritedParks}
+            walletConnected={Boolean(walletProfile)}
+            onSave={handleSaveProfile}
+            onClose={() => setShowProfile(false)}
+            onOpenWallet={() => setShowWalletModal(true)}
+            onParkSelect={(park) => { showParkDetails(park); setShowProfile(false); }}
+            onRemoveFavorite={removeFavorite}
+            onGoToForum={() => setActiveTab('community')}
+          />
+        </div>
+      )}
+
+      {bookParkTarget && (
+        <BookParkModal
+          park={bookParkTarget}
+          onClose={() => setBookParkTarget(null)}
+          onConfirm={handleConfirmBooking}
+        />
+      )}
+
+      {showWalletInvite && !walletProfile && (
+        <WalletInviteModal
+          onSetUp={() => {
+            setShowWalletInvite(false);
+            setShowWalletModal(true);
+          }}
+          onSkip={() => {
+            if (user?.id) {
+              localStorage.setItem(`rvchain_wallet_invite_skipped_${user.id}`, '1');
+            }
+            setShowWalletInvite(false);
+          }}
+          onClose={() => setShowWalletInvite(false)}
+        />
+      )}
+
+      {/* Wallet Onboarding Modal */}
+      {showWalletModal && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4"
+          onClick={() => setShowWalletModal(false)}
+        >
+          <div className="w-full sm:max-w-2xl max-h-[92dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+            <WalletOnboarding
+              userId={user?.id}
+              onComplete={(profile) => setWalletProfile(profile)}
+              onClose={() => setShowWalletModal(false)}
+            />
+          </div>
+        </div>
+      )}
+
+      {showForgotPassword && (
+        <ForgotPasswordModal
+          initialEmail={authEmail}
+          onClose={() => {
+            setShowForgotPassword(false);
+            setShowAuthModal(true);
+            setIsSignUp(false);
+          }}
+          onLoggedIn={() => {
+            setShowForgotPassword(false);
+            setAuthEmail('');
+            setAuthPassword('');
+            setShowAuthPassword(false);
+          }}
+        />
+      )}
+
+      {/* Auth Modal */}
+      {showAuthModal && !showForgotPassword && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-center justify-center"
+          onClick={() => { setShowAuthModal(false); setShowAuthPassword(false); }}
+        >
+          <div className="modal bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
+            <h3 className="text-xl font-semibold mb-4">{isSignUp ? 'Create Account' : 'Sign In'} to rvchain</h3>
+            
+            <form onSubmit={handleAuth} className="space-y-4">
+              <input 
+                type="email" 
+                placeholder="you@rv.com" 
+                value={authEmail} 
+                onChange={e => setAuthEmail(e.target.value)}
+                className="w-full bg-slate-800 border border-slate-600 px-4 h-11 rounded-2xl" 
+                required 
+              />
+              <div className="relative">
+                <input
+                  type={showAuthPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={authPassword}
+                  onChange={(e) => setAuthPassword(e.target.value)}
+                  className="w-full bg-slate-800 border border-slate-600 pl-4 pr-11 h-11 rounded-2xl"
+                  required
+                  autoComplete={isSignUp ? 'new-password' : 'current-password'}
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAuthPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-200 transition p-1"
+                  aria-label={showAuthPassword ? 'Hide password' : 'Show password'}
+                >
+                  {showAuthPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              {!isSignUp && (
+                <div className="flex justify-end -mt-1">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowAuthModal(false);
+                      setShowForgotPassword(true);
+                    }}
+                    className="text-xs text-sky-400 hover:text-sky-300 transition"
+                  >
+                    Forgot password?
+                  </button>
+                </div>
+              )}
+              <button 
+                type="submit" 
+                disabled={authLoading}
+                className="w-full bg-green-700 hover:bg-green-600 h-11 rounded-3xl font-semibold disabled:opacity-50"
+              >
+                {authLoading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+              </button>
+            </form>
+
+            <button 
+              onClick={() => setIsSignUp(!isSignUp)}
+              className="text-sm text-emerald-400 mt-4 w-full"
+            >
+              {isSignUp ? 'Already have an account? Sign in' : 'New here? Create account'}
+            </button>
+            <button
+              onClick={() => { setShowAuthModal(false); setShowAuthPassword(false); }}
+              className="text-xs text-slate-400 mt-2 w-full"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Submit Park Modal (real backend) */}
+      {showSubmitPark && (
+        <div className="fixed inset-0 bg-black/70 z-[110] flex items-center justify-center p-4" onClick={() => setShowSubmitPark(false)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-md" onClick={e=>e.stopPropagation()}>
+            <h3 className="font-semibold text-xl mb-4 flex items-center gap-2"><Plus className="w-5 h-5"/> Submit a New RV Park</h3>
+            
+            <div className="space-y-3">
+              <input placeholder="Park Name" value={newPark.name} onChange={e=>setNewPark({...newPark, name:e.target.value})} className="w-full bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+              <div className="grid grid-cols-2 gap-3">
+                <input placeholder="City" value={newPark.city} onChange={e=>setNewPark({...newPark, city:e.target.value})} className="bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+                <input placeholder="State (e.g. MT)" value={newPark.state} onChange={e=>setNewPark({...newPark, state:e.target.value})} className="bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+              </div>
+              <div className="grid grid-cols-3 gap-3">
+                <input placeholder="Lat" value={newPark.lat} onChange={e=>setNewPark({...newPark, lat:e.target.value})} className="bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+                <input placeholder="Lng" value={newPark.lng} onChange={e=>setNewPark({...newPark, lng:e.target.value})} className="bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+                <input placeholder="Price/night" value={newPark.price} onChange={e=>setNewPark({...newPark, price:e.target.value})} className="bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+              </div>
+              <textarea placeholder="Description" value={newPark.description} onChange={e=>setNewPark({...newPark, description:e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-4 rounded-2xl h-20" />
+              <input placeholder="Image URL (optional)" value={newPark.image} onChange={e=>setNewPark({...newPark, image:e.target.value})} className="w-full bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+            </div>
+
+            <div className="flex gap-3 mt-6">
+              <button onClick={() => setShowSubmitPark(false)} className="flex-1 border border-slate-600 h-11 rounded-3xl">Cancel</button>
+              <button onClick={submitNewPark} className="flex-1 bg-orange-600 hover:bg-orange-500 h-11 rounded-3xl font-semibold">Submit Park</button>
+            </div>
+            <p className="text-[10px] text-slate-500 mt-3 text-center">Your submission will be visible to everyone. Use "Verify on Chain" to give it a blockchain badge.</p>
+          </div>
+        </div>
+      )}
+
+      {/* REWARDS TAB */}
+      {activeTab === 'rewards' && (
+        <RewardsPanel
+          user={user}
+          parks={allParks}
+          userLocation={userLocation}
+          onRequestSignIn={() => setShowAuthModal(true)}
+          onPointsChange={syncRewardsState}
+          onOpenWallet={() => setShowWalletModal(true)}
+          onBookPark={() => setActiveTab('discover')}
+        />
+      )}
+
+      {/* TRIPS TAB CONTENT */}
+      {activeTab === 'trips' && (
+        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
+          <div className="max-w-4xl">
+            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
+              <div>
+                <h2 className="text-xl sm:text-2xl font-semibold">Trip Planner</h2>
+                <p className="text-slate-400 text-sm">Plan your RV adventures and save routes with favorite parks.</p>
+              </div>
+              {user && (
+                <div className="flex flex-col min-[400px]:flex-row gap-2 w-full sm:w-auto">
+                  <input 
+                    value={newTripTitle} 
+                    onChange={e => setNewTripTitle(e.target.value)} 
+                    placeholder="New Trip Name (e.g. Yellowstone 2026)" 
+                    className="bg-slate-900 border border-slate-700 px-4 rounded-2xl text-sm w-full sm:w-56 md:w-64 min-w-0" 
+                  />
+                  <button onClick={createTrip} className="bg-green-700 hover:bg-green-600 px-5 rounded-3xl text-sm font-semibold flex items-center gap-1">
+                    <Plus className="w-4 h-4"/> Create Trip
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {!user ? (
+              <div className="text-center py-12 border border-slate-800 rounded-3xl">
+                <p className="text-slate-400 mb-4">Sign in to create and manage trips.</p>
+                <button onClick={() => setShowAuthModal(true)} className="bg-white text-black px-6 py-2 rounded-3xl font-semibold">Sign In</button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                {/* My Trips List */}
+                <div className="lg:col-span-1">
+                  <div className="font-medium mb-3">My Trips ({userTrips.length})</div>
+                  {userTrips.length === 0 ? (
+                    <div className="text-sm text-slate-400 p-4 border border-slate-800 rounded-2xl">No trips yet. Create one above!</div>
+                  ) : (
+                    <div className="space-y-2">
+                      {userTrips.map((trip: any) => (
+                        <button 
+                          key={trip.id} 
+                          onClick={() => loadTripParks(trip)}
+                          className={`w-full text-left p-3 rounded-2xl border transition ${selectedTrip?.id === trip.id ? 'bg-green-900/30 border-green-700' : 'bg-slate-900 border-slate-700 hover:border-slate-500'}`}
+                        >
+                          <div className="font-medium">{trip.title}</div>
+                          <div className="text-xs text-slate-400">{new Date(trip.created_at).toLocaleDateString()}</div>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Trip Detail + Add Parks */}
+                <div className="lg:col-span-2">
+                  {selectedTrip ? (
+                    <div>
+                      <div className="flex items-center justify-between mb-4">
+                        <div>
+                          <div className="font-semibold text-xl">{selectedTrip.title}</div>
+                          <div className="text-sm text-slate-400">Add parks from the Discover tab or here</div>
+                        </div>
+                      </div>
+
+                      <div className="mb-4">
+                        <div className="text-sm font-medium mb-2">Parks in this trip ({tripParks.length})</div>
+                        {tripParks.length === 0 ? (
+                          <div className="text-sm text-slate-400 border border-dashed border-slate-700 p-6 rounded-2xl">No parks added yet. Go to Discover and use "Add to Trip" on a park card, or select one below.</div>
+                        ) : (
+                          <div className="space-y-2">
+                            {tripParks.map((tp: any, idx: number) => (
+                              <div key={idx} className="flex items-center justify-between bg-slate-900 border border-slate-700 p-3 rounded-2xl">
+                                <div>{tp.parks?.name || 'Park'}</div>
+                                <div className="text-xs text-emerald-400">Stop #{idx + 1}</div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <div className="text-sm font-medium mb-2">Quick add from current parks</div>
+                        <div className="flex flex-wrap gap-2">
+                          {filteredParks.slice(0, 8).map(p => (
+                            <button key={p.id} onClick={() => addParkToTrip(p.id)} className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1 rounded-2xl">
+                              + {p.name}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="text-center py-12 text-slate-400 border border-slate-800 rounded-3xl">Select or create a trip on the left to start planning.</div>
+                  )}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      <footer className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8">
+        rvchain • Powered by Supabase
+        <span className="hidden sm:inline"> • </span>
+        <span className="block sm:inline underline cursor-pointer hover:text-slate-300 sm:ml-1" onClick={() => toast.info("Blockchain badges are simulated with cryptographic hashes for demo purposes.")}>
+          Blockchain badge info
+        </span>
+      </footer>
+      </div>
+
+      {/* Mobile bottom navigation */}
+      <nav className="mobile-bottom-nav md:hidden" aria-label="Main navigation">
+        {NAV_TABS.map((tab) => {
+          const Icon = tab.icon;
+          const isActive = activeTab === tab.id;
+          return (
+            <button
+              key={tab.id}
+              type="button"
+              onClick={() => setActiveTab(tab.id)}
+              className={`mobile-nav-btn ${isActive ? 'active' : ''}`}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              <Icon className="w-5 h-5" strokeWidth={isActive ? 2.5 : 2} />
+              <span>{tab.label}</span>
+            </button>
+          );
+        })}
+      </nav>
+    </div>
+  );
+}
