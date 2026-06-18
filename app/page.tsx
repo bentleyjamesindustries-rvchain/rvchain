@@ -873,7 +873,7 @@ export default function RVChainApp() {
 
       {/* Desktop / tablet tabs */}
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 pt-2 sm:pt-4 hidden md:block">
-        <div className="desktop-tabs flex border-b border-slate-800 text-sm sm:text-base">
+        <div className="desktop-tabs rv-tab-bar flex text-sm sm:text-base">
           {NAV_TABS.map((tab) => {
             const Icon = tab.icon;
             const isActive = activeTab === tab.id;
@@ -881,7 +881,7 @@ export default function RVChainApp() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`nav-tab px-4 sm:px-6 py-2.5 sm:py-3 flex items-center gap-x-2 font-medium shrink-0 ${isActive ? 'active' : 'text-slate-400 hover:text-slate-200'}`}
+                className={`nav-tab px-4 sm:px-6 py-2.5 sm:py-3 flex items-center gap-x-2 shrink-0 ${isActive ? 'active' : ''}`}
               >
                 <Icon className="w-4 h-4 shrink-0" />
                 {tab.label}

@@ -90,10 +90,11 @@ body {
   left: 0;
   right: 0;
   z-index: 50;
-  background: rgba(2, 6, 23, 0.96);
-  backdrop-filter: blur(12px);
-  border-top: 1px solid #1e293b;
+  background: rgb(15 23 42 / 0.98);
+  backdrop-filter: blur(16px);
+  border-top: 1px solid #475569;
   padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -4px 24px rgb(0 0 0 / 0.35);
 }
 
 .mobile-nav-btn {
@@ -105,7 +106,7 @@ body {
   gap: 0.125rem;
   padding: 0.5rem 0.25rem;
   min-height: 3.5rem;
-  color: #94a3b8;
+  color: #e2e8f0;
   transition: color 0.15s ease;
   -webkit-tap-highlight-color: transparent;
 }
@@ -115,9 +116,10 @@ body {
 }
 
 .mobile-nav-btn span {
-  font-size: 0.625rem;
-  font-weight: 600;
+  font-size: 0.6875rem;
+  font-weight: 700;
   letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.5);
 }
 
 .filter-scroll {
@@ -233,14 +235,29 @@ body {
   border-color: #14532d;
 }
 
+.rv-tab-bar {
+  background: rgb(15 23 42 / 0.94);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid #475569;
+  border-radius: 0.75rem 0.75rem 0 0;
+}
+
 .nav-tab {
   position: relative;
   transition: all 0.2s ease;
+  color: #f1f5f9;
+  font-weight: 600;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+}
+
+.nav-tab:not(.active):hover {
+  color: #ffffff;
 }
 
 .nav-tab.active {
   color: #4ade80;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .nav-tab.active:after {
