@@ -512,7 +512,9 @@ export default function RVChainApp() {
         `Booking confirmed! ${payment.usdcAmount} USDC paid on ${payment.usdcChain ?? 'USDC'}. Check in on ${checkIn}.`
       );
     } else {
-      toast.success(`Booked ${parkName}! Switch to Book & Stay Rewards and check in on ${checkIn}.`);
+      toast.success(
+        `Demo booking saved for ${parkName}! Nothing was charged or reserved — check in on ${checkIn} to try rewards.`
+      );
     }
     setActiveTab('rewards');
   };
@@ -1201,7 +1203,7 @@ export default function RVChainApp() {
                 className="w-full bg-sky-700 hover:bg-sky-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
               >
                 <Calendar className="w-4 h-4" />
-                <span>Book on rvchain</span>
+                <span>Book on rvchain (Demo)</span>
               </button>
 
               <button
@@ -1585,12 +1587,17 @@ export default function RVChainApp() {
         </div>
       )}
 
-      <footer className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8">
-        rvchain • Powered by Supabase
-        <span className="hidden sm:inline"> • </span>
-        <span className="block sm:inline underline cursor-pointer hover:text-slate-300 sm:ml-1" onClick={() => toast.info("Blockchain badges are simulated with cryptographic hashes for demo purposes.")}>
-          Blockchain badge info
-        </span>
+      <footer className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
+        <p className="text-amber-400/90 max-w-lg mx-auto leading-relaxed">
+          Demonstration only — bookings, payments, and rewards are simulated on your device. No charges, reservations, or host notifications.
+        </p>
+        <p>
+          rvchain • Powered by Supabase
+          <span className="hidden sm:inline"> • </span>
+          <span className="block sm:inline underline cursor-pointer hover:text-slate-300 sm:ml-1" onClick={() => toast.info("Blockchain badges use cryptographic hashes and OpenTimestamps for demo verification — not a payment system.")}>
+            Blockchain badge info
+          </span>
+        </p>
       </footer>
       </div>
 

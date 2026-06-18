@@ -11,8 +11,8 @@ interface BootMark {
 }
 
 const PRINT_LIFE_MS = 850;
-const MIN_DISTANCE = 16;
-const STRIDE_OFFSET = 9;
+const MIN_DISTANCE = 6;
+const STRIDE_OFFSET = 3;
 const MAX_MARKS = 220;
 
 function drawBootPrint(

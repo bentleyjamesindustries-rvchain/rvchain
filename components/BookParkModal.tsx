@@ -11,7 +11,9 @@ import {
   usdToUsdc,
   getUsdcChain,
   BookingPayment,
+  PAYMENTS_ENABLED,
 } from '@/lib/usdcPayments';
+import { DEMO_NOTICE } from '@/lib/demoMode';
 
 interface BookParkModalProps {
   park: Park;
@@ -57,9 +59,8 @@ export default function BookParkModal({ park, onClose, onConfirm }: BookParkModa
   const handleConfirm = async () => {
     if (!valid) return;
 
-    if (paymentMethod === 'usdc') {
+    if (paymentMethod === 'usdc' && PAYMENTS_ENABLED) {
       setPaying(true);
-      // MVP: simulate wallet confirmation after user sends USDC
       await new Promise((r) => setTimeout(r, 800));
       const payment: BookingPayment = {
         method: 'usdc',
@@ -76,11 +77,12 @@ export default function BookParkModal({ park, onClose, onConfirm }: BookParkModa
     }
 
     onConfirm(checkIn, checkOut, {
-      method: paymentMethod,
+      method: 'demo',
       usdcAmount: 0,
       usdAmount: totalUsd,
       paidAt: new Date().toISOString(),
     });
+    toast.success('Demo booking saved locally — no payment or reservation was made.');
   };
 
   return (
@@ -92,11 +94,15 @@ export default function BookParkModal({ park, onClose, onConfirm }: BookParkModa
         className="modal bg-slate-900 w-full sm:max-w-lg rounded-t-3xl sm:rounded-3xl border-t sm:border border-slate-700 p-5 sm:p-6 max-h-[92dvh] overflow-y-auto"
         onClick={(e) => e.stopPropagation()}
       >
+        <div className="mb-4 p-3 rounded-2xl border border-amber-600/40 bg-amber-950/30 text-[11px] text-amber-200/90 leading-relaxed">
+          {DEMO_NOTICE}
+        </div>
+
         <div className="flex justify-between items-start mb-4">
           <div>
             <div className="flex items-center gap-2 text-sky-400 text-sm font-medium mb-1">
               <CalendarCheck className="w-4 h-4" />
-              Book on rvchain
+              Book on rvchain (Demo)
             </div>
             <h3 className="font-semibold text-xl pr-4">{park.name}</h3>
             <p className="text-sm text-emerald-300">{park.city}, {park.state}</p>
@@ -132,7 +138,7 @@ export default function BookParkModal({ park, onClose, onConfirm }: BookParkModa
             <span className="text-slate-400">{nights} night{nights > 1 ? 's' : ''} × ${park.price}/night</span>
             <span className="font-semibold">${totalUsd}</span>
           </div>
-          {paymentMethod === 'usdc' && (
+          {PAYMENTS_ENABLED && paymentMethod === 'usdc' && (
             <div className="flex justify-between mt-2 pt-2 border-t border-slate-800 text-sky-300">
               <span>USDC total (1:1)</span>
               <span className="font-bold">{totalUsdc} USDC</span>
@@ -171,23 +177,28 @@ export default function BookParkModal({ park, onClose, onConfirm }: BookParkModa
 
             <button
               type="button"
-              onClick={() => setPaymentMethod('usdc')}
+              disabled={!PAYMENTS_ENABLED}
+              onClick={() => PAYMENTS_ENABLED && setPaymentMethod('usdc')}
               className={`flex items-center gap-3 p-3 rounded-2xl border text-left transition ${
-                paymentMethod === 'usdc' ? 'border-emerald-600 bg-emerald-950/30' : 'border-slate-700 hover:border-slate-500'
+                !PAYMENTS_ENABLED
+                  ? 'border-slate-800 opacity-50 cursor-not-allowed'
+                  : paymentMethod === 'usdc'
+                    ? 'border-emerald-600 bg-emerald-950/30'
+                    : 'border-slate-700 hover:border-slate-500'
               }`}
             >
               <Coins className="w-5 h-5 text-emerald-400 shrink-0" />
               <div>
-                <div className="font-semibold text-sm">Pay with USDC</div>
-                <div className="text-[10px] text-slate-400">
-                  ${totalUsd} = {totalUsdc} USDC · Low-fee chains
+                <div className="font-semibold text-sm">USDC</div>
+                <div className="text-[10px] text-slate-500">
+                  {PAYMENTS_ENABLED ? `$${totalUsd} = ${totalUsdc} USDC · Low-fee chains` : 'Coming soon — do not send funds'}
                 </div>
               </div>
             </button>
           </div>
         </div>
 
-        {paymentMethod === 'usdc' && (
+        {PAYMENTS_ENABLED && paymentMethod === 'usdc' && (
           <div className="mb-4 p-4 rounded-2xl border border-emerald-800/50 bg-emerald-950/20 space-y-3">
             <div className="flex items-center gap-2 text-sm font-medium text-emerald-300">
               <Wallet className="w-4 h-4" />
@@ -252,7 +263,7 @@ export default function BookParkModal({ park, onClose, onConfirm }: BookParkModa
             disabled={!valid || paying}
             className="flex-1 bg-sky-700 hover:bg-sky-600 disabled:opacity-40 h-11 rounded-2xl font-semibold text-sm transition"
           >
-            {paying ? 'Confirming...' : paymentMethod === 'usdc' ? `Pay ${totalUsdc} USDC` : 'Confirm Booking'}
+            {paying ? 'Confirming...' : PAYMENTS_ENABLED && paymentMethod === 'usdc' ? `Pay ${totalUsdc} USDC` : 'Simulate demo booking'}
           </button>
         </div>
       </div>

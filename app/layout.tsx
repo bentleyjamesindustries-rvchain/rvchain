@@ -5,6 +5,8 @@ import { Toaster } from "sonner";
 import DeviceAdapt from "@/components/DeviceAdapt";
 import ScenicBackground from "@/components/ScenicBackground";
 import RvMouseTrail from "@/components/RvMouseTrail";
+import DemoBanner from "@/components/DemoBanner";
+import { SITE_DEMO_MODE } from "@/lib/demoMode";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -50,6 +52,7 @@ export default function RootLayout({
         <RvMouseTrail />
         <DeviceAdapt />
         <div className="relative z-10 flex flex-col flex-1 min-h-full">
+          {SITE_DEMO_MODE && <DemoBanner />}
           {children}
         </div>
         <Toaster position="top-center" richColors closeButton />

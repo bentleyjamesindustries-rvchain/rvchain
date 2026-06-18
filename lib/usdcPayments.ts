@@ -1,4 +1,9 @@
+import { SITE_DEMO_MODE } from './demoMode';
+
 export type UsdcChainId = 'base' | 'ethereum' | 'solana';
+
+/** Real USDC checkout is disabled until SITE_DEMO_MODE is false. */
+export const PAYMENTS_ENABLED = !SITE_DEMO_MODE;
 
 export interface UsdcChainConfig {
   id: UsdcChainId;
@@ -11,11 +16,21 @@ export interface UsdcChainConfig {
   color: string;
 }
 
-const DEMO_ADDRESSES: Record<UsdcChainId, string> = {
-  base: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  ethereum: '0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb0',
-  solana: 'DYw8jCTfwLWNRLOaq8erFqqZATF7xK6mKqKqKqKqKqKqK',
+const PLACEHOLDER_ADDRESSES: Record<UsdcChainId, string> = {
+  base: '0xDEMO0000000000000000000000000000000000',
+  ethereum: '0xDEMO0000000000000000000000000000000000',
+  solana: 'DEMOxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx',
 };
+
+function resolveReceiveAddress(chain: UsdcChainId): string {
+  if (SITE_DEMO_MODE) return PLACEHOLDER_ADDRESSES[chain];
+  const envMap: Record<UsdcChainId, string | undefined> = {
+    base: process.env.NEXT_PUBLIC_USDC_BASE_ADDRESS,
+    ethereum: process.env.NEXT_PUBLIC_USDC_ETH_ADDRESS,
+    solana: process.env.NEXT_PUBLIC_USDC_SOL_ADDRESS,
+  };
+  return envMap[chain] ?? PLACEHOLDER_ADDRESSES[chain];
+}
 
 export const USDC_CHAINS: UsdcChainConfig[] = [
   {
@@ -23,7 +38,7 @@ export const USDC_CHAINS: UsdcChainConfig[] = [
     label: 'Base',
     symbol: 'USDC',
     explorerUrl: 'https://basescan.org',
-    receiveAddress: process.env.NEXT_PUBLIC_USDC_BASE_ADDRESS ?? DEMO_ADDRESSES.base,
+    receiveAddress: resolveReceiveAddress('base'),
     estimatedFee: '~$0.01',
     color: 'text-blue-400',
   },
@@ -32,7 +47,7 @@ export const USDC_CHAINS: UsdcChainConfig[] = [
     label: 'Ethereum',
     symbol: 'USDC',
     explorerUrl: 'https://etherscan.io',
-    receiveAddress: process.env.NEXT_PUBLIC_USDC_ETH_ADDRESS ?? DEMO_ADDRESSES.ethereum,
+    receiveAddress: resolveReceiveAddress('ethereum'),
     estimatedFee: '~$2–8',
     color: 'text-indigo-400',
   },
@@ -41,7 +56,7 @@ export const USDC_CHAINS: UsdcChainConfig[] = [
     label: 'Solana',
     symbol: 'USDC',
     explorerUrl: 'https://solscan.io',
-    receiveAddress: process.env.NEXT_PUBLIC_USDC_SOL_ADDRESS ?? DEMO_ADDRESSES.solana,
+    receiveAddress: resolveReceiveAddress('solana'),
     estimatedFee: '~$0.001',
     color: 'text-purple-400',
   },

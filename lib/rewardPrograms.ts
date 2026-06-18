@@ -23,9 +23,9 @@ export const REWARD_PROGRAMS: RewardProgramInfo[] = [
   {
     id: 'booking',
     name: 'Book & Stay Rewards',
-    tagline: 'Book on rvchain. Check in. Earn.',
-    description: 'Earn points only when you book through our site and check in on arrival — no driving required.',
-    highlights: ['Book campsites on rvchain', 'Check in on arrival day', 'Bigger points per stay'],
+    tagline: 'Demo bookings. Check in. Earn.',
+    description: 'Try the book-and-stay flow (demo only — saved locally). Earn points when you check in on arrival day.',
+    highlights: ['Simulate campsite bookings', 'Check in on arrival day', 'Bigger points per stay'],
     accent: 'text-sky-400',
     borderAccent: 'border-sky-700/60',
   },

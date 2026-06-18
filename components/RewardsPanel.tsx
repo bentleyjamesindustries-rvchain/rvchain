@@ -359,10 +359,10 @@ export default function RewardsPanel({
           <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5">
             <div className="flex items-center gap-2 mb-4">
               <BookOpen className="w-5 h-5 text-sky-400" />
-              <h3 className="font-semibold text-lg">Book on rvchain</h3>
+              <h3 className="font-semibold text-lg">Book on rvchain (Demo)</h3>
             </div>
             <p className="text-xs text-slate-400 mb-4 leading-relaxed">
-              Open any park → <strong className="text-sky-300">Book on rvchain</strong> to reserve. Earn {BOOKING_CHECKIN_BASE}+ pts when you check in on arrival (+{BOOKING_NIGHT_BONUS}/night).
+              Open any park → <strong className="text-sky-300">Book on rvchain (Demo)</strong> to try the flow. Bookings stay on this device only — no real reservation. Earn {BOOKING_CHECKIN_BASE}+ demo pts on arrival check-in (+{BOOKING_NIGHT_BONUS}/night).
             </p>
             <button
               onClick={() => onBookPark?.(parks[0])}
@@ -370,7 +370,7 @@ export default function RewardsPanel({
             >
               Find a Park to Book
             </button>
-            <div className="text-xs font-medium text-slate-400 mb-2">Your bookings ({booking.bookings.length})</div>
+            <div className="text-xs font-medium text-slate-400 mb-2">Your demo bookings ({booking.bookings.length})</div>
             <div className="space-y-2 max-h-[200px] overflow-y-auto">
               {booking.bookings.length === 0 ? (
                 <p className="text-xs text-slate-500 py-4 text-center">No bookings yet</p>
