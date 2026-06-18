@@ -23,17 +23,49 @@ export function isValidPhone(phone: string): boolean {
   return /^\+\d{10,15}$/.test(normalized);
 }
 
+function getAuthRedirectUrl(): string {
+  if (typeof window !== 'undefined') return window.location.origin;
+  return process.env.NEXT_PUBLIC_SITE_URL ?? 'https://rvchain.vercel.app';
+}
+
+export function explainRecoveryError(message: string): string {
+  const lower = message.toLowerCase();
+  if (lower.includes('signups not allowed')) {
+    return 'No account exists for this email. Use the same email you signed up with, or create an account first.';
+  }
+  if (lower.includes('unsupported phone provider')) {
+    return 'Text codes are not set up yet. Use email, or configure Twilio in Supabase → Authentication → Providers → Phone.';
+  }
+  if (lower.includes('rate limit')) {
+    return 'Too many attempts. Wait a minute and try again.';
+  }
+  return message;
+}
+
 export async function sendRecoveryCode(channel: RecoveryChannel, contact: string) {
   if (channel === 'email') {
     const email = contact.trim().toLowerCase();
     return supabase.auth.signInWithOtp({
       email,
-      options: { shouldCreateUser: false },
+      options: {
+        shouldCreateUser: false,
+        emailRedirectTo: getAuthRedirectUrl(),
+      },
     });
   }
 
   const phone = normalizePhone(contact);
-  return supabase.auth.signInWithOtp({ phone });
+  return supabase.auth.signInWithOtp({
+    phone,
+    options: { shouldCreateUser: false },
+  });
+}
+
+/** Fallback when OTP is not configured — sends a password reset link email. */
+export async function sendRecoveryEmailLink(email: string) {
+  return supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+    redirectTo: getAuthRedirectUrl(),
+  });
 }
 
 export async function verifyRecoveryCode(

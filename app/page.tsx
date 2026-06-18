@@ -22,6 +22,7 @@ import RewardsPanel from '@/components/RewardsPanel';
 import WalletOnboarding from '@/components/WalletOnboarding';
 import WalletInviteModal from '@/components/WalletInviteModal';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
+import { updateUserPassword } from '@/lib/passwordRecovery';
 import { loadWalletProfile, getWalletUserId, WalletProfile } from '@/lib/walletStorage';
 import { truncateAddress } from '@/lib/bitcoinAddress';
 import { performCheckIn } from '@/lib/rewards';
@@ -122,6 +123,10 @@ export default function RVChainApp() {
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [showPasswordRecovery, setShowPasswordRecovery] = useState(false);
+  const [recoveryPassword, setRecoveryPassword] = useState('');
+  const [recoveryPasswordConfirm, setRecoveryPasswordConfirm] = useState('');
+  const [showRecoveryPassword, setShowRecoveryPassword] = useState(false);
 
   // Supabase data (replaces local state for live features)
   const [dbParks, setDbParks] = useState<Park[]>([]);
@@ -202,7 +207,12 @@ export default function RVChainApp() {
     });
 
     // Listen for auth changes
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        setShowPasswordRecovery(true);
+        setShowAuthModal(false);
+        setShowForgotPassword(false);
+      }
       if (session?.user) {
         setUser({
           id: session.user.id,
@@ -419,6 +429,24 @@ export default function RVChainApp() {
       setAuthPassword('');
     } catch (err: any) {
       toast.error(err.message || "Auth failed. Check your Supabase keys and tables.");
+    } finally {
+      setAuthLoading(false);
+    }
+  };
+
+  const handleSaveRecoveryPassword = async () => {
+    if (recoveryPassword.length < 8) return toast.error('Password must be at least 8 characters.');
+    if (recoveryPassword !== recoveryPasswordConfirm) return toast.error('Passwords do not match.');
+    setAuthLoading(true);
+    try {
+      const { error } = await updateUserPassword(recoveryPassword);
+      if (error) throw error;
+      toast.success('Password updated! You are signed in.');
+      setShowPasswordRecovery(false);
+      setRecoveryPassword('');
+      setRecoveryPasswordConfirm('');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Could not update password.');
     } finally {
       setAuthLoading(false);
     }
@@ -1270,6 +1298,53 @@ export default function RVChainApp() {
               onComplete={(profile) => setWalletProfile(profile)}
               onClose={() => setShowWalletModal(false)}
             />
+          </div>
+        </div>
+      )}
+
+      {showPasswordRecovery && (
+        <div
+          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[112] flex items-center justify-center p-4"
+          onClick={() => setShowPasswordRecovery(false)}
+        >
+          <div
+            className="modal bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-xl font-semibold mb-2">Set a new password</h3>
+            <p className="text-sm text-slate-400 mb-4">You opened a valid reset link. Choose a new password.</p>
+            <div className="space-y-3">
+              <div className="relative">
+                <input
+                  type={showRecoveryPassword ? 'text' : 'password'}
+                  value={recoveryPassword}
+                  onChange={(e) => setRecoveryPassword(e.target.value)}
+                  placeholder="New password"
+                  className="w-full bg-slate-800 border border-slate-600 pl-4 pr-11 h-11 rounded-2xl text-sm"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowRecoveryPassword((v) => !v)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 p-1"
+                >
+                  {showRecoveryPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </button>
+              </div>
+              <input
+                type={showRecoveryPassword ? 'text' : 'password'}
+                value={recoveryPasswordConfirm}
+                onChange={(e) => setRecoveryPasswordConfirm(e.target.value)}
+                placeholder="Confirm password"
+                className="w-full bg-slate-800 border border-slate-600 px-4 h-11 rounded-2xl text-sm"
+              />
+              <button
+                onClick={handleSaveRecoveryPassword}
+                disabled={authLoading}
+                className="w-full bg-green-700 hover:bg-green-600 disabled:opacity-50 h-11 rounded-2xl font-semibold text-sm"
+              >
+                {authLoading ? 'Saving…' : 'Save & log in'}
+              </button>
+            </div>
           </div>
         </div>
       )}

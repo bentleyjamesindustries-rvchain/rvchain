@@ -6,8 +6,10 @@ import { toast } from 'sonner';
 import {
   RecoveryChannel,
   sendRecoveryCode,
+  sendRecoveryEmailLink,
   verifyRecoveryCode,
   updateUserPassword,
+  explainRecoveryError,
   isValidEmail,
   isValidPhone,
 } from '@/lib/passwordRecovery';
@@ -65,8 +67,27 @@ export default function ForgotPasswordModal({
       setStep('verify');
       setResendCooldown(60);
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Could not send code.';
-      toast.error(msg);
+      const raw = err instanceof Error ? err.message : 'Could not send code.';
+      toast.error(explainRecoveryError(raw));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSendResetLink = async () => {
+    if (!isValidEmail(contact)) {
+      toast.error('Enter a valid email address.');
+      return;
+    }
+    setLoading(true);
+    try {
+      const { error } = await sendRecoveryEmailLink(contact);
+      if (error) throw error;
+      toast.success('Reset link sent! Check your email and open the link on this device.');
+      onClose();
+    } catch (err: unknown) {
+      const raw = err instanceof Error ? err.message : 'Could not send reset link.';
+      toast.error(explainRecoveryError(raw));
     } finally {
       setLoading(false);
     }
@@ -86,8 +107,8 @@ export default function ForgotPasswordModal({
       setStep('action');
       toast.success('Code verified! You can log in or set a new password.');
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : 'Invalid or expired code.';
-      toast.error(msg);
+      const raw = err instanceof Error ? err.message : 'Invalid or expired code.';
+      toast.error(explainRecoveryError(raw));
     } finally {
       setLoading(false);
     }
@@ -167,15 +188,12 @@ export default function ForgotPasswordModal({
               </button>
               <button
                 type="button"
-                onClick={() => setChannel('sms')}
-                className={`flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-medium border transition ${
-                  channel === 'sms'
-                    ? 'border-emerald-600 bg-emerald-950/40 text-emerald-200'
-                    : 'border-slate-700 text-slate-400 hover:border-slate-500'
-                }`}
+                disabled
+                title="Requires Twilio setup in Supabase"
+                className="flex items-center justify-center gap-2 py-2.5 rounded-2xl text-sm font-medium border border-slate-800 text-slate-600 cursor-not-allowed opacity-60"
               >
                 <Smartphone className="w-4 h-4" />
-                Text
+                Text (soon)
               </button>
             </div>
 
@@ -191,11 +209,9 @@ export default function ForgotPasswordModal({
                 className="w-full bg-slate-800 border border-slate-600 px-4 h-11 rounded-2xl text-sm outline-none focus:border-sky-600"
                 autoComplete={channel === 'email' ? 'email' : 'tel'}
               />
-              {channel === 'sms' && (
-                <p className="text-[10px] text-slate-500 mt-1.5">
-                  Use the phone number on your rvchain account. SMS requires Supabase phone auth.
-                </p>
-              )}
+              <p className="text-[10px] text-slate-500 mt-1.5">
+                Use the email you signed up with. New accounts must sign up first.
+              </p>
             </div>
 
             <button
@@ -203,7 +219,16 @@ export default function ForgotPasswordModal({
               disabled={loading || !contactValid}
               className="w-full bg-sky-700 hover:bg-sky-600 disabled:opacity-40 h-11 rounded-2xl font-semibold text-sm transition"
             >
-              {loading ? 'Sending…' : 'Send passcode'}
+              {loading ? 'Sending…' : 'Send 6-digit passcode'}
+            </button>
+
+            <button
+              type="button"
+              onClick={handleSendResetLink}
+              disabled={loading || !isValidEmail(contact)}
+              className="w-full border border-slate-600 hover:bg-slate-800 disabled:opacity-40 h-10 rounded-2xl text-xs text-slate-300 transition"
+            >
+              Or email me a reset link instead
             </button>
           </div>
         )}
