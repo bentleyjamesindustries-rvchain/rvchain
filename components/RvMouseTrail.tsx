@@ -2,57 +2,69 @@
 
 import { useEffect, useRef } from 'react';
 
-interface TrackMark {
+interface BootMark {
   x: number;
   y: number;
   angle: number;
+  side: 'left' | 'right';
   born: number;
 }
 
-const TRACK_LIFE_MS = 850;
-const MIN_DISTANCE = 12;
-const WHEEL_SPACING = 7;
+const PRINT_LIFE_MS = 850;
+const MIN_DISTANCE = 16;
+const STRIDE_OFFSET = 9;
 const MAX_MARKS = 220;
 
-function drawWheelTread(
+function drawBootPrint(
   ctx: CanvasRenderingContext2D,
-  offsetX: number,
+  side: 'left' | 'right',
   alpha: number
 ) {
-  const dirt = `rgba(101, 67, 33, ${alpha})`;
-  const groove = `rgba(62, 39, 18, ${alpha * 0.85})`;
+  const flip = side === 'left' ? -1 : 1;
+  ctx.scale(flip, 1);
 
-  ctx.fillStyle = dirt;
-  for (let i = -1; i <= 1; i++) {
+  const sole = `rgba(92, 64, 42, ${alpha})`;
+  const tread = `rgba(55, 38, 22, ${alpha * 0.88})`;
+
+  ctx.fillStyle = sole;
+  ctx.beginPath();
+  ctx.ellipse(3.2, 0, 4.2, 3, 0.15, 0, Math.PI * 2);
+  ctx.ellipse(-2.8, 0, 3.4, 2.6, -0.12, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = tread;
+  for (let i = 0; i < 4; i++) {
     ctx.beginPath();
-    ctx.ellipse(offsetX, i * 3.2, 2.8, 1.6, 0, 0, Math.PI * 2);
+    ctx.ellipse(0.5 + i * 1.4, 0, 1.8, 0.55, 0, 0, Math.PI * 2);
     ctx.fill();
   }
 
-  ctx.fillStyle = groove;
-  ctx.fillRect(offsetX - 1.2, -4.5, 2.4, 9);
+  ctx.fillStyle = `rgba(72, 50, 32, ${alpha * 0.75})`;
+  ctx.beginPath();
+  ctx.ellipse(-3.2, 0, 1.4, 1.8, 0, 0, Math.PI * 2);
+  ctx.fill();
 }
 
-function drawTrackMark(ctx: CanvasRenderingContext2D, mark: TrackMark, now: number) {
+function drawBootMark(ctx: CanvasRenderingContext2D, mark: BootMark, now: number) {
   const age = now - mark.born;
-  const t = age / TRACK_LIFE_MS;
+  const t = age / PRINT_LIFE_MS;
   if (t >= 1) return false;
 
-  const alpha = (1 - t * t) * 0.62;
+  const alpha = (1 - t * t) * 0.65;
 
   ctx.save();
   ctx.translate(mark.x, mark.y);
   ctx.rotate(mark.angle);
-  drawWheelTread(ctx, -WHEEL_SPACING, alpha);
-  drawWheelTread(ctx, WHEEL_SPACING, alpha);
+  drawBootPrint(ctx, mark.side, alpha);
   ctx.restore();
   return true;
 }
 
 export default function RvMouseTrail() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const marksRef = useRef<TrackMark[]>([]);
+  const marksRef = useRef<BootMark[]>([]);
   const lastRef = useRef<{ x: number; y: number } | null>(null);
+  const stepSideRef = useRef<'left' | 'right'>('left');
   const rafRef = useRef<number>(0);
   const enabledRef = useRef(false);
 
@@ -95,12 +107,20 @@ export default function RvMouseTrail() {
         const dist = Math.hypot(dx, dy);
         if (dist < MIN_DISTANCE) return;
 
+        const angle = Math.atan2(dy, dx);
+        const perp = angle + Math.PI / 2;
+        const side = stepSideRef.current;
+        const offset = side === 'left' ? -STRIDE_OFFSET : STRIDE_OFFSET;
+
         marksRef.current.push({
-          x: e.clientX,
-          y: e.clientY,
-          angle: Math.atan2(dy, dx),
+          x: e.clientX + Math.cos(perp) * offset,
+          y: e.clientY + Math.sin(perp) * offset,
+          angle,
+          side,
           born: performance.now(),
         });
+
+        stepSideRef.current = side === 'left' ? 'right' : 'left';
 
         if (marksRef.current.length > MAX_MARKS) {
           marksRef.current.splice(0, marksRef.current.length - MAX_MARKS);
@@ -112,13 +132,14 @@ export default function RvMouseTrail() {
 
     const onLeave = () => {
       lastRef.current = null;
+      stepSideRef.current = 'left';
     };
 
     const tick = (now: number) => {
       if (!enabledRef.current || !ctx) return;
 
       ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
-      marksRef.current = marksRef.current.filter((mark) => drawTrackMark(ctx, mark, now));
+      marksRef.current = marksRef.current.filter((mark) => drawBootMark(ctx, mark, now));
       rafRef.current = requestAnimationFrame(tick);
     };
 
