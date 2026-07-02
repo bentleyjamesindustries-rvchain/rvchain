@@ -196,7 +196,7 @@ export default function RvMarketplacePanel({
     return US_MARKET_STATES.map((s) => ({
       ...s,
       count: stateCounts[s.code] ?? 0,
-    })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+    }));
   }, [stateCounts]);
 
   const filtered = useMemo(() => {
@@ -449,7 +449,7 @@ export default function RvMarketplacePanel({
             >
               <option value="">All states ({listings.length})</option>
               {stateOptions.map((s) => (
-                <option key={s.code} value={s.code} disabled={s.count === 0}>
+                <option key={s.code} value={s.code}>
                   {s.name} ({s.code}) — {s.count} listing{s.count === 1 ? '' : 's'}
                 </option>
               ))}
