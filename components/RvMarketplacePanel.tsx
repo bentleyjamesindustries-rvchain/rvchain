@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Caravan, Search, X, Plus, MapPin, Gauge, Ruler, Users,
-  MessageCircle, Tag, ChevronLeft, Trash2, Info,
+  MessageCircle, Tag, ChevronLeft, Trash2, Info, Star, SlidersHorizontal,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -13,8 +13,11 @@ import {
   RV_CLASS_LABELS,
   RV_CONDITION_LABELS,
   RV_FEATURE_OPTIONS,
+  US_MARKET_STATES,
   formatRvPrice,
   formatListedDate,
+  formatRating,
+  getStateName,
 } from '@/lib/rvListings';
 import {
   loadAllListings,
@@ -27,6 +30,8 @@ import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
 
 type MarketView = 'browse' | 'sell' | 'mine';
 type PriceFilter = 'all' | 'under30' | '30to75' | '75to125' | 'over125';
+type RatingFilter = 'all' | '4' | '4.5';
+type SortOption = 'rating' | 'newest' | 'price-asc' | 'price-desc';
 
 const PRICE_FILTERS: { value: PriceFilter; label: string }[] = [
   { value: 'all', label: 'Any price' },
@@ -36,7 +41,18 @@ const PRICE_FILTERS: { value: PriceFilter; label: string }[] = [
   { value: 'over125', label: '$125k+' },
 ];
 
-const STATES = ['AZ', 'CA', 'CO', 'FL', 'ID', 'MI', 'OR', 'TN', 'TX'];
+const RATING_FILTERS: { value: RatingFilter; label: string }[] = [
+  { value: 'all', label: 'Any rating' },
+  { value: '4', label: '4+ stars' },
+  { value: '4.5', label: '4.5+ stars' },
+];
+
+const SORT_OPTIONS: { value: SortOption; label: string }[] = [
+  { value: 'rating', label: 'Highest rated' },
+  { value: 'newest', label: 'Newest listed' },
+  { value: 'price-asc', label: 'Price: low to high' },
+  { value: 'price-desc', label: 'Price: high to low' },
+];
 
 interface RvMarketplacePanelProps {
   user: { id: string; email?: string; username?: string } | null;
@@ -70,6 +86,53 @@ function matchesPrice(listing: RvListing, filter: PriceFilter): boolean {
   return listing.price >= 125000;
 }
 
+function matchesRating(listing: RvListing, filter: RatingFilter): boolean {
+  if (filter === 'all') return true;
+  if (filter === '4') return listing.rating >= 4;
+  return listing.rating >= 4.5;
+}
+
+function sortListings(list: RvListing[], sort: SortOption): RvListing[] {
+  const copy = [...list];
+  switch (sort) {
+    case 'rating':
+      return copy.sort((a, b) => b.rating - a.rating || b.reviewCount - a.reviewCount);
+    case 'price-asc':
+      return copy.sort((a, b) => a.price - b.price);
+    case 'price-desc':
+      return copy.sort((a, b) => b.price - a.price);
+    default:
+      return copy.sort(
+        (a, b) => new Date(b.listedAt).getTime() - new Date(a.listedAt).getTime()
+      );
+  }
+}
+
+function StarRating({
+  value,
+  count,
+  size = 'sm',
+  label,
+}: {
+  value: number;
+  count?: number;
+  size?: 'sm' | 'md';
+  label?: string;
+}) {
+  const starSize = size === 'md' ? 'w-4 h-4' : 'w-3.5 h-3.5';
+  const textSize = size === 'md' ? 'text-sm' : 'text-xs';
+  return (
+    <div className={`flex items-center gap-1 ${textSize}`}>
+      <Star className={`${starSize} fill-amber-400 text-amber-400 shrink-0`} />
+      <span className="font-semibold text-amber-100">{formatRating(value)}</span>
+      {count != null && (
+        <span className="text-slate-500">({count} review{count === 1 ? '' : 's'})</span>
+      )}
+      {label && <span className="text-slate-500 ml-0.5">{label}</span>}
+    </div>
+  );
+}
+
 export default function RvMarketplacePanel({
   user,
   displayHandle,
@@ -78,9 +141,12 @@ export default function RvMarketplacePanel({
   const [view, setView] = useState<MarketView>('browse');
   const [listings, setListings] = useState<RvListing[]>([]);
   const [search, setSearch] = useState('');
+  const [stateSearch, setStateSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [classFilter, setClassFilter] = useState<RvClass | ''>('');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
+  const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
+  const [sortBy, setSortBy] = useState<SortOption>('rating');
   const [selected, setSelected] = useState<RvListing | null>(null);
   const [contactMessage, setContactMessage] = useState('');
   const [showContact, setShowContact] = useState(false);
@@ -100,12 +166,29 @@ export default function RvMarketplacePanel({
     [user, listings]
   );
 
+  const stateCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const l of listings) {
+      counts[l.state] = (counts[l.state] ?? 0) + 1;
+    }
+    return counts;
+  }, [listings]);
+
+  const visibleStates = useMemo(() => {
+    const q = stateSearch.trim().toLowerCase();
+    return US_MARKET_STATES.filter((s) => {
+      if (!q) return true;
+      return s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q);
+    });
+  }, [stateSearch]);
+
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return listings.filter((l) => {
+    const matched = listings.filter((l) => {
       if (stateFilter && l.state !== stateFilter) return false;
       if (classFilter && l.rvClass !== classFilter) return false;
       if (!matchesPrice(l, priceFilter)) return false;
+      if (!matchesRating(l, ratingFilter)) return false;
       if (!q) return true;
       const haystack = [
         l.title,
@@ -113,14 +196,35 @@ export default function RvMarketplacePanel({
         l.model,
         l.city,
         l.state,
+        getStateName(l.state),
         l.description,
+        l.sellerName,
         ...l.features,
       ]
         .join(' ')
         .toLowerCase();
       return haystack.includes(q);
     });
-  }, [listings, search, stateFilter, classFilter, priceFilter]);
+    return sortListings(matched, sortBy);
+  }, [listings, search, stateFilter, classFilter, priceFilter, ratingFilter, sortBy]);
+
+  const activeFilterCount = [
+    stateFilter,
+    classFilter,
+    priceFilter !== 'all',
+    ratingFilter !== 'all',
+    search.trim(),
+  ].filter(Boolean).length;
+
+  const clearFilters = () => {
+    setSearch('');
+    setStateSearch('');
+    setStateFilter('');
+    setClassFilter('');
+    setPriceFilter('all');
+    setRatingFilter('all');
+    setSortBy('rating');
+  };
 
   const toggleFeature = (feature: string) => {
     setForm((prev) => ({
@@ -207,6 +311,10 @@ export default function RvMarketplacePanel({
       sellerName: displayHandle,
       sellerUserId: user.id,
       listedAt: new Date().toISOString(),
+      rating: 0,
+      reviewCount: 0,
+      sellerRating: 5,
+      sellerReviewCount: 0,
     };
 
     saveUserListing(listing);
@@ -225,27 +333,64 @@ export default function RvMarketplacePanel({
 
   return (
     <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10">
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mb-6">
-        <div>
-          <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-1">
-            <Caravan className="w-4 h-4" />
-            RV Marketplace
+      {/* Hero */}
+      <div className="rv-market-hero relative overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 p-5 sm:p-8 mb-6">
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.12),_transparent_55%)]" />
+        <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
+          <div>
+            <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-2">
+              <Caravan className="w-4 h-4" />
+              RV Marketplace
+            </div>
+            <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight">Find your next rig</h2>
+            <p className="text-sm sm:text-base text-slate-400 mt-2 max-w-xl">
+              Search by state, compare ratings, and connect with trusted sellers — demo marketplace for now.
+            </p>
           </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">Buy &amp; sell RVs</h2>
-          <p className="text-sm text-slate-400 mt-1 max-w-xl">
-            Browse rigs from the community, list yours for sale, and connect with sellers — demo listings for now.
-          </p>
+          <div className="flex items-center gap-2 text-[11px] text-amber-200/90 bg-black/30 border border-amber-700/30 px-3 py-2 rounded-2xl max-w-sm backdrop-blur">
+            <Info className="w-3.5 h-3.5 shrink-0" />
+            <span>{DEMO_NOTICE_SHORT}</span>
+          </div>
         </div>
-        <div className="flex items-center gap-2 text-[11px] text-amber-300/90 bg-amber-950/30 border border-amber-800/40 px-3 py-2 rounded-2xl max-w-md">
-          <Info className="w-3.5 h-3.5 shrink-0" />
-          <span>{DEMO_NOTICE_SHORT}</span>
-        </div>
+
+        {view === 'browse' && (
+          <div className="relative mt-6 flex flex-col sm:flex-row gap-3">
+            <div className="flex-1 relative">
+              <input
+                type="text"
+                placeholder="Search make, model, city, or features..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                className="w-full bg-slate-950/90 border border-slate-600 focus:border-amber-500 transition pl-11 pr-10 h-12 sm:h-14 rounded-2xl text-base outline-none shadow-lg"
+              />
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400" />
+              {search && (
+                <button
+                  type="button"
+                  onClick={() => setSearch('')}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              )}
+            </div>
+            <select
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as SortOption)}
+              className="sm:w-52 bg-slate-950/90 border border-slate-600 focus:border-amber-500 h-12 sm:h-14 px-4 rounded-2xl outline-none text-sm font-medium shadow-lg"
+            >
+              {SORT_OPTIONS.map((opt) => (
+                <option key={opt.value} value={opt.value}>{opt.label}</option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-6">
         {([
-          ['browse', 'Browse for sale'],
-          ['sell', 'Sell your RV'],
+          ['browse', 'Browse'],
+          ['sell', 'Sell'],
           ['mine', `My listings (${myListings.length})`],
         ] as const).map(([id, label]) => (
           <button
@@ -254,8 +399,8 @@ export default function RvMarketplacePanel({
             onClick={() => setView(id)}
             className={`px-4 h-10 rounded-2xl text-sm font-semibold border transition ${
               view === id
-                ? 'bg-amber-700 border-amber-600 text-white'
-                : 'border-slate-700 text-slate-300 hover:border-slate-500'
+                ? 'bg-amber-600 border-amber-500 text-white shadow-md shadow-amber-900/30'
+                : 'border-slate-700 text-slate-300 hover:border-slate-500 bg-slate-900/60'
             }`}
           >
             {label}
@@ -265,109 +410,218 @@ export default function RvMarketplacePanel({
 
       {view === 'browse' && (
         <>
-          <div className="flex flex-col lg:flex-row gap-3 mb-5">
-            <div className="flex-1 relative">
-              <input
-                type="text"
-                placeholder="Search make, model, city, features..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                className="w-full bg-slate-900 border border-slate-700 focus:border-amber-600 transition pl-11 pr-4 h-12 rounded-3xl text-base outline-none"
-              />
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-slate-400" />
-              {search && (
-                <button
-                  type="button"
-                  onClick={() => setSearch('')}
-                  className="absolute right-4 top-3.5 text-slate-400 hover:text-white"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              )}
+          {/* State explorer */}
+          <div className="bg-slate-900/80 border border-slate-700 rounded-3xl p-4 sm:p-5 mb-5">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+              <div>
+                <h3 className="font-semibold text-base flex items-center gap-2">
+                  <MapPin className="w-4 h-4 text-amber-400" />
+                  Search by state
+                </h3>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  {stateFilter
+                    ? `Showing RVs in ${getStateName(stateFilter)}`
+                    : 'Tap a state to filter listings'}
+                </p>
+              </div>
+              <div className="relative sm:w-56">
+                <input
+                  type="text"
+                  placeholder="Find a state..."
+                  value={stateSearch}
+                  onChange={(e) => setStateSearch(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-600 pl-9 pr-8 h-10 rounded-2xl text-sm outline-none"
+                />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
+                {stateSearch && (
+                  <button
+                    type="button"
+                    onClick={() => setStateSearch('')}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                )}
+              </div>
             </div>
 
-            <select
-              value={stateFilter}
-              onChange={(e) => setStateFilter(e.target.value)}
-              className="lg:w-44 bg-slate-900 border border-slate-700 h-12 px-4 rounded-3xl outline-none"
-            >
-              <option value="">All states</option>
-              {STATES.map((s) => (
-                <option key={s} value={s}>{s}</option>
-              ))}
-            </select>
+            <div className="flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => setStateFilter('')}
+                className={`px-3.5 py-2 rounded-2xl text-sm font-semibold border transition ${
+                  !stateFilter
+                    ? 'bg-amber-600 border-amber-500 text-white'
+                    : 'border-slate-700 text-slate-300 hover:border-slate-500'
+                }`}
+              >
+                All states
+                <span className="ml-1.5 text-xs opacity-80">({listings.length})</span>
+              </button>
+              {visibleStates.map((s) => {
+                const count = stateCounts[s.code] ?? 0;
+                const active = stateFilter === s.code;
+                return (
+                  <button
+                    key={s.code}
+                    type="button"
+                    onClick={() => setStateFilter(active ? '' : s.code)}
+                    disabled={count === 0 && !active}
+                    className={`px-3.5 py-2 rounded-2xl text-sm font-medium border transition ${
+                      active
+                        ? 'bg-amber-600 border-amber-500 text-white'
+                        : count === 0
+                          ? 'border-slate-800 text-slate-600 cursor-not-allowed'
+                          : 'border-slate-700 text-slate-300 hover:border-amber-700/60 hover:text-amber-100'
+                    }`}
+                  >
+                    {s.code}
+                    <span className="hidden sm:inline text-slate-500 ml-1">{s.name}</span>
+                    {count > 0 && (
+                      <span className={`ml-1.5 text-xs ${active ? 'text-amber-100' : 'text-slate-500'}`}>
+                        {count}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
+          {/* Filters row */}
+          <div className="flex flex-col lg:flex-row gap-3 mb-4">
             <select
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value as RvClass | '')}
-              className="lg:w-52 bg-slate-900 border border-slate-700 h-12 px-4 rounded-3xl outline-none"
+              className="lg:w-52 bg-slate-900 border border-slate-700 h-11 px-4 rounded-2xl outline-none text-sm"
             >
-              <option value="">All types</option>
+              <option value="">All RV types</option>
               {(Object.entries(RV_CLASS_LABELS) as [RvClass, string][]).map(([id, label]) => (
                 <option key={id} value={id}>{label}</option>
               ))}
             </select>
+
+            <div className="filter-scroll flex items-center bg-slate-900 border border-slate-700 rounded-2xl p-1 text-xs sm:text-sm overflow-x-auto flex-1">
+              {PRICE_FILTERS.map((tier) => (
+                <button
+                  key={tier.value}
+                  type="button"
+                  onClick={() => setPriceFilter(tier.value)}
+                  className={`px-3.5 h-9 rounded-[18px] font-medium transition whitespace-nowrap ${
+                    priceFilter === tier.value ? 'bg-amber-700 text-white' : 'hover:bg-slate-800 text-slate-300'
+                  }`}
+                >
+                  {tier.label}
+                </button>
+              ))}
+            </div>
           </div>
 
-          <div className="filter-scroll flex items-center bg-slate-900 border border-slate-700 rounded-3xl p-1 text-xs sm:text-sm mb-5 overflow-x-auto">
-            {PRICE_FILTERS.map((tier) => (
+          <div className="filter-scroll flex items-center gap-2 mb-5 overflow-x-auto pb-1">
+            <span className="text-xs text-slate-500 font-medium shrink-0 flex items-center gap-1">
+              <SlidersHorizontal className="w-3.5 h-3.5" /> Rating
+            </span>
+            {RATING_FILTERS.map((tier) => (
               <button
                 key={tier.value}
                 type="button"
-                onClick={() => setPriceFilter(tier.value)}
-                className={`px-4 h-9 rounded-[20px] font-medium transition whitespace-nowrap ${
-                  priceFilter === tier.value ? 'bg-amber-700 text-white' : 'hover:bg-slate-800'
+                onClick={() => setRatingFilter(tier.value)}
+                className={`flex items-center gap-1.5 px-3.5 h-9 rounded-2xl text-sm font-medium border transition whitespace-nowrap shrink-0 ${
+                  ratingFilter === tier.value
+                    ? 'bg-amber-700/90 border-amber-600 text-white'
+                    : 'border-slate-700 text-slate-300 hover:border-slate-500'
                 }`}
               >
+                {tier.value !== 'all' && <Star className="w-3.5 h-3.5 fill-current" />}
                 {tier.label}
               </button>
             ))}
+            {activeFilterCount > 0 && (
+              <button
+                type="button"
+                onClick={clearFilters}
+                className="text-xs text-amber-400 hover:text-amber-300 font-medium shrink-0 ml-1"
+              >
+                Clear filters ({activeFilterCount})
+              </button>
+            )}
           </div>
 
           <div className="flex items-center justify-between mb-4 px-1">
             <div>
               <span className="font-semibold text-xl">{filtered.length}</span>
-              <span className="text-slate-400 text-sm ml-1">RVs for sale</span>
+              <span className="text-slate-400 text-sm ml-1">
+                RVs{stateFilter ? ` in ${getStateName(stateFilter)}` : ''}
+              </span>
             </div>
             <button
               type="button"
               onClick={() => setView('sell')}
-              className="text-xs flex items-center gap-1 bg-amber-700 hover:bg-amber-600 px-3 py-1.5 rounded-2xl font-medium"
+              className="text-xs flex items-center gap-1 bg-amber-600 hover:bg-amber-500 px-3 py-1.5 rounded-2xl font-semibold shadow-sm"
             >
               <Plus className="w-3 h-3" /> List yours
             </button>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
             {filtered.length === 0 ? (
-              <div className="col-span-full text-center py-12 text-slate-400">
-                No RVs match your filters.
+              <div className="col-span-full text-center py-16 text-slate-400 rounded-3xl border border-dashed border-slate-700">
+                <Caravan className="w-10 h-10 mx-auto mb-3 text-slate-600" />
+                <p>No RVs match your filters.</p>
+                <button type="button" onClick={clearFilters} className="mt-3 text-amber-400 font-medium hover:text-amber-300">
+                  Clear all filters
+                </button>
               </div>
             ) : (
               filtered.map((listing) => (
                 <article
                   key={listing.id}
-                  className="rv-card bg-slate-900 border border-slate-700 rounded-3xl overflow-hidden flex flex-col cursor-pointer"
+                  className="rv-market-card group bg-slate-900 border border-slate-700/80 rounded-3xl overflow-hidden flex flex-col cursor-pointer hover:border-amber-700/50 transition-all duration-200 hover:shadow-xl hover:shadow-black/20"
                   onClick={() => setSelected(listing)}
                 >
                   <div className="relative">
                     <img
                       src={listing.image}
                       alt={listing.title}
-                      className="w-full h-44 object-cover"
+                      className="w-full h-48 object-cover group-hover:scale-[1.02] transition-transform duration-300"
                     />
-                    <div className="absolute top-3 left-3 bg-black/70 text-[10px] font-semibold px-2 py-1 rounded-xl backdrop-blur">
+                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent" />
+                    <div className="absolute top-3 left-3 bg-black/60 text-[10px] font-bold px-2.5 py-1 rounded-xl backdrop-blur border border-white/10">
                       {RV_CLASS_LABELS[listing.rvClass]}
                     </div>
-                    <div className="absolute top-3 right-3 bg-amber-900/80 text-white text-xs font-bold px-2.5 py-1 rounded-xl backdrop-blur">
-                      {formatRvPrice(listing.price)}
+                    <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-xl backdrop-blur border border-white/10">
+                      <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
+                      {formatRating(listing.rating)}
+                    </div>
+                    <div className="absolute bottom-3 left-3 right-3 flex items-end justify-between">
+                      <div>
+                        <div className="text-xl font-bold text-white">{formatRvPrice(listing.price)}</div>
+                        <div className="text-xs text-slate-300 flex items-center gap-1 mt-0.5">
+                          <MapPin className="w-3 h-3" />
+                          {listing.city}, {listing.state}
+                        </div>
+                      </div>
+                      {listing.reviewCount > 0 ? (
+                        <span className="text-[10px] text-slate-400 bg-black/40 px-2 py-1 rounded-lg backdrop-blur">
+                          {listing.reviewCount} reviews
+                        </span>
+                      ) : (
+                        <span className="text-[10px] text-amber-300/80 bg-black/40 px-2 py-1 rounded-lg backdrop-blur">
+                          New listing
+                        </span>
+                      )}
                     </div>
                   </div>
+
                   <div className="p-4 flex-1 flex flex-col">
-                    <h3 className="font-semibold text-lg leading-tight">{listing.title}</h3>
-                    <p className="text-emerald-300 text-sm mt-1">
-                      {listing.city}, {listing.state}
-                    </p>
+                    <h3 className="font-semibold text-base leading-snug line-clamp-2">{listing.title}</h3>
+                    <div className="mt-2">
+                      {listing.reviewCount > 0 ? (
+                        <StarRating value={listing.rating} count={listing.reviewCount} />
+                      ) : (
+                        <span className="text-xs text-slate-500">No reviews yet</span>
+                      )}
+                    </div>
                     <div className="flex flex-wrap gap-3 mt-3 text-xs text-slate-400">
                       <span className="flex items-center gap-1">
                         <Tag className="w-3 h-3" /> {listing.year}
@@ -389,18 +643,25 @@ export default function RvMarketplacePanel({
                         <span key={f} className="amenity-pill text-[10px] px-2 py-px">{f}</span>
                       ))}
                     </div>
-                    <div className="flex gap-2 mt-4" onClick={(e) => e.stopPropagation()}>
+                    <div className="mt-3 pt-3 border-t border-slate-800 text-[11px] text-slate-500 flex items-center justify-between">
+                      <span>{listing.sellerName}</span>
+                      <span className="flex items-center gap-0.5 text-amber-400/80">
+                        <Star className="w-3 h-3 fill-current" />
+                        {formatRating(listing.sellerRating)}
+                      </span>
+                    </div>
+                    <div className="flex gap-2 mt-3" onClick={(e) => e.stopPropagation()}>
                       <button
                         type="button"
                         onClick={() => setSelected(listing)}
-                        className="flex-1 bg-white text-slate-900 hover:bg-slate-100 font-semibold py-2 text-sm rounded-2xl"
+                        className="flex-1 bg-white text-slate-900 hover:bg-slate-100 font-semibold py-2.5 text-sm rounded-2xl"
                       >
-                        Details
+                        View listing
                       </button>
                       <button
                         type="button"
                         onClick={() => openContact(listing)}
-                        className="flex-1 border border-amber-700 hover:bg-amber-950/30 font-medium py-2 text-sm rounded-2xl text-amber-300"
+                        className="flex-1 border border-amber-700/80 hover:bg-amber-950/40 font-medium py-2.5 text-sm rounded-2xl text-amber-300"
                       >
                         Contact
                       </button>
@@ -516,8 +777,8 @@ export default function RvMarketplacePanel({
                 onChange={(e) => setForm((f) => ({ ...f, state: e.target.value }))}
                 className="bg-slate-950 border border-slate-700 px-4 h-11 rounded-2xl text-sm outline-none"
               >
-                {STATES.map((s) => (
-                  <option key={s} value={s}>{s}</option>
+                {US_MARKET_STATES.map((s) => (
+                  <option key={s.code} value={s.code}>{s.code} — {s.name}</option>
                 ))}
               </select>
             </div>
@@ -566,7 +827,7 @@ export default function RvMarketplacePanel({
               type="button"
               onClick={handleSubmitListing}
               disabled={submitting}
-              className="w-full bg-amber-700 hover:bg-amber-600 disabled:opacity-50 h-12 rounded-2xl font-semibold text-sm transition"
+              className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-50 h-12 rounded-2xl font-semibold text-sm transition"
             >
               {submitting ? 'Saving...' : 'Publish listing (demo)'}
             </button>
@@ -593,7 +854,7 @@ export default function RvMarketplacePanel({
               <button
                 type="button"
                 onClick={() => setView('sell')}
-                className="bg-amber-700 hover:bg-amber-600 px-6 py-2 rounded-3xl font-semibold text-sm"
+                className="bg-amber-600 hover:bg-amber-500 px-6 py-2 rounded-3xl font-semibold text-sm"
               >
                 List your RV
               </button>
@@ -615,6 +876,9 @@ export default function RvMarketplacePanel({
                   <p className="text-xs text-slate-400 mt-1">
                     Listed {formatListedDate(listing.listedAt)} · {listing.city}, {listing.state}
                   </p>
+                  {listing.reviewCount === 0 && (
+                    <p className="text-[10px] text-slate-500 mt-1">New listing — no reviews yet</p>
+                  )}
                 </div>
                 <div className="flex sm:flex-col gap-2 shrink-0">
                   <button
@@ -647,7 +911,18 @@ export default function RvMarketplacePanel({
             className="modal bg-slate-900 w-full sm:max-w-2xl rounded-t-3xl sm:rounded-3xl border-t sm:border border-slate-700 max-h-[92dvh] overflow-y-auto"
             onClick={(e) => e.stopPropagation()}
           >
-            <img src={selected.image} alt={selected.title} className="w-full h-52 sm:h-64 object-cover" />
+            <div className="relative">
+              <img src={selected.image} alt={selected.title} className="w-full h-52 sm:h-64 object-cover" />
+              <div className="absolute inset-0 bg-gradient-to-t from-slate-900 via-transparent to-transparent" />
+              <div className="absolute bottom-4 left-5 right-5 flex items-end justify-between">
+                <div className="bg-black/50 backdrop-blur px-3 py-2 rounded-2xl border border-white/10">
+                  <StarRating value={selected.rating} count={selected.reviewCount} size="md" />
+                </div>
+                <div className="text-2xl font-bold text-white bg-black/50 backdrop-blur px-3 py-2 rounded-2xl border border-white/10">
+                  {formatRvPrice(selected.price)}
+                </div>
+              </div>
+            </div>
             <div className="p-5 sm:p-6">
               <button
                 type="button"
@@ -656,14 +931,11 @@ export default function RvMarketplacePanel({
               >
                 <ChevronLeft className="w-4 h-4" /> Back to listings
               </button>
-              <div className="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <h3 className="text-xl sm:text-2xl font-semibold">{selected.title}</h3>
-                  <p className="text-emerald-300 mt-1 flex items-center gap-1">
-                    <MapPin className="w-4 h-4" /> {selected.city}, {selected.state}
-                  </p>
-                </div>
-                <div className="text-2xl font-bold text-amber-300">{formatRvPrice(selected.price)}</div>
+              <div>
+                <h3 className="text-xl sm:text-2xl font-semibold">{selected.title}</h3>
+                <p className="text-emerald-300 mt-1 flex items-center gap-1">
+                  <MapPin className="w-4 h-4" /> {selected.city}, {selected.state} · {getStateName(selected.state)}
+                </p>
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-sm">
@@ -695,17 +967,26 @@ export default function RvMarketplacePanel({
                 </div>
               )}
 
-              <div className="mt-5 pt-4 border-t border-slate-800 text-sm text-slate-400">
-                Seller: <span className="text-slate-200">{selected.sellerName}</span>
-                <span className="mx-2">·</span>
-                Listed {formatListedDate(selected.listedAt)}
+              <div className="mt-5 p-4 rounded-2xl bg-slate-950 border border-slate-800">
+                <div className="text-xs text-slate-500 mb-2">Seller</div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="font-semibold text-slate-200">{selected.sellerName}</span>
+                  <StarRating
+                    value={selected.sellerRating}
+                    count={selected.sellerReviewCount}
+                    label="seller score"
+                  />
+                </div>
+                <p className="text-xs text-slate-500 mt-2">
+                  Listed {formatListedDate(selected.listedAt)}
+                </p>
               </div>
 
               <div className="flex gap-2 mt-5">
                 <button
                   type="button"
                   onClick={() => openContact(selected)}
-                  className="flex-1 flex items-center justify-center gap-2 bg-amber-700 hover:bg-amber-600 h-11 rounded-2xl font-semibold text-sm"
+                  className="flex-1 flex items-center justify-center gap-2 bg-amber-600 hover:bg-amber-500 h-11 rounded-2xl font-semibold text-sm"
                 >
                   <MessageCircle className="w-4 h-4" /> Contact seller
                 </button>
@@ -753,7 +1034,7 @@ export default function RvMarketplacePanel({
               <button
                 type="button"
                 onClick={handleSendInterest}
-                className="flex-1 bg-amber-700 hover:bg-amber-600 h-11 rounded-2xl font-semibold text-sm"
+                className="flex-1 bg-amber-600 hover:bg-amber-500 h-11 rounded-2xl font-semibold text-sm"
               >
                 Send interest
               </button>

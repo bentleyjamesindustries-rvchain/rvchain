@@ -29,7 +29,50 @@ export interface RvListing {
   sellerName: string;
   sellerUserId?: string;
   listedAt: string;
+  /** Buyer rating for this listing (1–5) */
+  rating: number;
+  reviewCount: number;
+  /** Seller trust score across marketplace (1–5) */
+  sellerRating: number;
+  sellerReviewCount: number;
   isDemo?: boolean;
+}
+
+export interface UsMarketState {
+  code: string;
+  name: string;
+}
+
+/** States commonly searched in the RV marketplace */
+export const US_MARKET_STATES: UsMarketState[] = [
+  { code: 'AL', name: 'Alabama' },
+  { code: 'AZ', name: 'Arizona' },
+  { code: 'CA', name: 'California' },
+  { code: 'CO', name: 'Colorado' },
+  { code: 'FL', name: 'Florida' },
+  { code: 'GA', name: 'Georgia' },
+  { code: 'ID', name: 'Idaho' },
+  { code: 'MI', name: 'Michigan' },
+  { code: 'MT', name: 'Montana' },
+  { code: 'NC', name: 'North Carolina' },
+  { code: 'NV', name: 'Nevada' },
+  { code: 'NM', name: 'New Mexico' },
+  { code: 'OR', name: 'Oregon' },
+  { code: 'SC', name: 'South Carolina' },
+  { code: 'TN', name: 'Tennessee' },
+  { code: 'TX', name: 'Texas' },
+  { code: 'UT', name: 'Utah' },
+  { code: 'WA', name: 'Washington' },
+  { code: 'WI', name: 'Wisconsin' },
+  { code: 'WY', name: 'Wyoming' },
+];
+
+export function getStateName(code: string): string {
+  return US_MARKET_STATES.find((s) => s.code === code)?.name ?? code;
+}
+
+export function formatRating(value: number): string {
+  return value.toFixed(1);
 }
 
 export const RV_CLASS_LABELS: Record<RvClass, string> = {
@@ -85,6 +128,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/111/800/500',
     sellerName: 'SouthwestRigs',
     listedAt: '2026-06-10T12:00:00.000Z',
+    rating: 4.9,
+    reviewCount: 18,
+    sellerRating: 4.8,
+    sellerReviewCount: 42,
     isDemo: true,
   },
   {
@@ -106,6 +153,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1048/800/500',
     sellerName: 'LoneStarAirstream',
     listedAt: '2026-06-08T09:00:00.000Z',
+    rating: 4.7,
+    reviewCount: 11,
+    sellerRating: 4.9,
+    sellerReviewCount: 27,
     isDemo: true,
   },
   {
@@ -127,6 +178,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1041/800/500',
     sellerName: 'TreasureValleyRV',
     listedAt: '2026-06-12T16:00:00.000Z',
+    rating: 5.0,
+    reviewCount: 6,
+    sellerRating: 4.7,
+    sellerReviewCount: 19,
     isDemo: true,
   },
   {
@@ -149,6 +204,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1043/800/500',
     sellerName: 'FloridaFullTimer',
     listedAt: '2026-06-05T11:00:00.000Z',
+    rating: 4.5,
+    reviewCount: 23,
+    sellerRating: 4.6,
+    sellerReviewCount: 58,
     isDemo: true,
   },
   {
@@ -171,6 +230,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1044/800/500',
     sellerName: 'MountainVanLife',
     listedAt: '2026-06-14T08:00:00.000Z',
+    rating: 4.8,
+    reviewCount: 14,
+    sellerRating: 4.9,
+    sellerReviewCount: 31,
     isDemo: true,
   },
   {
@@ -192,6 +255,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1047/800/500',
     sellerName: 'MusicCityCampers',
     listedAt: '2026-06-11T14:00:00.000Z',
+    rating: 4.4,
+    reviewCount: 9,
+    sellerRating: 4.5,
+    sellerReviewCount: 15,
     isDemo: true,
   },
   {
@@ -213,6 +280,10 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1050/800/500',
     sellerName: 'PNWOverlander',
     listedAt: '2026-06-09T10:00:00.000Z',
+    rating: 4.6,
+    reviewCount: 12,
+    sellerRating: 4.7,
+    sellerReviewCount: 22,
     isDemo: true,
   },
   {
@@ -234,6 +305,87 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     image: 'https://picsum.photos/id/1051/800/500',
     sellerName: 'GreatLakesWeekender',
     listedAt: '2026-06-13T17:00:00.000Z',
+    rating: 4.3,
+    reviewCount: 7,
+    sellerRating: 4.4,
+    sellerReviewCount: 12,
+    isDemo: true,
+  },
+  {
+    id: 'rv-seed-9',
+    title: '2023 Thor Chateau 31W — Family Class C',
+    make: 'Thor',
+    model: 'Chateau 31W',
+    year: 2023,
+    rvClass: 'class-c',
+    condition: 'excellent',
+    price: 104900,
+    mileage: 15600,
+    lengthFt: 32,
+    sleeps: 7,
+    city: 'Sacramento',
+    state: 'CA',
+    description:
+      'Family-friendly Class C with walk-through to cab, outdoor TV prep, and huge wardrobe. One owner, garage-kept, smoke-free.',
+    features: ['Gas', 'Generator', 'Slide-outs', 'Bunk Beds', 'Outdoor Kitchen'],
+    image: 'https://picsum.photos/id/1052/800/500',
+    sellerName: 'GoldenStateRVs',
+    listedAt: '2026-06-15T10:00:00.000Z',
+    rating: 4.8,
+    reviewCount: 16,
+    sellerRating: 4.8,
+    sellerReviewCount: 36,
+    isDemo: true,
+  },
+  {
+    id: 'rv-seed-10',
+    title: '2018 Keystone Montana 3160RL — Luxury Fifth Wheel',
+    make: 'Keystone',
+    model: 'Montana 3160RL',
+    year: 2018,
+    rvClass: 'fifth-wheel',
+    condition: 'good',
+    price: 54900,
+    lengthFt: 35,
+    sleeps: 4,
+    city: 'Asheville',
+    state: 'NC',
+    description:
+      'Mountain-ready fifth wheel with rear living, fireplace, and central vacuum. Well maintained with new tires and bearings.',
+    features: ['Generator', 'Slide-outs', 'Washer/Dryer', 'King Bed'],
+    image: 'https://picsum.photos/id/1053/800/500',
+    sellerName: 'BlueRidgeRigs',
+    listedAt: '2026-06-07T13:00:00.000Z',
+    rating: 4.6,
+    reviewCount: 20,
+    sellerRating: 4.7,
+    sellerReviewCount: 44,
+    isDemo: true,
+  },
+  {
+    id: 'rv-seed-11',
+    title: '2022 Storyteller Overland MODE LT — 4x4 Adventure Van',
+    make: 'Storyteller',
+    model: 'MODE LT',
+    year: 2022,
+    rvClass: 'class-b',
+    condition: 'excellent',
+    price: 189000,
+    mileage: 22100,
+    lengthFt: 20,
+    sleeps: 2,
+    city: 'Seattle',
+    state: 'WA',
+    description:
+      'Go-anywhere 4x4 adventure van with lithium, air conditioning, and modular garage. Built for off-grid national forest camping.',
+    features: ['Solar', 'Diesel', 'All-Electric', 'Pet Friendly'],
+    image: 'https://picsum.photos/id/1054/800/500',
+    sellerName: 'CascadeVanCo',
+    listedAt: '2026-06-16T09:00:00.000Z',
+    rating: 4.9,
+    reviewCount: 10,
+    sellerRating: 5.0,
+    sellerReviewCount: 18,
     isDemo: true,
   },
 ];
