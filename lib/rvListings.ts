@@ -104,8 +104,16 @@ export const US_MARKET_STATES: UsMarketState[] = [
   { code: 'WY', name: 'Wyoming' },
 ];
 
+export const US_STATE_COUNT = 50;
+
 export function getStateName(code: string): string {
   return US_MARKET_STATES.find((s) => s.code === code)?.name ?? code;
+}
+
+/** True when every US state code appears in the listing set */
+export function hasFiftyStateListingCoverage(listings: RvListing[]): boolean {
+  const present = new Set(listings.map((l) => l.state));
+  return US_MARKET_STATES.length === US_STATE_COUNT && US_MARKET_STATES.every((s) => present.has(s.code));
 }
 
 export function formatRating(value: number): string {
@@ -144,7 +152,7 @@ export const RV_FEATURE_OPTIONS = [
   'Tow Package',
 ] as const;
 
-export const SEED_RV_LISTINGS: RvListing[] = [
+const FEATURED_RV_LISTINGS: RvListing[] = [
   {
     id: 'rv-seed-1',
     title: '2022 Winnebago View 24D — Mercedes Sprinter',
@@ -426,6 +434,59 @@ export const SEED_RV_LISTINGS: RvListing[] = [
     isDemo: true,
   },
 ];
+
+const STATE_COVERAGE_CLASSES: RvClass[] = [
+  'travel-trailer',
+  'class-c',
+  'fifth-wheel',
+  'class-a',
+  'class-b',
+  'truck-camper',
+  'popup',
+];
+
+/** One demo listing per state not covered by featured seeds — ensures all 50 states are browsable */
+function buildStateCoverageListings(featured: RvListing[]): RvListing[] {
+  const covered = new Set(featured.map((l) => l.state));
+  return US_MARKET_STATES.filter((s) => !covered.has(s.code)).map((s, i) => ({
+    id: `rv-seed-state-${s.code}`,
+    title: `2020 Jayco Jay Flight — ${s.name}`,
+    make: 'Jayco',
+    model: 'Jay Flight',
+    year: 2020,
+    rvClass: STATE_COVERAGE_CLASSES[i % STATE_COVERAGE_CLASSES.length],
+    condition: 'good' as RvCondition,
+    price: 22000 + ((i * 1373) % 75000),
+    lengthFt: 24 + (i % 12),
+    sleeps: 4 + (i % 4),
+    city: s.name,
+    state: s.code,
+    description: `Demo RV listing in ${s.name}. Part of rvchain's nationwide marketplace preview — one sample rig per state.`,
+    features: ['Tow Package', 'Pet Friendly'],
+    image: `https://picsum.photos/seed/rvchain-${s.code}/800/500`,
+    sellerName: `${s.code}RVSeller`,
+    listedAt: `2026-05-${String(1 + (i % 28)).padStart(2, '0')}T12:00:00.000Z`,
+    rating: Math.round((4.1 + (i % 9) * 0.1) * 10) / 10,
+    reviewCount: 2 + (i % 12),
+    sellerRating: 4.4 + (i % 6) * 0.1,
+    sellerReviewCount: 5 + (i % 18),
+    isDemo: true,
+  }));
+}
+
+export const SEED_RV_LISTINGS: RvListing[] = [
+  ...FEATURED_RV_LISTINGS,
+  ...buildStateCoverageListings(FEATURED_RV_LISTINGS),
+];
+
+if (typeof process !== 'undefined' && process.env.NODE_ENV !== 'production') {
+  if (!hasFiftyStateListingCoverage(SEED_RV_LISTINGS)) {
+    console.warn('[rvchain] SEED_RV_LISTINGS does not cover all 50 US states');
+  }
+  if (US_MARKET_STATES.length !== US_STATE_COUNT) {
+    console.warn(`[rvchain] US_MARKET_STATES expected ${US_STATE_COUNT}, got ${US_MARKET_STATES.length}`);
+  }
+}
 
 export function formatRvPrice(price: number): string {
   return new Intl.NumberFormat('en-US', {

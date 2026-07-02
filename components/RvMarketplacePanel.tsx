@@ -15,6 +15,7 @@ import {
   RV_CONDITION_LABELS,
   RV_FEATURE_OPTIONS,
   US_MARKET_STATES,
+  US_STATE_COUNT,
   formatRvPrice,
   formatListedDate,
   formatRating,
@@ -447,7 +448,7 @@ export default function RvMarketplacePanel({
               className="sm:w-56 bg-slate-950/90 border border-slate-600 focus:border-amber-500 h-12 sm:h-14 px-4 rounded-2xl outline-none text-sm font-medium shadow-lg"
               aria-label="Filter by state"
             >
-              <option value="">All states ({listings.length})</option>
+              <option value="">All states — {US_STATE_COUNT} available ({listings.length} listings)</option>
               {stateOptions.map((s) => (
                 <option key={s.code} value={s.code}>
                   {s.name} ({s.code}) — {s.count} listing{s.count === 1 ? '' : 's'}
@@ -522,6 +523,19 @@ export default function RvMarketplacePanel({
 
           {/* Filters row */}
           <div className="flex flex-col lg:flex-row gap-3 mb-4">
+            <select
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              className="lg:w-56 bg-slate-900 border border-slate-700 h-11 px-4 rounded-2xl outline-none text-sm"
+              aria-label="Filter listings by state"
+            >
+              <option value="">All {US_STATE_COUNT} states</option>
+              {stateOptions.map((s) => (
+                <option key={s.code} value={s.code}>
+                  {s.name} ({s.code}) — {s.count}
+                </option>
+              ))}
+            </select>
             <select
               value={classFilter}
               onChange={(e) => setClassFilter(e.target.value as RvClass | '')}
