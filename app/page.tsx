@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, Navigation, Heart, User, Search, X, Star, 
-  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Wallet, Eye, EyeOff
+  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Wallet, Eye, EyeOff, Caravan
 } from 'lucide-react';
 import { parks as seedParks, Park, calculateDistance } from '@/lib/parks';
 import { supabase, Park as SupabasePark } from '@/lib/supabaseClient';
@@ -45,6 +45,7 @@ import { isModerator } from '@/lib/moderator';
 import { enrichParks, mergeParkVerification, saveLocalVerification } from '@/lib/localVerification';
 import type { BookingPayment } from '@/lib/usdcPayments';
 import ForumPanel from '@/components/ForumPanel';
+import RvMarketplacePanel from '@/components/RvMarketplacePanel';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import {
@@ -67,7 +68,7 @@ const MapView = dynamic(() => import('@/components/MapView'), {
   ),
 });
 
-type Tab = 'discover' | 'map' | 'community' | 'trips' | 'rewards';
+type Tab = 'discover' | 'marketplace' | 'map' | 'community' | 'trips' | 'rewards';
 type PriceTier = 'all' | 'budget' | 'mid' | 'premium';
 
 // Auth + Supabase state types
@@ -90,6 +91,7 @@ const STATES = ['AZ', 'CA', 'CO', 'FL', 'GA', 'ME', 'MI', 'MT', 'NC', 'NY', 'OR'
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'discover', label: 'Discover', icon: Search },
+  { id: 'marketplace', label: 'RVs', icon: Caravan },
   { id: 'map', label: 'Map', icon: MapPin },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
   { id: 'trips', label: 'Trips', icon: Calendar },
@@ -1096,6 +1098,15 @@ export default function RVChainApp() {
         </div>
       )}
 
+      {/* RV MARKETPLACE */}
+      {activeTab === 'marketplace' && (
+        <RvMarketplacePanel
+          user={user}
+          displayHandle={profileHandle}
+          onRequestSignIn={() => setShowAuthModal(true)}
+        />
+      )}
+
       {/* MAP */}
       {activeTab === 'map' && (
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
@@ -1613,7 +1624,7 @@ export default function RVChainApp() {
 
       <footer className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
         <p className="text-amber-400/90 max-w-lg mx-auto leading-relaxed">
-          Demonstration only — bookings, payments, and rewards are simulated on your device. No charges, reservations, or host notifications.
+          Demonstration only — bookings, payments, rewards, and RV listings are simulated on your device. No charges, reservations, or seller notifications.
         </p>
         <p>
           rvchain • Powered by Supabase
