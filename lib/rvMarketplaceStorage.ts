@@ -1,4 +1,5 @@
 import { SEED_RV_LISTINGS, type RvListing } from './rvListings';
+import { enrichAllListings } from './rvCertificationStorage';
 
 const LISTINGS_KEY = 'rvchain_rv_listings';
 
@@ -42,7 +43,7 @@ export interface RvListingInterest {
 }
 
 export function loadAllListings(): RvListing[] {
-  if (typeof window === 'undefined') return SEED_RV_LISTINGS;
+  if (typeof window === 'undefined') return enrichAllListings(SEED_RV_LISTINGS);
   try {
     const raw = localStorage.getItem(LISTINGS_KEY);
     const userListings: RvListing[] = raw
@@ -56,11 +57,13 @@ export function loadAllListings(): RvListing[] {
       ...SEED_RV_LISTINGS,
       ...userListings.filter((l) => seedIds.has(l.id)),
     ];
-    return merged.sort(
-      (a, b) => new Date(b.listedAt).getTime() - new Date(a.listedAt).getTime()
+    return enrichAllListings(
+      merged.sort(
+        (a, b) => new Date(b.listedAt).getTime() - new Date(a.listedAt).getTime()
+      )
     );
   } catch {
-    return SEED_RV_LISTINGS;
+    return enrichAllListings(SEED_RV_LISTINGS);
   }
 }
 

@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Caravan, Search, X, Plus, MapPin, Gauge, Ruler, Users,
   MessageCircle, Tag, ChevronLeft, Trash2, Info, Star, SlidersHorizontal,
+  ShieldCheck, BadgeCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -27,6 +28,17 @@ import {
   saveListingInterest,
 } from '@/lib/rvMarketplaceStorage';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
+import RvchainCertifiedBadge from '@/components/RvchainCertifiedBadge';
+import {
+  createRvCertificationRecord,
+  getRvCertificationInfo,
+} from '@/lib/rvCertification';
+import { saveRvCertification } from '@/lib/rvCertificationStorage';
+import {
+  getRvchainSubscription,
+  isRvchainSubscriber,
+  subscribeToRvchainServices,
+} from '@/lib/rvSubscriptionStorage';
 
 type MarketView = 'browse' | 'sell' | 'mine';
 type PriceFilter = 'all' | 'under30' | '30to75' | '75to125' | 'over125';
@@ -141,12 +153,14 @@ export default function RvMarketplacePanel({
   const [view, setView] = useState<MarketView>('browse');
   const [listings, setListings] = useState<RvListing[]>([]);
   const [search, setSearch] = useState('');
-  const [stateSearch, setStateSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [classFilter, setClassFilter] = useState<RvClass | ''>('');
   const [priceFilter, setPriceFilter] = useState<PriceFilter>('all');
   const [ratingFilter, setRatingFilter] = useState<RatingFilter>('all');
+  const [certifiedOnly, setCertifiedOnly] = useState(false);
   const [sortBy, setSortBy] = useState<SortOption>('rating');
+  const [subscribed, setSubscribed] = useState(false);
+  const [certifyingId, setCertifyingId] = useState<string | null>(null);
   const [selected, setSelected] = useState<RvListing | null>(null);
   const [contactMessage, setContactMessage] = useState('');
   const [showContact, setShowContact] = useState(false);
@@ -161,6 +175,10 @@ export default function RvMarketplacePanel({
     refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    setSubscribed(user ? isRvchainSubscriber(user.id) : false);
+  }, [user]);
+
   const myListings = useMemo(
     () => (user ? loadUserListingsOnly(user.id) : []),
     [user, listings]
@@ -174,13 +192,12 @@ export default function RvMarketplacePanel({
     return counts;
   }, [listings]);
 
-  const visibleStates = useMemo(() => {
-    const q = stateSearch.trim().toLowerCase();
-    return US_MARKET_STATES.filter((s) => {
-      if (!q) return true;
-      return s.code.toLowerCase().includes(q) || s.name.toLowerCase().includes(q);
-    });
-  }, [stateSearch]);
+  const stateOptions = useMemo(() => {
+    return US_MARKET_STATES.map((s) => ({
+      ...s,
+      count: stateCounts[s.code] ?? 0,
+    })).sort((a, b) => b.count - a.count || a.name.localeCompare(b.name));
+  }, [stateCounts]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -189,6 +206,7 @@ export default function RvMarketplacePanel({
       if (classFilter && l.rvClass !== classFilter) return false;
       if (!matchesPrice(l, priceFilter)) return false;
       if (!matchesRating(l, ratingFilter)) return false;
+      if (certifiedOnly && !l.rvchainCertified) return false;
       if (!q) return true;
       const haystack = [
         l.title,
@@ -206,24 +224,73 @@ export default function RvMarketplacePanel({
       return haystack.includes(q);
     });
     return sortListings(matched, sortBy);
-  }, [listings, search, stateFilter, classFilter, priceFilter, ratingFilter, sortBy]);
+  }, [listings, search, stateFilter, classFilter, priceFilter, ratingFilter, certifiedOnly, sortBy]);
 
   const activeFilterCount = [
     stateFilter,
     classFilter,
     priceFilter !== 'all',
     ratingFilter !== 'all',
+    certifiedOnly,
     search.trim(),
   ].filter(Boolean).length;
 
   const clearFilters = () => {
     setSearch('');
-    setStateSearch('');
     setStateFilter('');
     setClassFilter('');
     setPriceFilter('all');
     setRatingFilter('all');
+    setCertifiedOnly(false);
     setSortBy('rating');
+  };
+
+  const handleSubscribe = () => {
+    if (!user) {
+      toast.info('Sign in to subscribe to RVCHAIN seller services.');
+      onRequestSignIn();
+      return;
+    }
+    subscribeToRvchainServices(user.id);
+    setSubscribed(true);
+    toast.success('Subscribed (demo)! You can now certify your listings on the blockchain.');
+  };
+
+  const handleCertifyListing = async (listing: RvListing) => {
+    if (!user) {
+      onRequestSignIn();
+      return;
+    }
+    if (!isRvchainSubscriber(user.id)) {
+      toast.info('Subscribe to RVCHAIN seller services to certify listings.');
+      return;
+    }
+    if (listing.rvchainCertified) {
+      return toast.info('This listing is already RVCHAIN certified.');
+    }
+    if (listing.sellerUserId && listing.sellerUserId !== user.id) {
+      return toast.error('You can only certify your own listings.');
+    }
+
+    setCertifyingId(listing.id);
+    const toastId = toast.loading('Recording RVCHAIN certification on Bitcoin…');
+    try {
+      const certifiedBy = user.email ?? user.username ?? displayHandle;
+      const record = await createRvCertificationRecord(listing, certifiedBy);
+      saveRvCertification(record);
+      refresh();
+      toast.dismiss(toastId);
+      toast.success(
+        record.certificationOts
+          ? 'RVCHAIN Certified! Blockchain proof recorded.'
+          : 'RVCHAIN Certified! Hash saved — proof will finalize shortly.'
+      );
+    } catch {
+      toast.dismiss(toastId);
+      toast.error('Certification failed. Try again.');
+    } finally {
+      setCertifyingId(null);
+    }
   };
 
   const toggleFeature = (feature: string) => {
@@ -344,7 +411,7 @@ export default function RvMarketplacePanel({
             </div>
             <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight">Find your next rig</h2>
             <p className="text-sm sm:text-base text-slate-400 mt-2 max-w-xl">
-              Search by state, compare ratings, and connect with trusted sellers — demo marketplace for now.
+              Search by state, compare ratings, and look for the RVCHAIN Certified badge — blockchain-backed seller trust.
             </p>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-amber-200/90 bg-black/30 border border-amber-700/30 px-3 py-2 rounded-2xl max-w-sm backdrop-blur">
@@ -374,6 +441,19 @@ export default function RvMarketplacePanel({
                 </button>
               )}
             </div>
+            <select
+              value={stateFilter}
+              onChange={(e) => setStateFilter(e.target.value)}
+              className="sm:w-56 bg-slate-950/90 border border-slate-600 focus:border-amber-500 h-12 sm:h-14 px-4 rounded-2xl outline-none text-sm font-medium shadow-lg"
+              aria-label="Filter by state"
+            >
+              <option value="">All states ({listings.length})</option>
+              {stateOptions.map((s) => (
+                <option key={s.code} value={s.code} disabled={s.count === 0}>
+                  {s.name} ({s.code}) — {s.count} listing{s.count === 1 ? '' : 's'}
+                </option>
+              ))}
+            </select>
             <select
               value={sortBy}
               onChange={(e) => setSortBy(e.target.value as SortOption)}
@@ -410,82 +490,34 @@ export default function RvMarketplacePanel({
 
       {view === 'browse' && (
         <>
-          {/* State explorer */}
-          <div className="bg-slate-900/80 border border-slate-700 rounded-3xl p-4 sm:p-5 mb-5">
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-4">
+          {/* RVCHAIN Certification promo */}
+          <div className="mb-5 p-4 sm:p-5 rounded-3xl border border-emerald-800/40 bg-gradient-to-r from-emerald-950/40 via-slate-900/80 to-slate-900/80 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex items-start gap-3 flex-1">
+              <div className="w-11 h-11 rounded-2xl bg-emerald-900/50 border border-emerald-700/50 flex items-center justify-center shrink-0">
+                <BadgeCheck className="w-5 h-5 text-emerald-400" />
+              </div>
               <div>
-                <h3 className="font-semibold text-base flex items-center gap-2">
-                  <MapPin className="w-4 h-4 text-amber-400" />
-                  Search by state
-                </h3>
-                <p className="text-xs text-slate-500 mt-0.5">
-                  {stateFilter
-                    ? `Showing RVs in ${getStateName(stateFilter)}`
-                    : 'Tap a state to filter listings'}
+                <h3 className="font-semibold text-emerald-200">RVCHAIN Certified Sellers</h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed max-w-2xl">
+                  Subscribe to RVCHAIN seller services and receive an official certification badge on your listings —
+                  permanently recorded to the Bitcoin blockchain via OpenTimestamps.
                 </p>
               </div>
-              <div className="relative sm:w-56">
-                <input
-                  type="text"
-                  placeholder="Find a state..."
-                  value={stateSearch}
-                  onChange={(e) => setStateSearch(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-700 focus:border-amber-600 pl-9 pr-8 h-10 rounded-2xl text-sm outline-none"
-                />
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-500" />
-                {stateSearch && (
-                  <button
-                    type="button"
-                    onClick={() => setStateSearch('')}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-white"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                )}
-              </div>
             </div>
-
-            <div className="flex flex-wrap gap-2">
+            {subscribed ? (
+              <div className="flex items-center gap-2 text-sm text-emerald-300 font-semibold shrink-0 bg-emerald-950/50 border border-emerald-700/40 px-4 py-2.5 rounded-2xl">
+                <ShieldCheck className="w-4 h-4" />
+                Subscribed — certify in My Listings
+              </div>
+            ) : (
               <button
                 type="button"
-                onClick={() => setStateFilter('')}
-                className={`px-3.5 py-2 rounded-2xl text-sm font-semibold border transition ${
-                  !stateFilter
-                    ? 'bg-amber-600 border-amber-500 text-white'
-                    : 'border-slate-700 text-slate-300 hover:border-slate-500'
-                }`}
+                onClick={handleSubscribe}
+                className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-5 h-11 rounded-2xl font-semibold text-sm transition"
               >
-                All states
-                <span className="ml-1.5 text-xs opacity-80">({listings.length})</span>
+                Subscribe (demo)
               </button>
-              {visibleStates.map((s) => {
-                const count = stateCounts[s.code] ?? 0;
-                const active = stateFilter === s.code;
-                return (
-                  <button
-                    key={s.code}
-                    type="button"
-                    onClick={() => setStateFilter(active ? '' : s.code)}
-                    disabled={count === 0 && !active}
-                    className={`px-3.5 py-2 rounded-2xl text-sm font-medium border transition ${
-                      active
-                        ? 'bg-amber-600 border-amber-500 text-white'
-                        : count === 0
-                          ? 'border-slate-800 text-slate-600 cursor-not-allowed'
-                          : 'border-slate-700 text-slate-300 hover:border-amber-700/60 hover:text-amber-100'
-                    }`}
-                  >
-                    {s.code}
-                    <span className="hidden sm:inline text-slate-500 ml-1">{s.name}</span>
-                    {count > 0 && (
-                      <span className={`ml-1.5 text-xs ${active ? 'text-amber-100' : 'text-slate-500'}`}>
-                        {count}
-                      </span>
-                    )}
-                  </button>
-                );
-              })}
-            </div>
+            )}
           </div>
 
           {/* Filters row */}
@@ -536,6 +568,18 @@ export default function RvMarketplacePanel({
                 {tier.label}
               </button>
             ))}
+            <button
+              type="button"
+              onClick={() => setCertifiedOnly((v) => !v)}
+              className={`flex items-center gap-1.5 px-3.5 h-9 rounded-2xl text-sm font-medium border transition whitespace-nowrap shrink-0 ${
+                certifiedOnly
+                  ? 'bg-emerald-700/90 border-emerald-600 text-white'
+                  : 'border-slate-700 text-slate-300 hover:border-emerald-700/50'
+              }`}
+            >
+              <ShieldCheck className="w-3.5 h-3.5" />
+              RVCHAIN Certified
+            </button>
             {activeFilterCount > 0 && (
               <button
                 type="button"
@@ -552,6 +596,7 @@ export default function RvMarketplacePanel({
               <span className="font-semibold text-xl">{filtered.length}</span>
               <span className="text-slate-400 text-sm ml-1">
                 RVs{stateFilter ? ` in ${getStateName(stateFilter)}` : ''}
+                {certifiedOnly ? ' · certified only' : ''}
               </span>
             </div>
             <button
@@ -586,8 +631,16 @@ export default function RvMarketplacePanel({
                       className="w-full h-48 object-cover group-hover:scale-[1.02] transition-transform duration-300"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-slate-950/90 via-transparent to-transparent" />
-                    <div className="absolute top-3 left-3 bg-black/60 text-[10px] font-bold px-2.5 py-1 rounded-xl backdrop-blur border border-white/10">
-                      {RV_CLASS_LABELS[listing.rvClass]}
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5 items-start">
+                      <span className="bg-black/60 text-[10px] font-bold px-2.5 py-1 rounded-xl backdrop-blur border border-white/10">
+                        {RV_CLASS_LABELS[listing.rvClass]}
+                      </span>
+                      {listing.rvchainCertified && getRvCertificationInfo(listing) && (
+                        <RvchainCertifiedBadge
+                          certification={getRvCertificationInfo(listing)!}
+                          size="sm"
+                        />
+                      )}
                     </div>
                     <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/60 text-white text-xs font-semibold px-2 py-1 rounded-xl backdrop-blur border border-white/10">
                       <Star className="w-3 h-3 fill-amber-400 text-amber-400" />
@@ -837,6 +890,35 @@ export default function RvMarketplacePanel({
 
       {view === 'mine' && (
         <div className="space-y-4">
+          {user && !subscribed && (
+            <div className="p-4 rounded-3xl border border-emerald-800/40 bg-emerald-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <p className="font-semibold text-emerald-200 text-sm">Get RVCHAIN Certified</p>
+                <p className="text-xs text-slate-400 mt-1">
+                  Subscribe to record your listings on the blockchain and earn the official badge.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-5 h-10 rounded-2xl font-semibold text-sm"
+              >
+                Subscribe (demo)
+              </button>
+            </div>
+          )}
+          {user && subscribed && (
+            <div className="p-3 rounded-2xl border border-emerald-700/40 bg-emerald-950/30 text-sm text-emerald-300 flex items-center gap-2">
+              <ShieldCheck className="w-4 h-4 shrink-0" />
+              <span>
+                Seller subscription active since{' '}
+                {getRvchainSubscription(user.id)?.subscribedAt
+                  ? formatListedDate(getRvchainSubscription(user.id)!.subscribedAt)
+                  : 'today'}
+                {' — '}certify each listing below.
+              </span>
+            </div>
+          )}
           {!user ? (
             <div className="text-center py-12 text-slate-400">
               <p className="mb-4">Sign in to manage your listings.</p>
@@ -881,6 +963,22 @@ export default function RvMarketplacePanel({
                   )}
                 </div>
                 <div className="flex sm:flex-col gap-2 shrink-0">
+                  {listing.rvchainCertified && getRvCertificationInfo(listing) ? (
+                    <RvchainCertifiedBadge
+                      certification={getRvCertificationInfo(listing)!}
+                      size="sm"
+                    />
+                  ) : subscribed ? (
+                    <button
+                      type="button"
+                      onClick={() => handleCertifyListing(listing)}
+                      disabled={certifyingId === listing.id}
+                      className="flex items-center justify-center gap-1 px-4 h-10 rounded-2xl border border-emerald-700/60 text-emerald-300 text-sm hover:bg-emerald-950/40 disabled:opacity-50"
+                    >
+                      <ShieldCheck className="w-3.5 h-3.5" />
+                      {certifyingId === listing.id ? 'Certifying…' : 'Certify on chain'}
+                    </button>
+                  ) : null}
                   <button
                     type="button"
                     onClick={() => setSelected(listing)}
@@ -936,6 +1034,14 @@ export default function RvMarketplacePanel({
                 <p className="text-emerald-300 mt-1 flex items-center gap-1">
                   <MapPin className="w-4 h-4" /> {selected.city}, {selected.state} · {getStateName(selected.state)}
                 </p>
+                {selected.rvchainCertified && getRvCertificationInfo(selected) && (
+                  <div className="mt-3">
+                    <RvchainCertifiedBadge
+                      certification={getRvCertificationInfo(selected)!}
+                      size="md"
+                    />
+                  </div>
+                )}
               </div>
 
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-5 text-sm">
@@ -982,7 +1088,7 @@ export default function RvMarketplacePanel({
                 </p>
               </div>
 
-              <div className="flex gap-2 mt-5">
+              <div className="flex flex-col sm:flex-row gap-2 mt-5">
                 <button
                   type="button"
                   onClick={() => openContact(selected)}
@@ -990,6 +1096,20 @@ export default function RvMarketplacePanel({
                 >
                   <MessageCircle className="w-4 h-4" /> Contact seller
                 </button>
+                {user &&
+                  selected.sellerUserId === user.id &&
+                  subscribed &&
+                  !selected.rvchainCertified && (
+                    <button
+                      type="button"
+                      onClick={() => handleCertifyListing(selected)}
+                      disabled={certifyingId === selected.id}
+                      className="flex-1 flex items-center justify-center gap-2 border border-emerald-600 hover:bg-emerald-950/40 text-emerald-300 h-11 rounded-2xl font-semibold text-sm disabled:opacity-50"
+                    >
+                      <ShieldCheck className="w-4 h-4" />
+                      {certifyingId === selected.id ? 'Certifying…' : 'Get RVCHAIN Certified'}
+                    </button>
+                  )}
                 <button
                   type="button"
                   onClick={() => setSelected(null)}
