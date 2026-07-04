@@ -740,7 +740,7 @@ export default function RVChainApp() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
           <div>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Find your next spot.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Connect with the road.</h1>
-            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-400 max-w-md">Nationwide RV parks &amp; campgrounds + real talk from fellow travelers.</p>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Nationwide RV parks &amp; campgrounds + real talk from fellow travelers.</p>
           </div>
 
           <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">
