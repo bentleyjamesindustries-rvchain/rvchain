@@ -860,7 +860,7 @@ export default function RVChainApp() {
             <div>
               <span className="font-semibold text-xl">{filteredParks.length}</span>
               <span className="text-slate-400 text-sm ml-1">parks found nationwide</span>
-              <p className="text-[10px] text-slate-500 mt-0.5">Includes free public listings from NPS, state parks, USFS &amp; BLM.</p>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">Includes free public listings from NPS, state parks, USFS &amp; BLM.</p>
             </div>
             <div className="flex items-center gap-3">
               {user && (
