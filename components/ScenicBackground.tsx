@@ -1,29 +1,55 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+
+const PAN_START = 5;
+/** How far the image pans (%) across a full page scroll — lower = slower drift. */
+const PAN_RANGE = 30;
+/** How quickly the background catches up to scroll — lower = smoother, slower feel. */
+const PAN_LERP = 0.07;
 
 export default function ScenicBackground() {
-  const [scrollY, setScrollY] = useState(0);
-  const [scrollable, setScrollable] = useState(1);
+  const [positionY, setPositionY] = useState(PAN_START);
+  const targetYRef = useRef(PAN_START);
+  const rafRef = useRef(0);
+  const reduceMotionRef = useRef(false);
 
   useEffect(() => {
-    const update = () => {
-      setScrollY(window.scrollY);
-      setScrollable(Math.max(document.documentElement.scrollHeight - window.innerHeight, 1));
+    reduceMotionRef.current = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const updateTarget = () => {
+      const scrollY = window.scrollY;
+      const scrollable = Math.max(document.documentElement.scrollHeight - window.innerHeight, 1);
+      const progress = Math.min(scrollY / scrollable, 1);
+      const target = PAN_START + progress * PAN_RANGE;
+      targetYRef.current = target;
+      if (reduceMotionRef.current) {
+        setPositionY(target);
+      }
     };
 
-    update();
-    window.addEventListener('scroll', update, { passive: true });
-    window.addEventListener('resize', update);
+    const animate = () => {
+      if (!reduceMotionRef.current) {
+        setPositionY((prev) => {
+          const target = targetYRef.current;
+          const next = prev + (target - prev) * PAN_LERP;
+          return Math.abs(target - next) < 0.05 ? target : next;
+        });
+      }
+      rafRef.current = requestAnimationFrame(animate);
+    };
+
+    updateTarget();
+    window.addEventListener('scroll', updateTarget, { passive: true });
+    window.addEventListener('resize', updateTarget);
+    rafRef.current = requestAnimationFrame(animate);
+
     return () => {
-      window.removeEventListener('scroll', update);
-      window.removeEventListener('resize', update);
+      window.removeEventListener('scroll', updateTarget);
+      window.removeEventListener('resize', updateTarget);
+      cancelAnimationFrame(rafRef.current);
     };
   }, []);
-
-  const progress = Math.min(scrollY / scrollable, 1);
-  // Pan from soft mountains (top) to family campsite (bottom) while image always fills the screen
-  const positionY = 5 + progress * 78;
 
   return (
     <>
