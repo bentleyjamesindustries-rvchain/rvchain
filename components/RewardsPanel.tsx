@@ -43,6 +43,8 @@ import type { RewardProgramId } from '@/lib/rewardPrograms';
 import { useMileageTracker } from '@/lib/useMileageTracker';
 import ProgramSelector from './ProgramSelector';
 import RewardsDisclosure from './RewardsDisclosure';
+import { getMembershipPlanId } from '@/lib/membershipSubscription';
+import { getMembershipPlan } from '@/lib/membershipPlans';
 
 interface RewardsPanelProps {
   user: { id: string; username?: string } | null;
@@ -71,6 +73,8 @@ export default function RewardsPanel({
   onBookPark,
 }: RewardsPanelProps) {
   const userId = getRewardsUserId(user?.id);
+  const membershipPlanId = getMembershipPlanId(user?.id);
+  const membershipPlan = getMembershipPlan(membershipPlanId);
   const [rewards, setRewards] = useState<UnifiedRewardsData>(() => loadUnifiedRewards(userId));
   const [rewardCategory, setRewardCategory] = useState<RewardCategory>('all');
 
@@ -151,7 +155,13 @@ export default function RewardsPanel({
   }, [rewardCategory]);
 
   const handleMileageCheckIn = (type: 'campsite' | 'boondocking', id: string, name: string) => {
-    const { profile: next, points, error } = performCheckIn(mileage, type, id, name);
+    const { profile: next, points, error } = performCheckIn(
+      mileage,
+      type,
+      id,
+      name,
+      membershipPlanId
+    );
     if (error) return toast.error(error);
     persist({ ...rewards, mileage: next });
     toast.success(`+${points} points! Checked in at ${name}`);
@@ -167,7 +177,8 @@ export default function RewardsPanel({
       userLocation?.lat,
       userLocation?.lng,
       park?.lat,
-      park?.lng
+      park?.lng,
+      membershipPlanId
     );
     if (error) return toast.error(error);
     persist({ ...rewards, booking: next });
@@ -206,6 +217,16 @@ export default function RewardsPanel({
       </div>
 
       <RewardsDisclosure />
+
+      {membershipPlan.checkInBonusPercent > 0 && (
+        <div className="flex items-center gap-2 px-4 py-3 rounded-2xl border border-emerald-800/50 bg-emerald-950/30 text-sm text-emerald-200">
+          <Zap className="w-4 h-4 shrink-0 text-emerald-400" />
+          <span>
+            <span className="font-semibold">{membershipPlan.name}</span> member perk:{' '}
+            +{membershipPlan.checkInBonusPercent}% bonus points on every check-in
+          </span>
+        </div>
+      )}
 
       {/* Hero */}
       <div className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 ${

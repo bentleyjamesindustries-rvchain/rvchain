@@ -1,5 +1,10 @@
 import { Park, calculateDistance } from './parks';
 import { CHECKIN_RADIUS_MILES } from './rewards';
+import {
+  applyMembershipCheckInBonus,
+  getMembershipPlan,
+  type MembershipPlanId,
+} from './membershipPlans';
 import type { ActivityEntry, RedemptionRecord, RewardItem, RewardTierId } from './rewards';
 import type { BookingPayment } from './bookingPayments';
 
@@ -169,7 +174,8 @@ export function performBookingCheckIn(
   userLat?: number,
   userLng?: number,
   parkLat?: number | null,
-  parkLng?: number | null
+  parkLng?: number | null,
+  membershipPlanId: MembershipPlanId = 'campfire'
 ): { state: BookingProgramState; points: number; error?: string } {
   if (booking.checkedIn) {
     return { state, points: 0, error: 'You already checked in for this booking.' };
@@ -196,7 +202,13 @@ export function performBookingCheckIn(
 
   const tier = getBookingTier(state.checkInCount);
   const base = BOOKING_CHECKIN_BASE + booking.nights * BOOKING_NIGHT_BONUS;
-  const points = Math.round(base * tier.multiplier);
+  const tierPoints = Math.round(base * tier.multiplier);
+  const points = applyMembershipCheckInBonus(tierPoints, membershipPlanId);
+  const memberPlan = getMembershipPlan(membershipPlanId);
+  const memberNote =
+    memberPlan.checkInBonusPercent > 0
+      ? `, +${memberPlan.checkInBonusPercent}% ${memberPlan.name} member bonus`
+      : '';
 
   const updatedBookings = state.bookings.map((b) =>
     b.id === booking.id ? { ...b, checkedIn: true, checkedInAt: new Date().toISOString() } : b
@@ -211,7 +223,7 @@ export function performBookingCheckIn(
       lastCheckIns: { ...state.lastCheckIns, [booking.id]: new Date().toISOString() },
       activityLog: logBookingActivity(
         state,
-        `Stay check-in at ${booking.parkName} (${booking.nights} nights, ${tier.name} tier)`,
+        `Stay check-in at ${booking.parkName} (${booking.nights} nights, ${tier.name} tier${memberNote})`,
         points
       ),
     },

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { MessagesSquare, ChevronLeft, Plus } from 'lucide-react';
+import { MessagesSquare, ChevronLeft, Plus, Lock, LogIn } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
 import { isMissingTableError } from '@/lib/supabaseSetup';
@@ -20,6 +20,8 @@ import {
   formatForumDate,
 } from '@/lib/forumStorage';
 import { snapshotAvatarForPost } from '@/lib/imageCompress';
+import { getMembershipPlanId } from '@/lib/membershipSubscription';
+import { canPostOnForum, getMembershipPlan } from '@/lib/membershipPlans';
 import ProfileAvatar from './ProfileAvatar';
 
 interface ForumPanelProps {
@@ -27,6 +29,7 @@ interface ForumPanelProps {
   displayHandle: string;
   displayAvatar?: string | null;
   onRequestSignIn: () => void;
+  onRequestUpgrade: () => void;
   onOpenProfile?: () => void;
 }
 
@@ -54,11 +57,36 @@ function mapSupabaseRow(row: {
   };
 }
 
+function SignInWall({ onRequestSignIn }: { onRequestSignIn: () => void }) {
+  return (
+    <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12 sm:py-16">
+      <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-slate-700 bg-slate-900/80">
+        <div className="w-14 h-14 rounded-2xl bg-emerald-900/40 flex items-center justify-center mx-auto">
+          <MessagesSquare className="w-7 h-7 text-emerald-400" />
+        </div>
+        <h2 className="text-xl font-semibold">Sign in to read the camper forum</h2>
+        <p className="text-sm text-slate-400 leading-relaxed">
+          Browse tips, destination favorites, and maintenance advice from fellow RVers. Posting requires a paid membership.
+        </p>
+        <button
+          type="button"
+          onClick={onRequestSignIn}
+          className="w-full flex items-center justify-center gap-2 bg-white text-black h-11 rounded-3xl font-semibold text-sm"
+        >
+          <LogIn className="w-4 h-4" />
+          Sign in
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ForumPanel({
   user,
   displayHandle,
   displayAvatar,
   onRequestSignIn,
+  onRequestUpgrade,
   onOpenProfile,
 }: ForumPanelProps) {
   const [category, setCategory] = useState<ForumCategoryId | null>(null);
@@ -71,11 +99,25 @@ export default function ForumPanel({
   const [newBody, setNewBody] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  const planId = user ? getMembershipPlanId(user.id) : 'campfire';
+  const canPost = user ? canPostOnForum(planId) : false;
+  const memberBadge = getMembershipPlan(planId).forumBadge;
+
+  const tryOpenComposer = () => {
+    if (!user) return onRequestSignIn();
+    if (!canPost) {
+      toast.info('Upgrade to Weekender or higher to post in the forum.');
+      onRequestUpgrade();
+      return;
+    }
+    setShowComposer(true);
+  };
+
   const loadPosts = useCallback(async () => {
-    if (!category || !subcategory) return;
+    if (!category || !subcategory || !user) return;
     setLoading(true);
 
-    if (useLocalOnly || !user) {
+    if (useLocalOnly) {
       setPosts(listLocalForumPosts(category, subcategory));
       setLoading(false);
       return;
@@ -118,6 +160,7 @@ export default function ForumPanel({
     const body = newBody.trim();
     if (!title || !body) return toast.error('Add a title and message.');
     if (!user) return onRequestSignIn();
+    if (!canPost) return onRequestUpgrade();
     if (!category || !subcategory) return;
 
     setSubmitting(true);
@@ -180,6 +223,10 @@ export default function ForumPanel({
     setSubmitting(false);
   };
 
+  if (!user) {
+    return <SignInWall onRequestSignIn={onRequestSignIn} />;
+  }
+
   const activeCategory = category ? getForumCategory(category) : null;
   const activeSubcategory = subcategory ? getForumSubcategory(subcategory) : null;
 
@@ -219,11 +266,18 @@ export default function ForumPanel({
           })}
         </div>
 
-        {!user && (
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl border border-slate-700 bg-slate-900/50">
-            <p className="text-sm text-slate-400">Sign in to post your own threads. Browsing is open to everyone.</p>
-            <button onClick={onRequestSignIn} className="shrink-0 bg-white text-black px-5 py-2 rounded-3xl text-sm font-semibold">
-              Sign In
+        {!canPost && (
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 p-4 rounded-2xl border border-amber-800/40 bg-amber-950/20">
+            <p className="text-sm text-amber-200/90">
+              <Lock className="w-3.5 h-3.5 inline mr-1 -mt-0.5" />
+              Upgrade to post — memberships help keep our community safe and accountable.
+            </p>
+            <button
+              type="button"
+              onClick={onRequestUpgrade}
+              className="shrink-0 bg-amber-600 hover:bg-amber-500 text-white px-5 py-2 rounded-3xl text-sm font-semibold"
+            >
+              View memberships
             </button>
           </div>
         )}
@@ -309,21 +363,25 @@ export default function ForumPanel({
         </div>
         <button
           type="button"
-          onClick={() => (user ? setShowComposer(true) : onRequestSignIn())}
-          className="flex items-center gap-1.5 bg-emerald-700 hover:bg-emerald-600 px-4 h-10 rounded-2xl text-sm font-semibold shrink-0"
+          onClick={tryOpenComposer}
+          className={`flex items-center gap-1.5 px-4 h-10 rounded-2xl text-sm font-semibold shrink-0 ${
+            canPost
+              ? 'bg-emerald-700 hover:bg-emerald-600'
+              : 'bg-slate-800 border border-slate-600 text-slate-300 hover:border-amber-600'
+          }`}
         >
-          <Plus className="w-4 h-4" />
-          New post
+          {canPost ? <Plus className="w-4 h-4" /> : <Lock className="w-4 h-4" />}
+          {canPost ? 'New post' : 'Upgrade to post'}
         </button>
       </div>
 
-      {useLocalOnly && user && (
+      {useLocalOnly && (
         <div className="text-xs text-amber-300/90 bg-amber-950/30 border border-amber-800/40 rounded-xl px-3 py-2">
           Forum posts save on this device until Supabase <code className="text-[10px]">forum_posts</code> table is set up.
         </div>
       )}
 
-      {showComposer && (
+      {showComposer && canPost && (
         <div className="bg-slate-900 border border-slate-700 rounded-2xl p-4 sm:p-5 space-y-3">
           <input
             type="text"
@@ -350,6 +408,11 @@ export default function ForumPanel({
               <span>
                 Posting as{' '}
                 <span className="text-emerald-300 font-medium">{displayHandle}</span>
+                {memberBadge && (
+                  <span className="ml-1 text-[9px] bg-emerald-900/50 text-emerald-300 px-1.5 py-0.5 rounded-full">
+                    {memberBadge}
+                  </span>
+                )}
               </span>
             </button>
             <div className="flex gap-2">
@@ -381,18 +444,19 @@ export default function ForumPanel({
             <p className="text-slate-400 text-sm">No posts yet in this topic.</p>
             <button
               type="button"
-              onClick={() => (user ? setShowComposer(true) : onRequestSignIn())}
+              onClick={tryOpenComposer}
               className="mt-3 text-sm text-emerald-400 hover:underline"
             >
-              Be the first to share
+              {canPost ? 'Be the first to share' : 'Upgrade to be the first to share'}
             </button>
           </div>
         ) : (
           posts.map((post) => {
-            const isMine = user && (post.userId === user.id || post.author === displayHandle);
+            const isMine = post.userId === user.id || post.author === displayHandle;
             const postAvatar =
               post.authorAvatar ??
               (isMine ? displayAvatar : null);
+            const showBadge = isMine && memberBadge;
             return (
               <article
                 key={post.id}
@@ -410,6 +474,11 @@ export default function ForumPanel({
                   <span className={`font-medium ${isMine ? 'text-emerald-300' : 'text-slate-300'}`}>
                     @{post.author}
                   </span>
+                  {showBadge && (
+                    <span className="text-[9px] bg-emerald-900/50 text-emerald-300 px-1.5 py-0.5 rounded-full">
+                      {memberBadge}
+                    </span>
+                  )}
                   {isMine && <span className="text-[10px] text-emerald-600">you</span>}
                 </div>
               </article>

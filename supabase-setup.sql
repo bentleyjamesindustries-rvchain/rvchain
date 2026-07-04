@@ -255,10 +255,28 @@ create policy "Users can view their own redemptions."
 create policy "Users can create their own redemptions."
   on rewards_redemptions for insert with check (auth.uid() = user_id);
 
--- 8. Trip planner subscriptions (demo / future Stripe sync)
+-- 8. Camper membership subscriptions (demo / future Stripe sync)
 alter table trips add column if not exists notes text;
 alter table trips add column if not exists camper_packs text[];
 
+create table if not exists membership_subscriptions (
+  user_id uuid primary key references auth.users on delete cascade,
+  plan text not null check (plan in ('campfire', 'weekender', 'road-tripper', 'full-timer')),
+  billing_interval text not null default 'monthly' check (billing_interval in ('monthly', 'annual')),
+  active boolean default true,
+  subscribed_at timestamptz default now(),
+  trial_ends_at timestamptz
+);
+
+alter table membership_subscriptions enable row level security;
+
+create policy "Users can view their own membership subscription."
+  on membership_subscriptions for select using (auth.uid() = user_id);
+
+create policy "Users can manage their own membership subscription."
+  on membership_subscriptions for all using (auth.uid() = user_id);
+
+-- Legacy trip planner subscriptions (superseded by membership_subscriptions)
 create table if not exists trip_planner_subscriptions (
   user_id uuid primary key references auth.users on delete cascade,
   plan text not null check (plan in ('explorer', 'navigator', 'trailmaster')),

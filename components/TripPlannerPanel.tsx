@@ -20,25 +20,28 @@ import {
   StoredTripPark,
 } from '@/lib/localTrips';
 import {
-  getTripPlannerPlanId,
-  subscribeToTripPlanner,
-  getTripPlannerSubscription,
-} from '@/lib/tripPlannerSubscription';
+  getMembershipPlanId,
+  subscribeToMembership,
+  getMembershipSubscription,
+  isOnTrial,
+} from '@/lib/membershipSubscription';
 import {
-  getTripPlannerPlan,
+  getMembershipPlan,
   maxSelectablePacks,
   availablePacksForPlan,
   canAccessChecklist,
-  type TripPlannerPlanId,
-} from '@/lib/tripPlannerPlans';
+  canCreateTrip,
+  type MembershipPlanId,
+} from '@/lib/membershipPlans';
+import type { BillingInterval } from '@/lib/membershipPlans';
 import {
   CHECKLIST_PACKS,
   getChecklistPack,
   type ChecklistPackId,
 } from '@/lib/tripChecklists';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
-import TripPlanTierPicker from './TripPlanTierPicker';
-import TripPlannerDisclosure from './TripPlannerDisclosure';
+import MembershipTierPicker from './MembershipTierPicker';
+import MembershipDisclosure from './MembershipDisclosure';
 import CampingChecklist from './CampingChecklist';
 
 interface TripPlannerPanelProps {
@@ -62,9 +65,9 @@ export default function TripPlannerPanel({
   const [activePackTab, setActivePackTab] = useState<ChecklistPackId>('backpacking');
   const [checklistRefresh, setChecklistRefresh] = useState(0);
 
-  const planId = getTripPlannerPlanId(user?.id);
-  const plan = getTripPlannerPlan(planId);
-  const subscription = user ? getTripPlannerSubscription(user.id) : null;
+  const planId = getMembershipPlanId(user?.id);
+  const plan = getMembershipPlan(planId);
+  const subscription = user ? getMembershipSubscription(user.id) : null;
 
   const availablePacks = useMemo(() => availablePacksForPlan(planId), [planId]);
   const maxPacks = maxSelectablePacks(planId);
@@ -126,6 +129,9 @@ export default function TripPlannerPanel({
   const createTrip = async () => {
     if (!user) return toast.error('Sign in to create trips.');
     if (!newTripTitle.trim()) return toast.error('Give your trip a name.');
+    if (!canCreateTrip(planId, userTrips.length)) {
+      return toast.error('Campfire plan allows 1 trip. Upgrade to Weekender for unlimited trips.');
+    }
     const title = newTripTitle.trim();
 
     if (!supabaseReady) {
@@ -211,16 +217,22 @@ export default function TripPlannerPanel({
     toast.success('Added to trip!');
   };
 
-  const handleSubscribe = (newPlan: TripPlannerPlanId) => {
+  const handleSubscribe = (
+    newPlan: MembershipPlanId,
+    interval: BillingInterval,
+    startTrial: boolean
+  ) => {
     if (!user) return onRequestSignIn();
-    if (newPlan === 'free') return;
-    subscribeToTripPlanner(user.id, newPlan);
-    toast.success(`Subscribed to ${getTripPlannerPlan(newPlan).name} (demo)!`);
+    if (newPlan === 'campfire') return;
+    subscribeToMembership(user.id, newPlan, interval, { startTrial });
+    const label = getMembershipPlan(newPlan).name;
+    const trialNote = startTrial ? ' — 7-day trial started' : '';
+    toast.success(`Subscribed to ${label} (${interval}, demo)${trialNote}!`);
     setChecklistRefresh((n) => n + 1);
   };
 
   const toggleCamperPack = (packId: ChecklistPackId) => {
-    if (!selectedTrip || planId === 'free') return;
+    if (!selectedTrip || planId === 'campfire') return;
     const current = selectedTrip.camper_packs ?? [];
     const has = current.includes(packId);
     let next: ChecklistPackId[];
@@ -237,7 +249,7 @@ export default function TripPlannerPanel({
 
   const handlePrint = () => {
     if (!plan.printable) {
-      toast.info('Upgrade to Explorer or higher to print checklists.');
+      toast.info('Upgrade to Weekender or higher to print checklists.');
       return;
     }
     window.print();
@@ -256,27 +268,30 @@ export default function TripPlannerPanel({
     <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10 space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
         <div className="section-intro">
-          <h2 className="text-xl sm:text-2xl font-semibold">Trip Planner</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold">rvchain Membership</h2>
           <p className="text-slate-200 text-sm mt-1">
-            Plan routes, dates, and camping checklists for your style of travel.
+            Plan trips, post in the forum, and earn bonus rewards — one membership across the app.
           </p>
           <p className="text-[10px] text-amber-400/80 mt-1">{DEMO_NOTICE_SHORT}</p>
         </div>
-        {planId !== 'free' && subscription && (
+        {planId !== 'campfire' && subscription && (
           <div className="text-xs bg-emerald-950/40 border border-emerald-800/40 px-3 py-2 rounded-2xl text-emerald-300">
-            {plan.name} plan · demo since {new Date(subscription.subscribedAt).toLocaleDateString()}
+            {plan.name} · {subscription.billingInterval}
+            {isOnTrial(subscription) && ' · trial active'}
+            {' · demo since '}{new Date(subscription.subscribedAt).toLocaleDateString()}
           </div>
         )}
       </div>
 
-      <TripPlanTierPicker
+      <MembershipTierPicker
         activePlan={planId}
+        activeInterval={subscription?.billingInterval}
         onSelectPlan={handleSubscribe}
         signedIn={Boolean(user)}
         onRequestSignIn={onRequestSignIn}
       />
 
-      <TripPlannerDisclosure />
+      <MembershipDisclosure />
 
       <div className="flex flex-col min-[400px]:flex-row gap-2">
         <input
@@ -374,7 +389,7 @@ export default function TripPlannerPanel({
                     </label>
                   </div>
 
-                  {planId !== 'free' && (
+                  {planId !== 'campfire' && (
                     <label className="block text-xs">
                       <span className="text-slate-400 mb-1 block">Trip notes</span>
                       <textarea
@@ -451,17 +466,17 @@ export default function TripPlannerPanel({
                     )}
                   </div>
 
-                  {planId === 'free' ? (
+                  {planId === 'campfire' ? (
                     <div className="text-center py-8 border border-dashed border-slate-700 rounded-2xl">
                       <Lock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                      <p className="text-sm text-slate-400">Subscribe to unlock camper checklists.</p>
+                      <p className="text-sm text-slate-400">Upgrade to Weekender to unlock camper checklists.</p>
                       <p className="text-xs text-slate-500 mt-1">Backpacking, RV, vehicle prep &amp; more.</p>
                     </div>
                   ) : (
                     <>
                       <div className="text-xs text-slate-400 mb-3">
                         {maxPacks === 1
-                          ? 'Pick one camper style for this trip (Explorer plan):'
+                          ? 'Pick one camper style for this trip (Weekender plan):'
                           : 'Select checklist packs for this trip:'}
                       </div>
                       <div className="flex flex-wrap gap-2 mb-4">

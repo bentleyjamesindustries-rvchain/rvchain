@@ -55,6 +55,7 @@ import {
 } from '@/lib/userProfile';
 import { useIsMobile } from '@/lib/useDeviceType';
 import { purgeLegacyWalletStorage } from '@/lib/legacyWalletCleanup';
+import { getMembershipPlanId } from '@/lib/membershipSubscription';
 import type { RewardProgramId } from '@/lib/rewardPrograms';
 import type { LucideIcon } from 'lucide-react';
 
@@ -462,6 +463,7 @@ export default function RVChainApp() {
   const handleParkCheckIn = (park: Park) => {
     const uid = getRewardsUserId(user?.id);
     const rewards = loadUnifiedRewards(uid);
+    const membershipPlanId = getMembershipPlanId(user?.id);
 
     if (rewards.activeProgram === 'booking') {
       const booking = getBookableCheckIn(rewards.booking, park.id);
@@ -476,7 +478,8 @@ export default function RVChainApp() {
         userLocation?.lat,
         userLocation?.lng,
         park.lat,
-        park.lng
+        park.lng,
+        membershipPlanId
       );
       if (error) return toast.error(error);
       saveUnifiedRewards(uid, { ...rewards, booking: next });
@@ -485,7 +488,13 @@ export default function RVChainApp() {
       return;
     }
 
-    const { profile: next, points, error } = performCheckIn(rewards.mileage, 'campsite', park.id, park.name);
+    const { profile: next, points, error } = performCheckIn(
+      rewards.mileage,
+      'campsite',
+      park.id,
+      park.name,
+      membershipPlanId
+    );
     if (error) return toast.error(error);
     saveUnifiedRewards(uid, { ...rewards, mileage: next });
     syncRewardsState();
@@ -1009,6 +1018,7 @@ export default function RVChainApp() {
           displayHandle={profileHandle}
           displayAvatar={userProfile.avatarUrl}
           onRequestSignIn={() => setShowAuthModal(true)}
+          onRequestUpgrade={() => setActiveTab('trips')}
           onOpenProfile={user ? openProfile : undefined}
         />
       )}

@@ -1,4 +1,9 @@
 import { Park, calculateDistance } from './parks';
+import {
+  applyMembershipCheckInBonus,
+  getMembershipPlan,
+  type MembershipPlanId,
+} from './membershipPlans';
 
 export type RewardTierId = 'scout' | 'explorer' | 'navigator' | 'legend';
 
@@ -205,7 +210,8 @@ export function performCheckIn(
   profile: RewardsProfile,
   type: CheckInType,
   locationId: string,
-  locationName: string
+  locationName: string,
+  membershipPlanId: MembershipPlanId = 'campfire'
 ): { profile: RewardsProfile; points: number; error?: string } {
   if (!canCheckIn(profile, locationId)) {
     return { profile, points: 0, error: 'Already checked in here today. Come back tomorrow!' };
@@ -213,7 +219,13 @@ export function performCheckIn(
 
   const tier = getTierForMiles(profile.totalMiles);
   const base = type === 'campsite' ? CAMPSITE_CHECKIN_POINTS : BOONDOCK_CHECKIN_POINTS;
-  const points = Math.round(base * tier.multiplier);
+  const tierPoints = Math.round(base * tier.multiplier);
+  const points = applyMembershipCheckInBonus(tierPoints, membershipPlanId);
+  const memberPlan = getMembershipPlan(membershipPlanId);
+  const memberNote =
+    memberPlan.checkInBonusPercent > 0
+      ? `, +${memberPlan.checkInBonusPercent}% ${memberPlan.name} member bonus`
+      : '';
 
   const updated: RewardsProfile = {
     ...profile,
@@ -224,7 +236,7 @@ export function performCheckIn(
     activityLog: logActivity(
       profile,
       'checkin',
-      `Checked in at ${locationName} (+${type === 'campsite' ? 'campsite' : 'boondocking'} bonus)`,
+      `Checked in at ${locationName} (${tier.name} tier${memberNote})`,
       points
     ),
   };
