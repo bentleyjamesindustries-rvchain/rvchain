@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Gift, Navigation, MapPin, Trophy,
-  Play, Square, ChevronRight, Star, Shield, Zap, CalendarCheck, BookOpen,
+  Play, Square, ChevronRight, Star, Shield, Zap, CalendarCheck, BookOpen, LogIn, Lock,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Park } from '@/lib/parks';
@@ -44,13 +44,14 @@ import { useMileageTracker } from '@/lib/useMileageTracker';
 import ProgramSelector from './ProgramSelector';
 import RewardsDisclosure from './RewardsDisclosure';
 import { getMembershipPlanId } from '@/lib/membershipSubscription';
-import { getMembershipPlan } from '@/lib/membershipPlans';
+import { canEarnLoyaltyPoints, getMembershipPlan } from '@/lib/membershipPlans';
 
 interface RewardsPanelProps {
   user: { id: string; username?: string } | null;
   parks: Park[];
   userLocation: { lat: number; lng: number } | null;
   onRequestSignIn: () => void;
+  onRequestUpgrade: () => void;
   onPointsChange?: (points: number) => void;
   onBookPark?: (park: Park) => void;
 }
@@ -69,12 +70,14 @@ export default function RewardsPanel({
   parks,
   userLocation,
   onRequestSignIn,
+  onRequestUpgrade,
   onPointsChange,
   onBookPark,
 }: RewardsPanelProps) {
   const userId = getRewardsUserId(user?.id);
   const membershipPlanId = getMembershipPlanId(user?.id);
   const membershipPlan = getMembershipPlan(membershipPlanId);
+  const canEarn = canEarnLoyaltyPoints(membershipPlanId);
   const [rewards, setRewards] = useState<UnifiedRewardsData>(() => loadUnifiedRewards(userId));
   const [rewardCategory, setRewardCategory] = useState<RewardCategory>('all');
 
@@ -206,6 +209,55 @@ export default function RewardsPanel({
   };
 
   const activityLog = program === 'booking' ? booking.activityLog : mileage.activityLog;
+
+  if (!user) {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-slate-700 bg-slate-900/80">
+          <div className="w-14 h-14 rounded-2xl bg-amber-900/40 flex items-center justify-center mx-auto">
+            <Gift className="w-7 h-7 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-semibold">Sign in to earn loyalty points</h2>
+          <p className="text-sm text-slate-400 leading-relaxed">
+            Loyalty rewards are available to paid members (Weekender or higher). Sign in to check your
+            membership or upgrade on the Trips tab.
+          </p>
+          <button
+            type="button"
+            onClick={onRequestSignIn}
+            className="w-full flex items-center justify-center gap-2 bg-white text-black h-11 rounded-3xl font-semibold text-sm"
+          >
+            <LogIn className="w-4 h-4" />
+            Sign in
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!canEarn) {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12 sm:py-16">
+        <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-amber-800/50 bg-amber-950/20">
+          <div className="w-14 h-14 rounded-2xl bg-amber-900/40 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7 text-amber-400" />
+          </div>
+          <h2 className="text-xl font-semibold">Loyalty rewards require a paid membership</h2>
+          <p className="text-sm text-slate-400 leading-relaxed">
+            Campfire (free) does not include loyalty points, check-ins, or redemptions. Upgrade to
+            Weekender or higher to start earning.
+          </p>
+          <button
+            type="button"
+            onClick={onRequestUpgrade}
+            className="w-full flex items-center justify-center gap-2 bg-emerald-700 hover:bg-emerald-600 text-white h-11 rounded-3xl font-semibold text-sm"
+          >
+            View membership plans
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">

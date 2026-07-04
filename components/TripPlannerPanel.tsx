@@ -31,6 +31,7 @@ import {
   availablePacksForPlan,
   canAccessChecklist,
   canCreateTrip,
+  canUseTripPlanner,
   type MembershipPlanId,
 } from '@/lib/membershipPlans';
 import type { BillingInterval } from '@/lib/membershipPlans';
@@ -129,8 +130,11 @@ export default function TripPlannerPanel({
   const createTrip = async () => {
     if (!user) return toast.error('Sign in to create trips.');
     if (!newTripTitle.trim()) return toast.error('Give your trip a name.');
+    if (!canUseTripPlanner(planId)) {
+      return toast.error('Trip planner requires Weekender or higher. Choose a plan above.');
+    }
     if (!canCreateTrip(planId, userTrips.length)) {
-      return toast.error('Campfire plan allows 1 trip. Upgrade to Weekender for unlimited trips.');
+      return toast.error('Trip limit reached on your current plan.');
     }
     const title = newTripTitle.trim();
 
@@ -188,6 +192,9 @@ export default function TripPlannerPanel({
 
   const addParkToTrip = async (parkId: string) => {
     if (!selectedTrip || !user) return;
+    if (!canUseTripPlanner(planId)) {
+      return toast.error('Park stops require Weekender or higher.');
+    }
     if (!supabaseReady) {
       setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, allParks));
       toast.success('Added to trip!');
@@ -293,27 +300,9 @@ export default function TripPlannerPanel({
 
       <MembershipDisclosure />
 
-      <div className="flex flex-col min-[400px]:flex-row gap-2">
-        <input
-          value={newTripTitle}
-          onChange={(e) => setNewTripTitle(e.target.value)}
-          placeholder="New trip name (e.g. Yellowstone 2026)"
-          disabled={!user}
-          className="bg-slate-900 border border-slate-700 px-4 rounded-2xl text-sm flex-1 min-w-0 h-11 disabled:opacity-50"
-        />
-        <button
-          type="button"
-          onClick={createTrip}
-          disabled={!user}
-          className="bg-green-700 hover:bg-green-600 disabled:opacity-50 px-5 rounded-3xl text-sm font-semibold flex items-center justify-center gap-1 h-11"
-        >
-          <Plus className="w-4 h-4" /> Create Trip
-        </button>
-      </div>
-
       {!user ? (
         <div className="text-center py-12 border border-slate-800 rounded-3xl">
-          <p className="text-slate-400 mb-4">Sign in to create trips and unlock checklists.</p>
+          <p className="text-slate-400 mb-4">Sign in to manage your membership and unlock trip planning.</p>
           <button
             type="button"
             onClick={onRequestSignIn}
@@ -322,7 +311,32 @@ export default function TripPlannerPanel({
             Sign In
           </button>
         </div>
+      ) : !canUseTripPlanner(planId) ? (
+        <div className="text-center py-12 border border-dashed border-emerald-800/50 rounded-3xl bg-emerald-950/20">
+          <Lock className="w-10 h-10 text-emerald-500/70 mx-auto mb-3" />
+          <h3 className="text-lg font-semibold text-slate-200">Trip planner is a paid feature</h3>
+          <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+            Campfire (free) does not include trips or park stops. Upgrade to Weekender or higher above to
+            create trips, add park stops, and unlock checklists.
+          </p>
+        </div>
       ) : (
+        <>
+      <div className="flex flex-col min-[400px]:flex-row gap-2">
+        <input
+          value={newTripTitle}
+          onChange={(e) => setNewTripTitle(e.target.value)}
+          placeholder="New trip name (e.g. Yellowstone 2026)"
+          className="bg-slate-900 border border-slate-700 px-4 rounded-2xl text-sm flex-1 min-w-0 h-11"
+        />
+        <button
+          type="button"
+          onClick={createTrip}
+          className="bg-green-700 hover:bg-green-600 px-5 rounded-3xl text-sm font-semibold flex items-center justify-center gap-1 h-11"
+        >
+          <Plus className="w-4 h-4" /> Create Trip
+        </button>
+      </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="lg:col-span-1 space-y-3">
             <div className="font-medium flex items-center justify-between">
@@ -557,6 +571,7 @@ export default function TripPlannerPanel({
             )}
           </div>
         </div>
+        </>
       )}
     </div>
   );

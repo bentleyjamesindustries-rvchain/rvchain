@@ -56,6 +56,7 @@ import {
 import { useIsMobile } from '@/lib/useDeviceType';
 import { purgeLegacyWalletStorage } from '@/lib/legacyWalletCleanup';
 import { getMembershipPlanId } from '@/lib/membershipSubscription';
+import { canEarnLoyaltyPoints, canUseTripPlanner } from '@/lib/membershipPlans';
 import type { RewardProgramId } from '@/lib/rewardPrograms';
 import type { LucideIcon } from 'lucide-react';
 
@@ -461,9 +462,19 @@ export default function RVChainApp() {
   };
 
   const handleParkCheckIn = (park: Park) => {
-    const uid = getRewardsUserId(user?.id);
+    if (!user) {
+      toast.error('Sign in to earn loyalty points.');
+      setShowAuthModal(true);
+      return;
+    }
+    const membershipPlanId = getMembershipPlanId(user.id);
+    if (!canEarnLoyaltyPoints(membershipPlanId)) {
+      toast.info('Loyalty rewards require Weekender or higher.');
+      setActiveTab('trips');
+      return;
+    }
+    const uid = getRewardsUserId(user.id);
     const rewards = loadUnifiedRewards(uid);
-    const membershipPlanId = getMembershipPlanId(user?.id);
 
     if (rewards.activeProgram === 'booking') {
       const booking = getBookableCheckIn(rewards.booking, park.id);
@@ -628,6 +639,11 @@ export default function RVChainApp() {
 
   const addParkToTripFromDiscover = async (parkId: string) => {
     if (!user) return toast.error('Sign in to add parks to a trip.');
+    if (!canUseTripPlanner(getMembershipPlanId(user.id))) {
+      toast.info('Trip planner requires Weekender or higher.');
+      setActiveTab('trips');
+      return;
+    }
     const trips = listLocalTrips(user.id);
     if (trips.length === 0) {
       toast.info('Create a trip in the Trips tab first.');
@@ -952,7 +968,7 @@ export default function RVChainApp() {
                         >
                           {fav ? "❤️" : "♡"}
                         </button>
-                        {user && (
+                        {user && canUseTripPlanner(getMembershipPlanId(user.id)) && (
                           <button
                             onClick={() => addParkToTripFromDiscover(park.id)}
                             className="px-3 border border-emerald-700 hover:bg-emerald-900/30 rounded-2xl text-xs text-emerald-300"
@@ -982,6 +998,28 @@ export default function RVChainApp() {
 
       {/* MAP */}
       {activeTab === 'map' && (
+        !user ? (
+          <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12 sm:py-16">
+            <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-slate-700 bg-slate-900/80">
+              <div className="w-14 h-14 rounded-2xl bg-sky-900/40 flex items-center justify-center mx-auto">
+                <MapPin className="w-7 h-7 text-sky-400" />
+              </div>
+              <h2 className="text-xl font-semibold">Sign in to explore the park map</h2>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                The interactive map with park markers and directions is available to signed-in members.
+                Browse Discover without an account, or sign in to open the map.
+              </p>
+              <button
+                type="button"
+                onClick={() => setShowAuthModal(true)}
+                className="w-full flex items-center justify-center gap-2 bg-white text-black h-11 rounded-3xl font-semibold text-sm"
+              >
+                <LogIn className="w-4 h-4" />
+                Sign in
+              </button>
+            </div>
+          </div>
+        ) : (
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
           <div className="flex items-center justify-between mb-3 section-intro">
             <div>
@@ -1009,6 +1047,7 @@ export default function RVChainApp() {
             <span>Tap markers → Get Directions opens full Google Maps GPS navigation</span>
           </div>
         </div>
+        )
       )}
 
       {/* FORUM */}
@@ -1122,17 +1161,19 @@ export default function RVChainApp() {
                 <span>Book on rvchain (Demo)</span>
               </button>
 
-              <button
-                onClick={() => handleParkCheckIn(selectedPark)}
-                className="w-full bg-amber-700 hover:bg-amber-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
-              >
-                <Gift className="w-4 h-4" />
-                <span>
-                  {activeRewardProgram === 'booking'
-                    ? 'Check In to Earn Points'
-                    : 'Check In (+250 pts)'}
-                </span>
-              </button>
+              {user && canEarnLoyaltyPoints(getMembershipPlanId(user.id)) && (
+                <button
+                  onClick={() => handleParkCheckIn(selectedPark)}
+                  className="w-full bg-amber-700 hover:bg-amber-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
+                >
+                  <Gift className="w-4 h-4" />
+                  <span>
+                    {activeRewardProgram === 'booking'
+                      ? 'Check In to Earn Points'
+                      : 'Check In (+250 pts)'}
+                  </span>
+                </button>
+              )}
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <button 
@@ -1391,6 +1432,7 @@ export default function RVChainApp() {
           parks={allParks}
           userLocation={userLocation}
           onRequestSignIn={() => setShowAuthModal(true)}
+          onRequestUpgrade={() => setActiveTab('trips')}
           onPointsChange={syncRewardsState}
           onBookPark={() => setActiveTab('discover')}
         />

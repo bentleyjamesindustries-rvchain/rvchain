@@ -32,18 +32,18 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
   {
     id: 'campfire',
     name: 'Campfire',
-    tagline: 'Discover parks, save one trip, read the forum',
+    tagline: 'Browse parks — upgrade for trips, loyalty & forum posting',
     priceMonthly: 0,
     priceAnnual: 0,
     trialDays: 0,
     features: [
-      'Park discovery & map',
-      '1 active trip with park stops',
-      'Earn loyalty points',
+      'Browse parks on Discover',
+      'Sign in to use the interactive map',
       'Sign in to browse the forum',
+      'Trip planner & loyalty require Weekender+',
     ],
     accent: 'text-slate-400',
-    maxActiveTrips: 1,
+    maxActiveTrips: 0,
     checklistPacks: [],
     printable: false,
     routeSummary: false,
@@ -218,7 +218,16 @@ export function availablePacksForPlan(planId: MembershipPlanId): ChecklistPackId
   return ['backpacking', 'car-camping', 'rv-drivable', 'vehicle-prep', 'survival'];
 }
 
+export function canUseTripPlanner(planId: MembershipPlanId): boolean {
+  return planId !== 'campfire';
+}
+
+export function canEarnLoyaltyPoints(planId: MembershipPlanId): boolean {
+  return planId !== 'campfire';
+}
+
 export function canCreateTrip(planId: MembershipPlanId, currentTripCount: number): boolean {
+  if (!canUseTripPlanner(planId)) return false;
   const plan = getMembershipPlan(planId);
   if (plan.maxActiveTrips === 'unlimited') return true;
   return currentTripCount < plan.maxActiveTrips;
