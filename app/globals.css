@@ -132,7 +132,7 @@ body {
   display: none;
 }
 
-/* Scenic background — always full screen; pans on scroll */
+/* Scenic background — full screen; slow ease-in pan on scroll */
 .rv-scene-fixed {
   position: fixed;
   inset: 0;
