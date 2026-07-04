@@ -29,7 +29,7 @@ import {
   saveListingInterest,
 } from '@/lib/rvMarketplaceStorage';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
-import RvchainCertifiedBadge from '@/components/RvchainCertifiedBadge';
+import VerifiedBadge from '@/components/VerifiedBadge';
 import {
   createRvCertificationRecord,
   getRvCertificationInfo,
@@ -254,7 +254,7 @@ export default function RvMarketplacePanel({
     }
     subscribeToRvchainServices(user.id);
     setSubscribed(true);
-    toast.success('Subscribed (demo)! You can now certify your listings on the blockchain.');
+    toast.success('Subscribed (demo)! You can now certify your listings.');
   };
 
   const handleCertifyListing = async (listing: RvListing) => {
@@ -274,18 +274,14 @@ export default function RvMarketplacePanel({
     }
 
     setCertifyingId(listing.id);
-    const toastId = toast.loading('Recording RVCHAIN certification on Bitcoin…');
+    const toastId = toast.loading('Certifying listing…');
     try {
       const certifiedBy = user.email ?? user.username ?? displayHandle;
-      const record = await createRvCertificationRecord(listing, certifiedBy);
+      const record = createRvCertificationRecord(listing, certifiedBy);
       saveRvCertification(record);
       refresh();
       toast.dismiss(toastId);
-      toast.success(
-        record.certificationOts
-          ? 'RVCHAIN Certified! Blockchain proof recorded.'
-          : 'RVCHAIN Certified! Hash saved — proof will finalize shortly.'
-      );
+      toast.success('RVCHAIN Certified!');
     } catch {
       toast.dismiss(toastId);
       toast.error('Certification failed. Try again.');
@@ -412,7 +408,7 @@ export default function RvMarketplacePanel({
             </div>
             <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight">Find your next rig</h2>
             <p className="text-sm sm:text-base text-slate-400 mt-2 max-w-xl">
-              Search by state, compare ratings, and look for the RVCHAIN Certified badge — blockchain-backed seller trust.
+              Search by state, compare ratings, and look for the RVCHAIN Certified badge — moderator-reviewed seller trust.
             </p>
           </div>
           <div className="flex items-center gap-2 text-[11px] text-amber-200/90 bg-black/30 border border-amber-700/30 px-3 py-2 rounded-2xl max-w-sm backdrop-blur">
@@ -500,8 +496,8 @@ export default function RvMarketplacePanel({
               <div>
                 <h3 className="font-semibold text-emerald-200">RVCHAIN Certified Sellers</h3>
                 <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed max-w-2xl">
-                  Subscribe to RVCHAIN seller services and receive an official certification badge on your listings —
-                  permanently recorded to the Bitcoin blockchain via OpenTimestamps.
+                  Subscribe to RVCHAIN seller services and receive an official certification badge on your listings
+                  after moderator review.
                 </p>
               </div>
             </div>
@@ -649,9 +645,10 @@ export default function RvMarketplacePanel({
                       <span className="bg-black/60 text-[10px] font-bold px-2.5 py-1 rounded-xl backdrop-blur border border-white/10">
                         {RV_CLASS_LABELS[listing.rvClass]}
                       </span>
-                      {listing.rvchainCertified && getRvCertificationInfo(listing) && (
-                        <RvchainCertifiedBadge
-                          certification={getRvCertificationInfo(listing)!}
+                      {listing.rvchainCertified && (
+                        <VerifiedBadge
+                          verifiedBy={getRvCertificationInfo(listing)?.certifiedBy}
+                          verifiedAt={getRvCertificationInfo(listing)?.certifiedAt}
                           size="sm"
                         />
                       )}
@@ -909,7 +906,7 @@ export default function RvMarketplacePanel({
               <div>
                 <p className="font-semibold text-emerald-200 text-sm">Get RVCHAIN Certified</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Subscribe to record your listings on the blockchain and earn the official badge.
+                  Subscribe to certify your listings and earn the official badge.
                 </p>
               </div>
               <button
@@ -977,9 +974,10 @@ export default function RvMarketplacePanel({
                   )}
                 </div>
                 <div className="flex sm:flex-col gap-2 shrink-0">
-                  {listing.rvchainCertified && getRvCertificationInfo(listing) ? (
-                    <RvchainCertifiedBadge
-                      certification={getRvCertificationInfo(listing)!}
+                  {listing.rvchainCertified ? (
+                    <VerifiedBadge
+                      verifiedBy={getRvCertificationInfo(listing)?.certifiedBy}
+                      verifiedAt={getRvCertificationInfo(listing)?.certifiedAt}
                       size="sm"
                     />
                   ) : subscribed ? (
@@ -990,7 +988,7 @@ export default function RvMarketplacePanel({
                       className="flex items-center justify-center gap-1 px-4 h-10 rounded-2xl border border-emerald-700/60 text-emerald-300 text-sm hover:bg-emerald-950/40 disabled:opacity-50"
                     >
                       <ShieldCheck className="w-3.5 h-3.5" />
-                      {certifyingId === listing.id ? 'Certifying…' : 'Certify on chain'}
+                      {certifyingId === listing.id ? 'Certifying…' : 'Certify listing'}
                     </button>
                   ) : null}
                   <button
@@ -1048,10 +1046,11 @@ export default function RvMarketplacePanel({
                 <p className="text-emerald-300 mt-1 flex items-center gap-1">
                   <MapPin className="w-4 h-4" /> {selected.city}, {selected.state} · {getStateName(selected.state)}
                 </p>
-                {selected.rvchainCertified && getRvCertificationInfo(selected) && (
+                {selected.rvchainCertified && (
                   <div className="mt-3">
-                    <RvchainCertifiedBadge
-                      certification={getRvCertificationInfo(selected)!}
+                    <VerifiedBadge
+                      verifiedBy={getRvCertificationInfo(selected)?.certifiedBy}
+                      verifiedAt={getRvCertificationInfo(selected)?.certifiedAt}
                       size="md"
                     />
                   </div>

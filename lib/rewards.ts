@@ -19,7 +19,7 @@ export interface RewardItem {
   name: string;
   description: string;
   pointsCost: number;
-  category: 'fuel' | 'propane' | 'gear' | 'crypto';
+  category: 'fuel' | 'propane' | 'gear';
   icon: string;
   tierRequired: RewardTierId;
 }
@@ -111,8 +111,6 @@ export const REWARD_CATALOG: RewardItem[] = [
   { id: 'propane-30', name: '$30 Propane Credit', description: 'Perfect for a full tank refill', pointsCost: 2800, category: 'propane', icon: '🔥', tierRequired: 'navigator' },
   { id: 'gear-kit', name: 'Camping Gear Bundle', description: 'LED lantern, hose kit, leveling blocks', pointsCost: 5000, category: 'gear', icon: '🏕️', tierRequired: 'explorer' },
   { id: 'gear-premium', name: 'Premium RV Kit', description: 'Surge protector, water filter, tire gauge set', pointsCost: 8500, category: 'gear', icon: '🎒', tierRequired: 'legend' },
-  { id: 'btc-10', name: '$10 in Bitcoin', description: 'Optional — redeem to your crypto wallet', pointsCost: 1200, category: 'crypto', icon: '₿', tierRequired: 'scout' },
-  { id: 'btc-25', name: '$25 in Bitcoin', description: 'Optional crypto reward for road warriors', pointsCost: 2800, category: 'crypto', icon: '₿', tierRequired: 'navigator' },
 ];
 
 export const BOONDOCKING_SPOTS: BoondockingSpot[] = [

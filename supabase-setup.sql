@@ -29,17 +29,12 @@ create table if not exists parks (
   image text,
   submitted_by uuid references auth.users,
   verified boolean default false,
-  verification_tx text,
-  verification_hash text,
-  verification_ots text,
   verified_at timestamptz,
   verified_by text,
   created_at timestamptz default now()
 );
 
 -- Migration for existing databases (safe to re-run)
-alter table parks add column if not exists verification_hash text;
-alter table parks add column if not exists verification_ots text;
 alter table parks add column if not exists verified_at timestamptz;
 alter table parks add column if not exists verified_by text;
 
@@ -113,7 +108,7 @@ create policy "Authenticated users can submit new parks."
 create policy "Users can update their own park submissions." 
   on parks for update using (auth.uid() = submitted_by);
 
--- Allow updates for verification (even if not owner, for the "blockchain" action)
+-- Allow updates for verification (even if not owner, for moderator demo)
 create policy "Anyone can mark parks as verified (demo)." 
   on parks for update using (true) with check (verified = true);
 
@@ -189,7 +184,7 @@ INSERT INTO parks (name, city, state, lat, lng, rating, price, amenities, descri
 ('Outer Banks RV Resort', 'Nags Head', 'NC', 35.943, -75.624, 4.2, 61, ARRAY['Full Hookups', 'WiFi', 'Pet Friendly', 'Pool', 'Laundry'], 'Beachfront access on the beautiful Outer Banks. Great for kiteboarding and wild horses.', 'https://picsum.photos/id/1005/800/400', true);
 
 -- Note: The seed parks have verified = true. New user submissions start as verified = false
--- until a moderator verifies them (SHA256 hash + OpenTimestamps on Bitcoin).
+-- until a moderator marks them verified.
 
 -- 7. (Optional but recommended) Create a trigger to auto-create profile on signup
 create or replace function public.handle_new_user()
@@ -260,29 +255,24 @@ create policy "Users can view their own redemptions."
 create policy "Users can create their own redemptions."
   on rewards_redemptions for insert with check (auth.uid() = user_id);
 
--- 8. Bitcoin wallet profiles (public address only — never store private keys or seed phrases)
-create table if not exists wallet_profiles (
-  user_id uuid references auth.users on delete cascade primary key,
-  bitcoin_address text not null,
-  source text not null check (source in ('created', 'manual', 'coinbase')),
-  coinbase_linked boolean default false,
-  connected_at timestamptz default now(),
-  updated_at timestamptz default now()
+-- 8. Trip planner subscriptions (demo / future Stripe sync)
+alter table trips add column if not exists notes text;
+alter table trips add column if not exists camper_packs text[];
+
+create table if not exists trip_planner_subscriptions (
+  user_id uuid primary key references auth.users on delete cascade,
+  plan text not null check (plan in ('explorer', 'navigator', 'trailmaster')),
+  active boolean default true,
+  subscribed_at timestamptz default now()
 );
 
-alter table wallet_profiles enable row level security;
+alter table trip_planner_subscriptions enable row level security;
 
-create policy "Users can view their own wallet."
-  on wallet_profiles for select using (auth.uid() = user_id);
+create policy "Users can view their own trip planner subscription."
+  on trip_planner_subscriptions for select using (auth.uid() = user_id);
 
-create policy "Users can insert their own wallet."
-  on wallet_profiles for insert with check (auth.uid() = user_id);
-
-create policy "Users can update their own wallet."
-  on wallet_profiles for update using (auth.uid() = user_id);
-
-create policy "Users can delete their own wallet."
-  on wallet_profiles for delete using (auth.uid() = user_id);
+create policy "Users can manage their own trip planner subscription."
+  on trip_planner_subscriptions for all using (auth.uid() = user_id);
 
 -- Done! 
 -- Next steps:

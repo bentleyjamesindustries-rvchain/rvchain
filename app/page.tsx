@@ -3,28 +3,27 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, Navigation, Heart, User, Search, X, Star, 
-  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Wallet, Eye, EyeOff, Caravan
+  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan
 } from 'lucide-react';
-import { parks as seedParks, Park, calculateDistance } from '@/lib/parks';
+import { Park, calculateDistance } from '@/lib/parks';
+import { LOCAL_PARK_CATALOG, CATALOG_STATES } from '@/lib/parkCatalog';
 import { supabase, Park as SupabasePark } from '@/lib/supabaseClient';
 import { checkSupabaseTables, isMissingTableError } from '@/lib/supabaseSetup';
-import {
-  listLocalTrips,
-  createLocalTrip,
-  listLocalTripParks,
-  addLocalTripPark,
-  StoredTrip,
-} from '@/lib/localTrips';
+import { listLocalTrips, addLocalTripPark } from '@/lib/localTrips';
+import TripPlannerPanel from '@/components/TripPlannerPanel';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { toast } from 'sonner';
 import RewardsPanel from '@/components/RewardsPanel';
-import WalletOnboarding from '@/components/WalletOnboarding';
-import WalletInviteModal from '@/components/WalletInviteModal';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import { updateUserPassword } from '@/lib/passwordRecovery';
-import { loadWalletProfile, WalletProfile } from '@/lib/walletStorage';
-import { truncateAddress } from '@/lib/bitcoinAddress';
+import {
+  isSupabaseConfigured,
+  explainAuthError,
+  signUpWithEmail,
+  signInWithEmail,
+  resendSignupConfirmation,
+} from '@/lib/auth';
 import { performCheckIn } from '@/lib/rewards';
 import {
   loadUnifiedRewards,
@@ -39,11 +38,10 @@ import {
   getBookableCheckIn,
 } from '@/lib/bookingRewards';
 import BookParkModal from '@/components/BookParkModal';
-import VerifiedBitcoinBadge from '@/components/VerifiedBitcoinBadge';
-import { createSpotVerificationRecord, getParkVerificationInfo } from '@/lib/spotVerification';
+import VerifiedBadge from '@/components/VerifiedBadge';
+import { createModeratorVerification, getParkVerificationInfo } from '@/lib/spotVerification';
 import { isModerator } from '@/lib/moderator';
-import { enrichParks, mergeParkVerification, saveLocalVerification } from '@/lib/localVerification';
-import type { BookingPayment } from '@/lib/usdcPayments';
+import { enrichParks } from '@/lib/localVerification';
 import ForumPanel from '@/components/ForumPanel';
 import RvMarketplacePanel from '@/components/RvMarketplacePanel';
 import ProfileEditor from '@/components/ProfileEditor';
@@ -56,6 +54,7 @@ import {
   getDisplayHandle,
 } from '@/lib/userProfile';
 import { useIsMobile } from '@/lib/useDeviceType';
+import { purgeLegacyWalletStorage } from '@/lib/legacyWalletCleanup';
 import type { RewardProgramId } from '@/lib/rewardPrograms';
 import type { LucideIcon } from 'lucide-react';
 
@@ -87,7 +86,7 @@ const PRICE_TIERS: { label: string; value: PriceTier }[] = [
   { label: '$66+', value: 'premium' },
 ];
 
-const STATES = ['AZ', 'CA', 'CO', 'FL', 'GA', 'ME', 'MI', 'MT', 'NC', 'NY', 'OR', 'SD', 'TN', 'TX', 'UT', 'WA', 'WY'];
+const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'discover', label: 'Discover', icon: Search },
@@ -118,12 +117,15 @@ export default function RVChainApp() {
 
   // Auth state (Supabase)
   const [user, setUser] = useState<User | null>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [sessionLoading, setSessionLoading] = useState(true);
+  const [authSubmitting, setAuthSubmitting] = useState(false);
   const [showAuthModal, setShowAuthModal] = useState(false);
   const [authEmail, setAuthEmail] = useState('');
   const [authPassword, setAuthPassword] = useState('');
   const [showAuthPassword, setShowAuthPassword] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
+  const [pendingConfirmationEmail, setPendingConfirmationEmail] = useState('');
+  const [resendingConfirmation, setResendingConfirmation] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [showPasswordRecovery, setShowPasswordRecovery] = useState(false);
   const [recoveryPassword, setRecoveryPassword] = useState('');
@@ -133,11 +135,7 @@ export default function RVChainApp() {
   // Supabase data (replaces local state for live features)
   const [dbParks, setDbParks] = useState<Park[]>([]);
 
-  const [userTrips, setUserTrips] = useState<StoredTrip[]>([]);
-  const [selectedTrip, setSelectedTrip] = useState<StoredTrip | null>(null);
   const [supabaseReady, setSupabaseReady] = useState(true);
-  const [tripParks, setTripParks] = useState<any[]>([]);
-  const [newTripTitle, setNewTripTitle] = useState('');
   const [rewardPoints, setRewardPoints] = useState(0);
   const [activeRewardProgram, setActiveRewardProgram] = useState<RewardProgramId>('mileage');
 
@@ -150,9 +148,6 @@ export default function RVChainApp() {
   // Modals
   const [selectedPark, setSelectedPark] = useState<Park | null>(null);
   const [showProfile, setShowProfile] = useState(false);
-  const [showWalletModal, setShowWalletModal] = useState(false);
-  const [showWalletInvite, setShowWalletInvite] = useState(false);
-  const [walletProfile, setWalletProfile] = useState<WalletProfile | null>(null);
   const [showSubmitPark, setShowSubmitPark] = useState(false);
   const [bookParkTarget, setBookParkTarget] = useState<Park | null>(null);
   const [verifyingParkId, setVerifyingParkId] = useState<string | null>(null);
@@ -167,6 +162,8 @@ export default function RVChainApp() {
 
   // Load persisted data (local fallback)
   useEffect(() => {
+    purgeLegacyWalletStorage();
+
     const savedFavorites = localStorage.getItem('rvchain_favorites');
     if (savedFavorites) setFavorites(JSON.parse(savedFavorites));
 
@@ -175,7 +172,6 @@ export default function RVChainApp() {
     const data = loadUnifiedRewards(getRewardsUserId());
     setRewardPoints(getActivePoints(data));
     setActiveRewardProgram(data.activeProgram);
-    setWalletProfile(null);
   }, []);
 
   // Persist favorites and handle
@@ -205,7 +201,7 @@ export default function RVChainApp() {
           username: session.user.user_metadata?.username || session.user.email?.split('@')[0]
         });
       }
-      setAuthLoading(false);
+      setSessionLoading(false);
     });
 
     // Listen for auth changes
@@ -214,6 +210,11 @@ export default function RVChainApp() {
         setShowPasswordRecovery(true);
         setShowAuthModal(false);
         setShowForgotPassword(false);
+      }
+      if (event === 'SIGNED_IN' && session?.user) {
+        setPendingConfirmationEmail('');
+        setShowAuthModal(false);
+        setShowAuthPassword(false);
       }
       if (session?.user) {
         setUser({
@@ -224,20 +225,10 @@ export default function RVChainApp() {
       } else {
         setUser(null);
       }
-      setAuthLoading(false);
+      setSessionLoading(false);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
-
-  useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    if (params.get('auth') === 'wallet') {
-      setShowAuthModal(true);
-      params.delete('auth');
-      const next = params.toString();
-      window.history.replaceState(null, '', next ? `?${next}` : '/');
-    }
   }, []);
 
   // Fetch parks from Supabase (fallback to seed if empty or error)
@@ -249,7 +240,7 @@ export default function RVChainApp() {
         .order('created_at', { ascending: false });
 
       if (error || !data || data.length === 0) {
-        setDbParks(enrichParks(seedParks));
+        setDbParks(enrichParks(LOCAL_PARK_CATALOG));
       } else {
         setDbParks(enrichParks(data as Park[]));
       }
@@ -257,36 +248,9 @@ export default function RVChainApp() {
     fetchParks();
   }, []);
 
-  // Load user trips when logged in
-  useEffect(() => {
-    if (!user) {
-      setUserTrips([]);
-      return;
-    }
-
-    const loadTrips = async () => {
-      if (!supabaseReady) {
-        setUserTrips(listLocalTrips(user.id));
-        return;
-      }
-      const { data, error } = await supabase
-        .from('trips')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false });
-      if (error && isMissingTableError(error)) {
-        setSupabaseReady(false);
-        setUserTrips(listLocalTrips(user.id));
-        return;
-      }
-      if (data) setUserTrips(data);
-    };
-    loadTrips();
-  }, [user, supabaseReady]);
-
   // Computed filtered + sorted parks (from Supabase or seed)
   const filteredParks = useMemo(() => {
-    const sourceParks = enrichParks(dbParks.length > 0 ? dbParks : seedParks);
+    const sourceParks = enrichParks(dbParks.length > 0 ? dbParks : LOCAL_PARK_CATALOG);
     let result = sourceParks.filter((park) => {
       const term = searchTerm.toLowerCase();
       const matchesSearch =
@@ -415,41 +379,65 @@ export default function RVChainApp() {
   // === AUTH FUNCTIONS ===
   const handleAuth = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-    if (!authEmail || !authPassword) return toast.error("Enter email and password");
+    if (!authEmail || !authPassword) return toast.error('Enter email and password');
+    if (!isSupabaseConfigured) {
+      return toast.error('Supabase is not configured. Add API keys to .env.local and restart the dev server.');
+    }
 
-    setAuthLoading(true);
+    setAuthSubmitting(true);
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({
-          email: authEmail,
-          password: authPassword,
-          options: { data: { username: authEmail.split('@')[0] } }
-        });
+        const { data, error } = await signUpWithEmail(authEmail, authPassword);
         if (error) throw error;
+        if (!data.session) {
+          setPendingConfirmationEmail(authEmail.trim().toLowerCase());
+          setIsSignUp(false);
+          toast.success('Account created! Check your email to confirm, then sign in.');
+          return;
+        }
         toast.success('Welcome to rvchain! Your account is ready.');
-        setShowWalletInvite(true);
       } else {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: authEmail,
-          password: authPassword
-        });
+        const { data, error } = await signInWithEmail(authEmail, authPassword);
         if (error) throw error;
-        toast.success("Welcome back, RVer!");
+        if (!data.session) {
+          throw new Error('Sign-in did not start a session. Confirm your email or try again.');
+        }
+        toast.success('Welcome back, RVer!');
       }
-      setShowAuthModal(false);
+      setPendingConfirmationEmail('');
       setAuthEmail('');
       setAuthPassword('');
-    } catch (err: any) {
-      toast.error(err.message || "Auth failed. Check your Supabase keys and tables.");
+      setShowAuthModal(false);
+      setShowAuthPassword(false);
+    } catch (err: unknown) {
+      const raw = err instanceof Error ? err.message : 'Auth failed.';
+      toast.error(explainAuthError(raw));
     } finally {
-      setAuthLoading(false);
+      setAuthSubmitting(false);
+    }
+  };
+
+  const handleResendConfirmation = async () => {
+    const email = pendingConfirmationEmail || authEmail.trim().toLowerCase();
+    if (!email) return toast.error('Enter your email first.');
+    setResendingConfirmation(true);
+    try {
+      const { error } = await resendSignupConfirmation(email);
+      if (error) throw error;
+      setPendingConfirmationEmail(email);
+      toast.success('Confirmation email sent — check your inbox.');
+    } catch (err: unknown) {
+      const raw = err instanceof Error ? err.message : 'Could not resend email.';
+      toast.error(explainAuthError(raw));
+    } finally {
+      setResendingConfirmation(false);
     }
   };
 
   const handleSaveRecoveryPassword = async () => {
     if (recoveryPassword.length < 8) return toast.error('Password must be at least 8 characters.');
     if (recoveryPassword !== recoveryPasswordConfirm) return toast.error('Passwords do not match.');
-    setAuthLoading(true);
+    setAuthSubmitting(true);
     try {
       const { error } = await updateUserPassword(recoveryPassword);
       if (error) throw error;
@@ -460,26 +448,15 @@ export default function RVChainApp() {
     } catch (err: unknown) {
       toast.error(err instanceof Error ? err.message : 'Could not update password.');
     } finally {
-      setAuthLoading(false);
+      setAuthSubmitting(false);
     }
   };
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
     setUser(null);
-    setUserTrips([]);
-    setWalletProfile(null);
     syncRewardsState();
     toast.success("Signed out");
-  };
-
-  const openWalletModal = () => {
-    if (!user) {
-      toast.info('Sign in to set up your wallet.');
-      setShowAuthModal(true);
-      return;
-    }
-    setShowWalletModal(true);
   };
 
   const handleParkCheckIn = (park: Park) => {
@@ -515,11 +492,18 @@ export default function RVChainApp() {
     toast.success(`+${points} points! Checked in at ${park.name}`);
   };
 
-  const handleConfirmBooking = (checkIn: string, checkOut: string, payment: BookingPayment) => {
+  const handleConfirmBooking = (checkIn: string, checkOut: string) => {
     if (!bookParkTarget) return;
     const uid = getRewardsUserId(user?.id);
     const rewards = loadUnifiedRewards(uid);
-    const booking = createSiteBooking(bookParkTarget, checkIn, checkOut, payment);
+    const booking = createSiteBooking(bookParkTarget, checkIn, checkOut, {
+      method: 'demo',
+      usdAmount: (bookParkTarget.price ?? 0) * Math.max(
+        1,
+        Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))
+      ),
+      paidAt: new Date().toISOString(),
+    });
     const nextBooking = addBooking(rewards.booking, booking);
     const next = { ...rewards, activeProgram: 'booking' as const, booking: nextBooking };
     saveUnifiedRewards(uid, next);
@@ -528,23 +512,11 @@ export default function RVChainApp() {
     const parkName = bookParkTarget.name;
     setBookParkTarget(null);
     closeModal();
-
-    if (payment.method === 'usdc') {
-      toast.success(
-        `Booking confirmed! ${payment.usdcAmount} USDC paid on ${payment.usdcChain ?? 'USDC'}. Check in on ${checkIn}.`
-      );
-    } else {
-      toast.success(
-        `Demo booking saved for ${parkName}! Nothing was charged or reserved — check in on ${checkIn} to try rewards.`
-      );
-    }
+    toast.success(
+      `Demo booking saved for ${parkName}! Nothing was charged or reserved — check in on ${checkIn} to try rewards.`
+    );
     setActiveTab('rewards');
   };
-
-  useEffect(() => {
-    syncRewardsState();
-    setWalletProfile(user ? loadWalletProfile(user.id) : null);
-  }, [user, syncRewardsState]);
 
   // === PARK SUBMISSION (real backend) ===
   const submitNewPark = async () => {
@@ -584,45 +556,37 @@ export default function RVChainApp() {
     if (data?.length) {
       setDbParks(enrichParks(data as Park[]));
     } else {
-      setDbParks(enrichParks(seedParks));
+      setDbParks(enrichParks(LOCAL_PARK_CATALOG));
     }
   };
 
   const isSupabaseParkId = (id: string) =>
     /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id);
 
-  const verifyOnBitcoin = async (park: Park) => {
+  const verifyPark = async (park: Park) => {
     if (!user) return toast.error('Sign in to verify spots.');
     if (!isModerator(user)) return toast.error('Only moderators can verify spots.');
-    if (park.verification_hash || getParkVerificationInfo(park)) return;
+    if (park.verified) return;
 
     setVerifyingParkId(park.id);
-    const toastId = toast.loading('Hashing spot data & timestamping on Bitcoin…');
+    const toastId = toast.loading('Marking spot as verified…');
 
     try {
       const verifiedBy = user.email ?? user.username ?? 'moderator';
-      const record = await createSpotVerificationRecord(park, verifiedBy);
-      saveLocalVerification(park.id, record);
+      const record = createModeratorVerification(verifiedBy);
 
-      const updatedPark = mergeParkVerification({
+      const updatedPark: Park = {
         ...park,
         verified: true,
-        verification_hash: record.verificationHash,
-        verification_ots: record.verificationOts,
         verified_at: record.verifiedAt,
         verified_by: record.verifiedBy,
-        verification_proof_url: record.proofUrl,
-        verification_tx: record.verificationHash,
-      });
+      };
 
       if (isSupabaseParkId(park.id)) {
         const { error } = await supabase.from('parks').update({
           verified: true,
-          verification_hash: record.verificationHash,
-          verification_ots: record.verificationOts,
           verified_at: record.verifiedAt,
           verified_by: record.verifiedBy,
-          verification_tx: record.verificationHash,
         }).eq('id', park.id);
 
         if (error) {
@@ -644,11 +608,7 @@ export default function RVChainApp() {
       if (selectedPark?.id === park.id) setSelectedPark(updatedPark);
 
       toast.dismiss(toastId);
-      toast.success(
-        record.verificationOts
-          ? 'Verified on Bitcoin! OpenTimestamps proof recorded.'
-          : 'Verified! Hash saved — OpenTimestamps proof will finalize shortly.'
-      );
+      toast.success('Spot verified!');
     } catch {
       toast.dismiss(toastId);
       toast.error('Verification failed. Try again.');
@@ -657,111 +617,27 @@ export default function RVChainApp() {
     }
   };
 
-  // === TRIP PLANNER ===
-  const createTrip = async () => {
-    if (!user) return toast.error("Sign in to create trips.");
-    if (!newTripTitle.trim()) return toast.error("Give your trip a name.");
-
-    const title = newTripTitle.trim();
-
-    if (!supabaseReady) {
-      const trip = createLocalTrip(user.id, title);
-      setUserTrips([trip, ...userTrips]);
-      setNewTripTitle('');
-      setSelectedTrip(trip);
-      setTripParks([]);
-      toast.success("Trip created! (Saved on this device until Supabase is set up.)");
+  const addParkToTripFromDiscover = async (parkId: string) => {
+    if (!user) return toast.error('Sign in to add parks to a trip.');
+    const trips = listLocalTrips(user.id);
+    if (trips.length === 0) {
+      toast.info('Create a trip in the Trips tab first.');
+      setActiveTab('trips');
       return;
     }
-
-    const { data, error } = await supabase.from('trips').insert({
-      user_id: user.id,
-      title,
-    }).select().single();
-
-    if (error) {
-      if (isMissingTableError(error)) {
-        setSupabaseReady(false);
-        const trip = createLocalTrip(user.id, title);
-        setUserTrips([trip, ...userTrips]);
-        setNewTripTitle('');
-        setSelectedTrip(trip);
-        setTripParks([]);
-        toast.success("Trip created! Run supabase-setup.sql in Supabase to enable cloud sync.");
-        return;
-      }
-      toast.error(error.message || "Failed to create trip.");
-      return;
+    const trip = trips[0];
+    const sourceParks = enrichParks(dbParks.length > 0 ? dbParks : LOCAL_PARK_CATALOG);
+    addLocalTripPark(user.id, trip.id, parkId, sourceParks);
+    if (supabaseReady && !trip.id.startsWith('local-')) {
+      const { error } = await supabase.from('trip_parks').insert({
+        trip_id: trip.id,
+        park_id: parkId,
+        visit_order: 999,
+      });
+      if (error && isMissingTableError(error)) setSupabaseReady(false);
     }
-
-    setUserTrips([data, ...userTrips]);
-    setNewTripTitle('');
-    setSelectedTrip(data);
-    setTripParks([]);
-    toast.success("Trip created! Add parks below.");
-  };
-
-  const addParkToTrip = async (parkId: string) => {
-    if (!selectedTrip || !user) return;
-
-    const sourceParks = dbParks.length > 0 ? dbParks : seedParks;
-
-    if (!supabaseReady) {
-      setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, sourceParks));
-      toast.success("Added to trip!");
-      return;
-    }
-
-    const { error } = await supabase.from('trip_parks').insert({
-      trip_id: selectedTrip.id,
-      park_id: parkId,
-      visit_order: tripParks.length
-    });
-
-    if (error) {
-      if (isMissingTableError(error)) {
-        setSupabaseReady(false);
-        setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, sourceParks));
-        toast.success("Added to trip! (Saved locally until Supabase is set up.)");
-        return;
-      }
-      toast.error(error.message || "Couldn't add park to trip.");
-      return;
-    }
-
-    const { data } = await supabase
-      .from('trip_parks')
-      .select('*, parks(*)')
-      .eq('trip_id', selectedTrip.id)
-      .order('visit_order');
-    
-    if (data) setTripParks(data);
-    toast.success("Added to trip!");
-  };
-
-  const loadTripParks = async (trip: StoredTrip) => {
-    if (!user) return;
-    setSelectedTrip(trip);
-    const sourceParks = dbParks.length > 0 ? dbParks : seedParks;
-
-    if (!supabaseReady) {
-      setTripParks(listLocalTripParks(user.id, trip.id, sourceParks));
-      return;
-    }
-
-    const { data, error } = await supabase
-      .from('trip_parks')
-      .select('*, parks(*)')
-      .eq('trip_id', trip.id)
-      .order('visit_order');
-
-    if (error && isMissingTableError(error)) {
-      setSupabaseReady(false);
-      setTripParks(listLocalTripParks(user.id, trip.id, sourceParks));
-      return;
-    }
-
-    setTripParks(data || []);
+    toast.success(`Added to "${trip.title}"`);
+    setActiveTab('trips');
   };
 
   // Profile / favorites
@@ -774,7 +650,7 @@ export default function RVChainApp() {
     setFavorites((prev) => prev.filter((id) => id !== parkId));
   };
 
-  const allParks = enrichParks(dbParks.length > 0 ? dbParks : seedParks);
+  const allParks = enrichParks(dbParks.length > 0 ? dbParks : LOCAL_PARK_CATALOG);
   const favoritedParks = allParks.filter((p) => favorites.includes(p.id));
 
   // Stats
@@ -811,7 +687,7 @@ export default function RVChainApp() {
               </div>
               <div className="min-w-0">
                 <div className="rv-logo-text font-semibold text-xl sm:text-3xl tracking-tighter text-white truncate">rvchain</div>
-                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">THE RV COMMUNITY CHAIN</div>
+                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">RV PARKS &amp; COMMUNITY</div>
               </div>
             </div>
 
@@ -830,15 +706,6 @@ export default function RVChainApp() {
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
                 <span><span className="font-semibold text-white">{connectedRVers}</span> RVers connected</span>
               </div>
-
-              <button
-                onClick={openWalletModal}
-                className="flex items-center gap-x-1 text-xs sm:text-sm bg-slate-900/40 hover:bg-slate-900/60 backdrop-blur px-2 sm:px-3 py-1.5 rounded-2xl text-slate-200 transition border border-white/10"
-                title={user ? 'My Wallet' : 'Sign in to set up wallet'}
-              >
-                <Wallet className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                <span className="hidden md:inline">{walletProfile ? truncateAddress(walletProfile.bitcoinAddress) : 'Wallet'}</span>
-              </button>
 
               {user ? (
                 <div className="flex items-center gap-x-1">
@@ -984,6 +851,7 @@ export default function RVChainApp() {
             <div>
               <span className="font-semibold text-xl">{filteredParks.length}</span>
               <span className="text-slate-400 text-sm ml-1">parks found nationwide</span>
+              <p className="text-[10px] text-slate-500 mt-0.5">Includes free public listings from NPS, state parks, USFS &amp; BLM.</p>
             </div>
             <div className="flex items-center gap-3">
               {user && (
@@ -1016,10 +884,11 @@ export default function RVChainApp() {
                         <Star className="w-3 h-3" /> {park.rating}
                       </div>
                       {fav && <div className="absolute top-3 left-3 text-lg">❤️</div>}
-                      {park.verified && getParkVerificationInfo(park) && (
+                      {park.verified && (
                         <div className="absolute bottom-2 left-2" onClick={(e) => e.stopPropagation()}>
-                          <VerifiedBitcoinBadge
-                            verification={getParkVerificationInfo(park)!}
+                          <VerifiedBadge
+                            verifiedBy={getParkVerificationInfo(park)?.verifiedBy}
+                            verifiedAt={getParkVerificationInfo(park)?.verifiedAt}
                             size="sm"
                           />
                         </div>
@@ -1029,11 +898,6 @@ export default function RVChainApp() {
                     <div className="p-4 flex-1 flex flex-col">
                       <div className="font-semibold text-lg leading-tight flex items-center gap-2">
                         {park.name}
-                        {park.verified && !getParkVerificationInfo(park) && (
-                          <span className="text-[10px] font-semibold text-orange-300 bg-orange-950/60 px-2 py-0.5 rounded-full border border-orange-700/50">
-                            Verified
-                          </span>
-                        )}
                       </div>
                       <div className="text-emerald-300 text-sm">{park.city}, {park.state}</div>
 
@@ -1081,7 +945,7 @@ export default function RVChainApp() {
                         </button>
                         {user && (
                           <button
-                            onClick={() => addParkToTrip(park.id)}
+                            onClick={() => addParkToTripFromDiscover(park.id)}
                             className="px-3 border border-emerald-700 hover:bg-emerald-900/30 rounded-2xl text-xs text-emerald-300"
                             title="Add to current trip"
                           >
@@ -1185,28 +1049,25 @@ export default function RVChainApp() {
 
               <div className="text-slate-300 leading-relaxed text-[15px] mb-5">{selectedPark.description}</div>
 
-              {getParkVerificationInfo(selectedPark) ? (
+              {selectedPark.verified && (
                 <div className="mb-4 flex justify-center">
-                  <VerifiedBitcoinBadge
-                    verification={getParkVerificationInfo(selectedPark)!}
+                  <VerifiedBadge
+                    verifiedBy={getParkVerificationInfo(selectedPark)?.verifiedBy}
+                    verifiedAt={getParkVerificationInfo(selectedPark)?.verifiedAt}
                     size="lg"
                   />
                 </div>
-              ) : selectedPark.verified ? (
-                <div className="mb-4 p-3 bg-orange-900/20 border border-orange-700/50 rounded-2xl text-sm text-center text-orange-300">
-                  Verified spot — full Bitcoin proof pending moderator review.
-                </div>
-              ) : null}
+              )}
 
-              {user && isModerator(user) && !getParkVerificationInfo(selectedPark) && (
+              {user && isModerator(user) && !selectedPark.verified && (
                 <button
-                  onClick={() => verifyOnBitcoin(selectedPark)}
+                  onClick={() => verifyPark(selectedPark)}
                   disabled={verifyingParkId === selectedPark.id}
-                  className="mb-4 w-full text-xs bg-orange-700 hover:bg-orange-600 disabled:opacity-50 py-2.5 rounded-2xl font-medium"
+                  className="mb-4 w-full text-xs bg-emerald-700 hover:bg-emerald-600 disabled:opacity-50 py-2.5 rounded-2xl font-medium"
                 >
                   {verifyingParkId === selectedPark.id
-                    ? 'Timestamping on Bitcoin…'
-                    : 'Verify on Bitcoin (moderator)'}
+                    ? 'Verifying…'
+                    : 'Verify spot (moderator)'}
                 </button>
               )}
 
@@ -1218,6 +1079,20 @@ export default function RVChainApp() {
                   ))}
                 </div>
               </div>
+
+              {selectedPark.sourceUrl && (
+                <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
+                  Public listing source:{' '}
+                  <a
+                    href={selectedPark.sourceUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-emerald-400/90 hover:text-emerald-300 underline"
+                  >
+                    {selectedPark.source ?? 'agency website'}
+                  </a>
+                </p>
+              )}
             </div>
 
             <div className="p-5 bg-slate-950 mt-5 border-t border-slate-700 flex flex-col gap-y-3">
@@ -1284,10 +1159,8 @@ export default function RVChainApp() {
             userEmail={user.email}
             favoritesCount={favorites.length}
             favoritedParks={favoritedParks}
-            walletConnected={Boolean(walletProfile)}
             onSave={handleSaveProfile}
             onClose={() => setShowProfile(false)}
-            onOpenWallet={openWalletModal}
             onParkSelect={(park) => { showParkDetails(park); setShowProfile(false); }}
             onRemoveFavorite={removeFavorite}
             onGoToForum={() => setActiveTab('community')}
@@ -1301,42 +1174,6 @@ export default function RVChainApp() {
           onClose={() => setBookParkTarget(null)}
           onConfirm={handleConfirmBooking}
         />
-      )}
-
-      {showWalletInvite && !walletProfile && (
-        <WalletInviteModal
-          onSetUp={() => {
-            setShowWalletInvite(false);
-            setShowWalletModal(true);
-          }}
-          onSkip={() => {
-            if (user?.id) {
-              localStorage.setItem(`rvchain_wallet_invite_skipped_${user.id}`, '1');
-            }
-            setShowWalletInvite(false);
-          }}
-          onClose={() => setShowWalletInvite(false)}
-        />
-      )}
-
-      {/* Wallet Onboarding Modal */}
-      {showWalletModal && (
-        <div
-          className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[110] flex items-end sm:items-center justify-center p-0 sm:p-4"
-          onClick={() => setShowWalletModal(false)}
-        >
-          <div className="w-full sm:max-w-2xl max-h-[92dvh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
-            <WalletOnboarding
-              userId={user?.id}
-              onComplete={(profile) => setWalletProfile(profile)}
-              onClose={() => setShowWalletModal(false)}
-              onRequestSignIn={() => {
-                setShowWalletModal(false);
-                setShowAuthModal(true);
-              }}
-            />
-          </div>
-        </div>
       )}
 
       {showPasswordRecovery && (
@@ -1376,10 +1213,10 @@ export default function RVChainApp() {
               />
               <button
                 onClick={handleSaveRecoveryPassword}
-                disabled={authLoading}
+                disabled={authSubmitting}
                 className="w-full bg-green-700 hover:bg-green-600 disabled:opacity-50 h-11 rounded-2xl font-semibold text-sm"
               >
-                {authLoading ? 'Saving…' : 'Save & log in'}
+                {authSubmitting ? 'Saving…' : 'Save & log in'}
               </button>
             </div>
           </div>
@@ -1411,6 +1248,26 @@ export default function RVChainApp() {
         >
           <div className="modal bg-slate-900 border border-slate-700 rounded-3xl p-6 w-full max-w-sm" onClick={e => e.stopPropagation()}>
             <h3 className="text-xl font-semibold mb-4">{isSignUp ? 'Create Account' : 'Sign In'} to rvchain</h3>
+
+            {pendingConfirmationEmail && (
+              <div className="mb-4 p-3 rounded-2xl border border-sky-800/50 bg-sky-950/30 text-xs text-sky-200/90 leading-relaxed">
+                Confirm <strong className="text-sky-100">{pendingConfirmationEmail}</strong> via the link in your email, then sign in below.
+                <button
+                  type="button"
+                  onClick={handleResendConfirmation}
+                  disabled={resendingConfirmation}
+                  className="block mt-2 text-sky-400 hover:text-sky-300 underline disabled:opacity-50"
+                >
+                  {resendingConfirmation ? 'Sending…' : 'Resend confirmation email'}
+                </button>
+              </div>
+            )}
+
+            {!isSupabaseConfigured && (
+              <div className="mb-4 p-3 rounded-2xl border border-amber-800/50 bg-amber-950/30 text-xs text-amber-200/90">
+                Supabase API keys are missing. Copy <code className="text-amber-100">.env.local.example</code> to <code className="text-amber-100">.env.local</code> and restart the dev server.
+              </div>
+            )}
             
             <form onSubmit={handleAuth} className="space-y-4">
               <input 
@@ -1441,7 +1298,15 @@ export default function RVChainApp() {
                 </button>
               </div>
               {!isSignUp && (
-                <div className="flex justify-end -mt-1">
+                <div className="flex justify-between items-center -mt-1 gap-2">
+                  <button
+                    type="button"
+                    onClick={handleResendConfirmation}
+                    disabled={resendingConfirmation || !authEmail.trim()}
+                    className="text-xs text-slate-400 hover:text-slate-300 transition disabled:opacity-40"
+                  >
+                    Resend confirmation
+                  </button>
                   <button
                     type="button"
                     onClick={() => {
@@ -1456,10 +1321,10 @@ export default function RVChainApp() {
               )}
               <button 
                 type="submit" 
-                disabled={authLoading}
+                disabled={authSubmitting || sessionLoading}
                 className="w-full bg-green-700 hover:bg-green-600 h-11 rounded-3xl font-semibold disabled:opacity-50"
               >
-                {authLoading ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
+                {authSubmitting ? 'Please wait...' : (isSignUp ? 'Sign Up' : 'Sign In')}
               </button>
             </form>
 
@@ -1504,7 +1369,7 @@ export default function RVChainApp() {
               <button onClick={() => setShowSubmitPark(false)} className="flex-1 border border-slate-600 h-11 rounded-3xl">Cancel</button>
               <button onClick={submitNewPark} className="flex-1 bg-orange-600 hover:bg-orange-500 h-11 rounded-3xl font-semibold">Submit Park</button>
             </div>
-            <p className="text-[10px] text-slate-500 mt-3 text-center">Your submission will be visible to everyone. Use "Verify on Chain" to give it a blockchain badge.</p>
+            <p className="text-[10px] text-slate-500 mt-3 text-center">Your submission will be visible to everyone. A moderator can mark it verified after review.</p>
           </div>
         </div>
       )}
@@ -1517,122 +1382,24 @@ export default function RVChainApp() {
           userLocation={userLocation}
           onRequestSignIn={() => setShowAuthModal(true)}
           onPointsChange={syncRewardsState}
-          onOpenWallet={() => setShowWalletModal(true)}
           onBookPark={() => setActiveTab('discover')}
         />
       )}
 
-      {/* TRIPS TAB CONTENT */}
       {activeTab === 'trips' && (
-        <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
-          <div className="max-w-4xl">
-            <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 mb-6">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-semibold">Trip Planner</h2>
-                <p className="text-slate-400 text-sm">Plan your RV adventures and save routes with favorite parks.</p>
-              </div>
-              {user && (
-                <div className="flex flex-col min-[400px]:flex-row gap-2 w-full sm:w-auto">
-                  <input 
-                    value={newTripTitle} 
-                    onChange={e => setNewTripTitle(e.target.value)} 
-                    placeholder="New Trip Name (e.g. Yellowstone 2026)" 
-                    className="bg-slate-900 border border-slate-700 px-4 rounded-2xl text-sm w-full sm:w-56 md:w-64 min-w-0" 
-                  />
-                  <button onClick={createTrip} className="bg-green-700 hover:bg-green-600 px-5 rounded-3xl text-sm font-semibold flex items-center gap-1">
-                    <Plus className="w-4 h-4"/> Create Trip
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {!user ? (
-              <div className="text-center py-12 border border-slate-800 rounded-3xl">
-                <p className="text-slate-400 mb-4">Sign in to create and manage trips.</p>
-                <button onClick={() => setShowAuthModal(true)} className="bg-white text-black px-6 py-2 rounded-3xl font-semibold">Sign In</button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* My Trips List */}
-                <div className="lg:col-span-1">
-                  <div className="font-medium mb-3">My Trips ({userTrips.length})</div>
-                  {userTrips.length === 0 ? (
-                    <div className="text-sm text-slate-400 p-4 border border-slate-800 rounded-2xl">No trips yet. Create one above!</div>
-                  ) : (
-                    <div className="space-y-2">
-                      {userTrips.map((trip: any) => (
-                        <button 
-                          key={trip.id} 
-                          onClick={() => loadTripParks(trip)}
-                          className={`w-full text-left p-3 rounded-2xl border transition ${selectedTrip?.id === trip.id ? 'bg-green-900/30 border-green-700' : 'bg-slate-900 border-slate-700 hover:border-slate-500'}`}
-                        >
-                          <div className="font-medium">{trip.title}</div>
-                          <div className="text-xs text-slate-400">{new Date(trip.created_at).toLocaleDateString()}</div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Trip Detail + Add Parks */}
-                <div className="lg:col-span-2">
-                  {selectedTrip ? (
-                    <div>
-                      <div className="flex items-center justify-between mb-4">
-                        <div>
-                          <div className="font-semibold text-xl">{selectedTrip.title}</div>
-                          <div className="text-sm text-slate-400">Add parks from the Discover tab or here</div>
-                        </div>
-                      </div>
-
-                      <div className="mb-4">
-                        <div className="text-sm font-medium mb-2">Parks in this trip ({tripParks.length})</div>
-                        {tripParks.length === 0 ? (
-                          <div className="text-sm text-slate-400 border border-dashed border-slate-700 p-6 rounded-2xl">No parks added yet. Go to Discover and use "Add to Trip" on a park card, or select one below.</div>
-                        ) : (
-                          <div className="space-y-2">
-                            {tripParks.map((tp: any, idx: number) => (
-                              <div key={idx} className="flex items-center justify-between bg-slate-900 border border-slate-700 p-3 rounded-2xl">
-                                <div>{tp.parks?.name || 'Park'}</div>
-                                <div className="text-xs text-emerald-400">Stop #{idx + 1}</div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-
-                      <div>
-                        <div className="text-sm font-medium mb-2">Quick add from current parks</div>
-                        <div className="flex flex-wrap gap-2">
-                          {filteredParks.slice(0, 8).map(p => (
-                            <button key={p.id} onClick={() => addParkToTrip(p.id)} className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1 rounded-2xl">
-                              + {p.name}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-12 text-slate-400 border border-slate-800 rounded-3xl">Select or create a trip on the left to start planning.</div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+        <TripPlannerPanel
+          user={user}
+          allParks={allParks}
+          quickAddParks={filteredParks}
+          onRequestSignIn={() => setShowAuthModal(true)}
+        />
       )}
 
       <footer className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
         <p className="text-amber-400/90 max-w-lg mx-auto leading-relaxed">
           Demonstration only — bookings, payments, rewards, and RV listings are simulated on your device. No charges, reservations, or seller notifications.
         </p>
-        <p>
-          rvchain • Powered by Supabase
-          <span className="hidden sm:inline"> • </span>
-          <span className="block sm:inline underline cursor-pointer hover:text-slate-300 sm:ml-1" onClick={() => toast.info("Blockchain badges use cryptographic hashes and OpenTimestamps for demo verification — not a payment system.")}>
-            Blockchain badge info
-          </span>
-        </p>
+        <p>rvchain • Powered by Supabase</p>
       </footer>
       </div>
 

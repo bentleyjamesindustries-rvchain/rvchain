@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Gift, Navigation, MapPin, Trophy, Fuel, Flame, Bitcoin,
+  Gift, Navigation, MapPin, Trophy,
   Play, Square, ChevronRight, Star, Shield, Zap, CalendarCheck, BookOpen,
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -40,10 +40,9 @@ import {
 } from '@/lib/rewardsStorage';
 import type { UnifiedRewardsData } from '@/lib/rewardsProfile';
 import type { RewardProgramId } from '@/lib/rewardPrograms';
-import { loadWalletProfile } from '@/lib/walletStorage';
-import { truncateAddress } from '@/lib/bitcoinAddress';
 import { useMileageTracker } from '@/lib/useMileageTracker';
 import ProgramSelector from './ProgramSelector';
+import RewardsDisclosure from './RewardsDisclosure';
 
 interface RewardsPanelProps {
   user: { id: string; username?: string } | null;
@@ -51,19 +50,10 @@ interface RewardsPanelProps {
   userLocation: { lat: number; lng: number } | null;
   onRequestSignIn: () => void;
   onPointsChange?: (points: number) => void;
-  onOpenWallet?: () => void;
   onBookPark?: (park: Park) => void;
 }
 
-type RewardCategory = 'all' | 'fuel' | 'propane' | 'gear' | 'crypto';
-
-const CATEGORY_LABELS: Record<RewardCategory, string> = {
-  all: 'All Rewards',
-  fuel: 'Fuel Cards',
-  propane: 'Propane',
-  gear: 'Camping Gear',
-  crypto: 'Bitcoin (Optional)',
-};
+type RewardCategory = 'all' | 'fuel' | 'propane' | 'gear';
 
 const BOOKING_TIER_CHECKINS_LOOKUP = {
   scout: 0,
@@ -78,13 +68,11 @@ export default function RewardsPanel({
   userLocation,
   onRequestSignIn,
   onPointsChange,
-  onOpenWallet,
   onBookPark,
 }: RewardsPanelProps) {
   const userId = getRewardsUserId(user?.id);
   const [rewards, setRewards] = useState<UnifiedRewardsData>(() => loadUnifiedRewards(userId));
   const [rewardCategory, setRewardCategory] = useState<RewardCategory>('all');
-  const [showCrypto, setShowCrypto] = useState(false);
 
   const program = rewards.activeProgram;
   const programInfo = getProgramInfo(program);
@@ -158,10 +146,9 @@ export default function RewardsPanel({
 
   const filteredRewards = useMemo(() => {
     let items = REWARD_CATALOG;
-    if (!showCrypto) items = items.filter((r) => r.category !== 'crypto');
     if (rewardCategory !== 'all') items = items.filter((r) => r.category === rewardCategory);
     return items;
-  }, [rewardCategory, showCrypto]);
+  }, [rewardCategory]);
 
   const handleMileageCheckIn = (type: 'campsite' | 'boondocking', id: string, name: string) => {
     const { profile: next, points, error } = performCheckIn(mileage, type, id, name);
@@ -188,15 +175,6 @@ export default function RewardsPanel({
   };
 
   const handleRedeem = (reward: RewardItem) => {
-    if (reward.category === 'crypto') {
-      const wallet = loadWalletProfile(userId);
-      if (!wallet) {
-        toast.error('Set up My Wallet first to receive Bitcoin rewards.');
-        onOpenWallet?.();
-        return;
-      }
-    }
-
     if (program === 'booking') {
       const { state: next, success, error } = redeemBookingReward(booking, reward);
       if (!success) return toast.error(error);
@@ -207,12 +185,7 @@ export default function RewardsPanel({
       persist({ ...rewards, mileage: next });
     }
 
-    if (reward.category === 'crypto') {
-      const wallet = loadWalletProfile(userId)!;
-      toast.success(`${reward.name} queued to ${truncateAddress(wallet.bitcoinAddress)}`);
-    } else {
-      toast.success(`${reward.name} redeemed! Check your email for delivery.`);
-    }
+    toast.success(`${reward.name} redeemed! Check your email for delivery.`);
   };
 
   const handleStopDrive = () => {
@@ -231,6 +204,8 @@ export default function RewardsPanel({
         <p className="text-xs text-slate-500 mb-3">Pick one — switch anytime. Points are tracked separately per program.</p>
         <ProgramSelector active={program} onSelect={handleProgramChange} />
       </div>
+
+      <RewardsDisclosure />
 
       {/* Hero */}
       <div className={`relative overflow-hidden rounded-3xl border p-6 sm:p-8 ${
@@ -456,10 +431,6 @@ export default function RewardsPanel({
             <Gift className="w-5 h-5 text-amber-400" />
             <h3 className="font-semibold text-lg">Redeem Rewards</h3>
           </div>
-          <label className="flex items-center gap-2 text-xs text-slate-400 cursor-pointer">
-            <input type="checkbox" checked={showCrypto} onChange={(e) => setShowCrypto(e.target.checked)} className="rounded" />
-            Show Bitcoin (optional)
-          </label>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {filteredRewards.map((reward) => {

@@ -2,7 +2,7 @@
 
 import { useState, useRef } from 'react';
 import {
-  X, Camera, ImagePlus, Trash2, Wallet, Heart, MessagesSquare, Save,
+  X, Camera, ImagePlus, Trash2, Heart, MessagesSquare, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Park } from '@/lib/parks';
@@ -23,10 +23,8 @@ interface ProfileEditorProps {
   userEmail?: string;
   favoritesCount: number;
   favoritedParks: Park[];
-  walletConnected: boolean;
   onSave: (profile: UserProfile) => void;
   onClose: () => void;
-  onOpenWallet: () => void;
   onParkSelect: (park: Park) => void;
   onRemoveFavorite: (parkId: string) => void;
   onGoToForum: () => void;
@@ -100,10 +98,8 @@ export default function ProfileEditor({
   userEmail,
   favoritesCount,
   favoritedParks,
-  walletConnected,
   onSave,
   onClose,
-  onOpenWallet,
   onParkSelect,
   onRemoveFavorite,
   onGoToForum,
@@ -289,26 +285,6 @@ export default function ProfileEditor({
             </div>
           </div>
         )}
-
-        {/* Wallet */}
-        <div className="p-3 rounded-2xl border border-amber-800/40 bg-amber-950/20 flex items-center justify-between">
-          <div>
-            <div className="text-sm font-medium flex items-center gap-1.5">
-              <Wallet className="w-3.5 h-3.5 text-amber-400" />
-              My Wallet
-            </div>
-            <div className="text-xs text-slate-400 mt-0.5">
-              {walletConnected ? 'Bitcoin address connected' : 'Not connected'}
-            </div>
-          </div>
-          <button
-            type="button"
-            onClick={() => { onClose(); onOpenWallet(); }}
-            className="text-xs bg-amber-700 hover:bg-amber-600 px-3 py-1.5 rounded-xl font-semibold"
-          >
-            {walletConnected ? 'Manage' : 'Set Up'}
-          </button>
-        </div>
 
         {/* Saved stops */}
         <div>

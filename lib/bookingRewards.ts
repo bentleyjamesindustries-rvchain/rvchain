@@ -1,7 +1,7 @@
 import { Park, calculateDistance } from './parks';
 import { CHECKIN_RADIUS_MILES } from './rewards';
 import type { ActivityEntry, RedemptionRecord, RewardItem, RewardTierId } from './rewards';
-import type { BookingPayment } from './usdcPayments';
+import type { BookingPayment } from './bookingPayments';
 
 export type BookingTierId = 'weekender' | 'season' | 'regular' | 'fulltimer';
 
@@ -28,9 +28,6 @@ export interface SiteBooking {
   checkedIn: boolean;
   checkedInAt?: string;
   payment?: BookingPayment;
-  paidWithUsdc?: boolean;
-  usdcChain?: string;
-  paymentTxHash?: string;
   totalPaid?: number;
 }
 
@@ -124,23 +121,17 @@ export function createSiteBooking(
     bookedAt: new Date().toISOString(),
     checkedIn: false,
     payment,
-    paidWithUsdc: payment?.method === 'usdc',
-    usdcChain: payment?.usdcChain,
-    paymentTxHash: payment?.txHash,
     totalPaid,
   };
 }
 
 export function addBooking(state: BookingProgramState, booking: SiteBooking): BookingProgramState {
-  const paymentNote = booking.paidWithUsdc
-    ? ` · ${booking.payment?.usdcAmount ?? booking.totalPaid} USDC on ${booking.usdcChain ?? 'USDC'}`
-    : '';
   return {
     ...state,
     bookings: [booking, ...state.bookings],
     activityLog: logBookingActivity(
       state,
-      `Booked ${booking.parkName} (${booking.nights} night${booking.nights > 1 ? 's' : ''}) on rvchain${paymentNote}`,
+      `Booked ${booking.parkName} (${booking.nights} night${booking.nights > 1 ? 's' : ''}) on rvchain (demo)`,
       0
     ),
   };
@@ -259,7 +250,6 @@ export function bookingTierMeetsRequirement(
   return TIER_RANK[userTier.id] >= TIER_RANK[required];
 }
 
-/** Maps mileage-catalog tier gates to booking check-in counts. */
 const BOOKING_TIER_CHECKINS: Record<RewardTierId, number> = {
   scout: 0,
   explorer: 3,

@@ -35,13 +35,10 @@ export interface RvListing {
   /** Seller trust score across marketplace (1–5) */
   sellerRating: number;
   sellerReviewCount: number;
-  /** Official RVCHAIN certification (subscribed sellers, blockchain-recorded) */
+  /** Official RVCHAIN certification (subscribed sellers, moderator-reviewed) */
   rvchainCertified?: boolean;
-  certificationHash?: string;
-  certificationOts?: string | null;
   certifiedAt?: string;
   certifiedBy?: string;
-  certificationProofUrl?: string;
   isDemo?: boolean;
 }
 

@@ -1,9 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL ?? ''
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey)
+/** False when .env.local still has placeholder Supabase values. */
+export const isSupabaseConfigured =
+  Boolean(supabaseUrl && supabaseAnonKey) &&
+  !supabaseUrl.includes('your-project-ref') &&
+  !supabaseAnonKey.includes('your-anon-public-key')
+
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder-anon-key'
+)
 
 // Types for our tables (add more as we expand)
 export type Profile = {
@@ -27,9 +36,6 @@ export type Park = {
   image: string | null
   submitted_by: string | null
   verified: boolean
-  verification_tx: string | null
-  verification_hash: string | null
-  verification_ots: string | null
   verified_at: string | null
   verified_by: string | null
   created_at: string

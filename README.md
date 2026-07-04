@@ -52,7 +52,7 @@ Double-click it to open instantly (no Node needed). Great for quick demos or off
 - Deploy for free: `npx vercel` (or push to GitHub + Vercel)
 - Real backend: Supabase (user accounts + realtime multi-RVer chat)
 - User-generated content: Submit new parks
-- Blockchain angle: On-chain verified reviews / trusted listings (as discussed)
+- Moderator-verified park listings and seller certification badges
 - PWA + native feel on mobile
 - Real data sources (Recreation.gov, etc.)
 

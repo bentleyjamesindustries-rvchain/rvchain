@@ -13,6 +13,7 @@ import {
   isValidPhone,
   normalizePhone,
 } from '@/lib/passwordRecovery';
+import { supabase } from '@/lib/supabaseClient';
 
 type Step = 'contact' | 'verify' | 'action';
 
@@ -114,9 +115,21 @@ export default function ForgotPasswordModal({
     await handleSendCode();
   };
 
-  const handleLogin = () => {
-    toast.success('Welcome back, RVer!');
-    onLoggedIn();
+  const handleLogin = async () => {
+    setLoading(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        toast.error('Session expired. Verify your code again or use Sign In with your password.');
+        setStep('verify');
+        setVerified(false);
+        return;
+      }
+      toast.success('Welcome back, RVer!');
+      onLoggedIn();
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleResetPassword = async () => {

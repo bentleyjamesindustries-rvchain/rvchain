@@ -12,13 +12,12 @@ export interface Park {
   image: string | null;
   submitted_by?: string | null;
   verified?: boolean;
-  verification_tx?: string | null;
-  verification_hash?: string | null;
-  verification_ots?: string | null;
   verified_at?: string | null;
   verified_by?: string | null;
-  verification_proof_url?: string | null;
   created_at?: string;
+  /** Public listing source (e.g. nps.gov) when from free agency data */
+  source?: string;
+  sourceUrl?: string;
 }
 
 export const parks: Park[] = [
