@@ -401,7 +401,7 @@ export default function RvMarketplacePanel({
       <div className="rv-market-hero relative overflow-hidden rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 p-5 sm:p-8 mb-6">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,_rgba(251,191,36,0.12),_transparent_55%)]" />
         <div className="relative flex flex-col lg:flex-row lg:items-end lg:justify-between gap-5">
-          <div>
+          <div className="section-intro">
             <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-2">
               <Caravan className="w-4 h-4" />
               RV Marketplace

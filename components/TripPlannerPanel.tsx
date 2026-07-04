@@ -255,7 +255,7 @@ export default function TripPlannerPanel({
   return (
     <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10 space-y-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-        <div>
+        <div className="section-intro">
           <h2 className="text-xl sm:text-2xl font-semibold">Trip Planner</h2>
           <p className="text-slate-200 text-sm mt-1">
             Plan routes, dates, and camping checklists for your style of travel.

@@ -186,7 +186,7 @@ export default function ForumPanel({
   if (!category) {
     return (
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-5">
-        <div>
+        <div className="section-intro">
           <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-1">
             <MessagesSquare className="w-4 h-4" />
             Camper Forum
@@ -238,7 +238,7 @@ export default function ForumPanel({
         <button
           type="button"
           onClick={() => setCategory(null)}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition"
+          className="section-nav inline-flex items-center gap-1.5 text-sm hover:text-white transition"
         >
           <ChevronLeft className="w-4 h-4" />
           All categories
@@ -285,7 +285,7 @@ export default function ForumPanel({
 
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
-      <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500">
+      <div className="section-nav flex flex-wrap items-center gap-2 text-xs text-slate-500">
         <button type="button" onClick={() => { setCategory(null); setSubcategory(null); }} className="hover:text-white transition">
           Forum
         </button>
@@ -421,7 +421,7 @@ export default function ForumPanel({
       <button
         type="button"
         onClick={() => setSubcategory(null)}
-        className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white transition pt-2"
+        className="section-nav inline-flex items-center gap-1.5 text-sm hover:text-white transition pt-2"
       >
         <ChevronLeft className="w-4 h-4" />
         Back to {activeCategory!.label} topics

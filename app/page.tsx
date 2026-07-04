@@ -828,7 +828,7 @@ export default function RVChainApp() {
           </div>
 
           {/* Amenity chips */}
-          <div className="mb-5">
+          <div className="mb-5 section-intro">
             <div className="text-xs font-medium tracking-wider text-slate-400 mb-1.5 ml-1">FILTER BY AMENITIES</div>
             <div className="flex flex-wrap gap-2">
               {ALL_AMENITIES.map((amenity) => {
@@ -847,7 +847,7 @@ export default function RVChainApp() {
           </div>
 
           {/* Results header */}
-          <div className="flex items-center justify-between mb-3 px-1">
+          <div className="flex items-center justify-between mb-3 px-1 section-intro">
             <div>
               <span className="font-semibold text-xl">{filteredParks.length}</span>
               <span className="text-slate-400 text-sm ml-1">parks found nationwide</span>
@@ -974,7 +974,7 @@ export default function RVChainApp() {
       {/* MAP */}
       {activeTab === 'map' && (
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
-          <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center justify-between mb-3 section-intro">
             <div>
               <h2 className="font-semibold text-2xl">Explore on the map</h2>
               <p className="text-slate-400 text-sm">Click any marker for quick info and directions</p>
@@ -991,7 +991,7 @@ export default function RVChainApp() {
             onGetDirections={getDirections} 
           />
 
-          <div className="mt-3 text-xs text-slate-400 flex items-center gap-x-2 px-1">
+          <div className="mt-3 text-xs text-slate-400 flex items-center gap-x-2 px-1 section-intro">
             <div className="flex items-center gap-x-1.5">
               <div className="w-3 h-3 rounded-full bg-emerald-500" />
               <span>Available now</span>
@@ -1395,7 +1395,7 @@ export default function RVChainApp() {
         />
       )}
 
-      <footer className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
+      <footer className="section-intro max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
         <p className="text-amber-400/90 max-w-lg mx-auto leading-relaxed">
           Demonstration only — bookings, payments, rewards, and RV listings are simulated on your device. No charges, reservations, or seller notifications.
         </p>
