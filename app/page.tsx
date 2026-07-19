@@ -82,7 +82,7 @@ const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'marketplace', label: 'Market', icon: Caravan },
-  { id: 'kids', label: 'Kids', icon: Sparkles },
+  { id: 'kids', label: 'Little Explorers', icon: Sparkles },
   { id: 'discover', label: 'Spots', icon: MapPin },
   { id: 'map', label: 'Map', icon: Search },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
@@ -673,7 +673,7 @@ export default function RVChainApp() {
                     type="button"
                     onClick={() => setShowExplorerSignIn(true)}
                     className="hidden sm:flex items-center gap-x-1 bg-amber-500/15 hover:bg-amber-500/25 transition px-2 py-1.5 rounded-2xl text-xs font-medium text-amber-100"
-                    title="Kid explorer sign-in"
+                    title="Explorer sign-in"
                   >
                     <Baby className="w-3.5 h-3.5" />
                     Explorer
@@ -699,7 +699,7 @@ export default function RVChainApp() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
           <div>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Market. Family.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Crew on the road.</h1>
-            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Sell RVs &amp; gear, Kids adventures, community spots &amp; trips — not a campground booking engine.</p>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Sell RVs &amp; gear, Explorer adventures, community spots &amp; trips — not a campground booking engine.</p>
           </div>
 
           <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">

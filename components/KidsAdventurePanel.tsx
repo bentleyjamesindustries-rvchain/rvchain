@@ -128,7 +128,7 @@ export default function KidsAdventurePanel({
           <div className="rounded-2xl border border-slate-700 bg-slate-950/50 p-4 text-xs text-slate-400 space-y-1.5 leading-relaxed">
             <p className="font-semibold text-slate-300">For parents</p>
             <p>Supervise outdoors. Don’t pick protected plants. Photos are just for fun.</p>
-            <p>No real-money purchases for kids. Progress and scores save on this device.</p>
+            <p>No real-money purchases for explorers. Progress and scores save on this device.</p>
           </div>
         </div>
       </div>
@@ -139,7 +139,7 @@ export default function KidsAdventurePanel({
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
       <div className="rounded-3xl border border-emerald-800/40 bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 p-6 sm:p-8">
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-          Kids{name !== 'Explorer' ? ` · ${name}` : ''}
+          Explorers{name !== 'Explorer' ? ` · ${name}` : ''}
         </h1>
         <p className="mt-2 text-sm text-slate-300 max-w-md leading-relaxed">
           Find plants outside · collect badges · play trail games.
@@ -185,7 +185,7 @@ export default function KidsAdventurePanel({
       {!isExplorer && (
         <div className="rounded-2xl border border-slate-700 bg-slate-900/60 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
           <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-            Want a kid-only save? Use a family code (Profile → My Little Explorers).
+            Want your own explorer save? Use a family code (Profile → My Explorers).
           </p>
           <div className="flex flex-wrap gap-2 shrink-0">
             {onRequestExplorerSignIn && (
@@ -194,7 +194,7 @@ export default function KidsAdventurePanel({
                 onClick={onRequestExplorerSignIn}
                 className="px-3 h-9 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-xs font-semibold"
               >
-                Kid sign-in
+                Explorer sign-in
               </button>
             )}
             {onRequestParentExplorers && (

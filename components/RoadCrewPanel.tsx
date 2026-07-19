@@ -117,8 +117,8 @@ export default function RoadCrewPanel({
           <Users className="w-10 h-10 text-amber-400 mx-auto" />
           <h2 className="text-xl font-semibold">Join Road Crew</h2>
           <p className="text-sm text-slate-400">
-            Earn for trips, forum, Market, and Kids adventures — not campground bookings. Sign in to
-            continue.
+            Earn for trips, forum, Market, and Explorer adventures — not campground bookings. Sign in
+            to continue.
           </p>
           <button
             type="button"
@@ -166,7 +166,7 @@ export default function RoadCrewPanel({
               Earn for living on rvchain
             </h2>
             <p className="text-slate-400 mt-2 max-w-lg text-sm">
-              Trips, forum posts, Market listings, Kids finds — and optional drive miles. Not a
+              Trips, forum posts, Market listings, Explorer finds — and optional drive miles. Not a
               campground booking club.
             </p>
             {plan.checkInBonusPercent > 0 && (
@@ -233,7 +233,7 @@ export default function RoadCrewPanel({
           <li>Create trips &amp; complete checklist items (Trips tab)</li>
           <li>Post in the camper forum</li>
           <li>Publish a Market listing or complete a demo sale</li>
-          <li>Kids: mark a plant found on the scavenger hunt</li>
+          <li>Explorers: mark a plant found on the scavenger hunt</li>
           <li>Optional: track drive miles below (secondary)</li>
         </ul>
       </div>

@@ -25,7 +25,7 @@ import MyLittleExplorersPanel from './MyLittleExplorersPanel';
 interface ProfileEditorProps {
   profile: UserProfile;
   profileUserId: string;
-  /** Parent auth user id for family explorers (required for My Little Explorers tab) */
+  /** Parent auth user id for family explorers (required for My Explorers tab) */
   parentUserId: string;
   userEmail?: string;
   favoritesCount: number;
@@ -183,7 +183,7 @@ export default function ProfileEditor({
       <div className="sticky top-0 z-10 bg-slate-900/95 backdrop-blur border-b border-slate-800 px-5 py-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="font-semibold text-xl">
-            {tab === 'explorers' ? 'My Little Explorers' : 'Edit Profile'}
+            {tab === 'explorers' ? 'My Explorers' : 'Edit Profile'}
           </div>
           <button onClick={onClose} className="text-slate-400 hover:text-white p-1">
             <X className="w-5 h-5" />
@@ -206,7 +206,7 @@ export default function ProfileEditor({
               tab === 'explorers' ? 'bg-amber-800 text-white' : 'text-slate-400 hover:text-slate-200'
             }`}
           >
-            My Little Explorers
+            My Explorers
           </button>
         </div>
       </div>
@@ -330,15 +330,15 @@ export default function ProfileEditor({
           </div>
         )}
 
-        {/* Kids Trail Badges showcase */}
+        {/* Explorer Trail Badges showcase */}
         <div>
           <div className="text-sm font-medium mb-1">Trail Badge showcase</div>
           <p className="text-xs text-slate-400 mb-3">
-            50 camping collector badges from Kids packs · plants from scavenger hunts.
+            50 camping collector badges from Explorer packs · plants from scavenger hunts.
           </p>
           {trailBadges.length === 0 && trailCards.length === 0 ? (
             <p className="text-xs text-slate-500 py-2 border border-dashed border-slate-700 rounded-xl px-3">
-              No badges yet — open Kids, find a plant, then open a free pack.
+              No badges yet — open Little Explorers, find a plant, then open a free pack.
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">

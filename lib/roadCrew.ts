@@ -48,7 +48,7 @@ export const ROAD_CREW_ACTION_LABELS: Record<RoadCrewAction, string> = {
   forum_post: 'Forum post',
   market_list: 'Published a Market listing',
   market_sale: 'Marketplace sale (demo)',
-  kids_plant_found: 'Kids plant found',
+  kids_plant_found: 'Explorer plant found',
 };
 
 export const ROAD_CREW_TIERS: RoadCrewTier[] = [
@@ -108,8 +108,8 @@ export const ROAD_CREW_PERKS: RoadCrewPerk[] = [
   },
   {
     id: 'kids-trail-pack',
-    name: 'Kids trail pack',
-    description: 'Unlock a bonus Kids trail pack spin (demo).',
+    name: 'Explorer trail pack',
+    description: 'Unlock a bonus Explorer trail pack spin (demo).',
     pointsCost: 250,
     icon: '🧭',
     tierRequired: 'camp-hand',

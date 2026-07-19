@@ -277,7 +277,7 @@ export async function signInExplorer(
 
   const account = findFamilyByCode(familyCode);
   if (!account) {
-    return { error: 'Family code not found. Ask a parent for the code from My Little Explorers.' };
+    return { error: 'Family code not found. Ask a parent for the code from My Explorers.' };
   }
 
   const nick = normalizeNickname(nickname);
@@ -326,7 +326,7 @@ export function clearExplorerSession() {
   localStorage.removeItem(SESSION_KEY);
 }
 
-/** Storage key for kids progress: per-explorer when signed in as kid. */
+/** Storage key for explorer progress: per-explorer when signed in as explorer. */
 export function getKidsProgressUserId(
   explorerSession: ActiveExplorerSession | null,
   signedInUserId?: string | null

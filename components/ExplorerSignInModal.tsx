@@ -48,7 +48,7 @@ export default function ExplorerSignInModal({ onClose, onSuccess }: ExplorerSign
             </div>
             <div>
               <h2 className="font-semibold text-lg text-amber-50">Explorer sign-in</h2>
-              <p className="text-[11px] text-slate-400">Kids only — ask a parent for your family code</p>
+              <p className="text-[11px] text-slate-400">For explorers — ask a parent for your family code</p>
             </div>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-1">

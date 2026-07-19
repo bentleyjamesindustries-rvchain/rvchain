@@ -38,7 +38,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     trialDays: 0,
     features: [
       'Browse community park picks & map (sign-in)',
-      'Kids adventure trail (explorer profiles)',
+      'Little Explorers adventure trail (explorer profiles)',
       'Browse RV marketplace',
       'Trips, forum posting & Road Crew: Weekender+',
     ],

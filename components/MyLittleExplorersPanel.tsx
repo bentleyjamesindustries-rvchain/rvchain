@@ -126,11 +126,11 @@ export default function MyLittleExplorersPanel({ parentUserId }: MyLittleExplore
       <div className="rounded-2xl border border-amber-800/40 bg-gradient-to-br from-amber-950/40 to-emerald-950/20 p-4">
         <div className="flex items-center gap-2 text-amber-200 font-semibold text-sm mb-1">
           <Baby className="w-4 h-4" />
-          My Little Explorers
+          My Explorers
         </div>
         <p className="text-xs text-slate-400 leading-relaxed">
-          Create kid profiles under your account. Kids sign in with your family code, their nickname,
-          and a PIN you set. You can freeze or remove explorers anytime.
+          Create explorer profiles under your account. Explorers sign in with your family code, their
+          nickname, and a PIN you set. You can freeze or remove explorers anytime.
         </p>
         <p className="text-[10px] text-amber-400/80 mt-2">{DEMO_NOTICE_SHORT}</p>
       </div>
@@ -151,8 +151,8 @@ export default function MyLittleExplorersPanel({ parentUserId }: MyLittleExplore
           </button>
         </div>
         <p className="text-[10px] text-slate-500 mt-1">
-          Kids need this code + nickname + PIN. Demo: family data is saved on this device (same browser
-          until cloud sync).
+          Explorers need this code + nickname + PIN. Demo: family data is saved on this device (same
+          browser until cloud sync).
         </p>
       </div>
 
@@ -248,7 +248,7 @@ export default function MyLittleExplorersPanel({ parentUserId }: MyLittleExplore
         {!family.phoneVerified && (
           <p className="text-xs text-amber-400/90 mb-3 flex items-start gap-1.5">
             <Shield className="w-3.5 h-3.5 shrink-0 mt-0.5" />
-            Verify your phone above before adding little explorers.
+            Verify your phone above before adding explorers.
           </p>
         )}
 
@@ -293,7 +293,7 @@ export default function MyLittleExplorersPanel({ parentUserId }: MyLittleExplore
 
         {family.explorers.length === 0 ? (
           <p className="text-xs text-slate-500 py-3 border border-dashed border-slate-700 rounded-xl px-3">
-            No explorers yet. Add a child profile after verifying your phone.
+            No explorers yet. Add an explorer profile after verifying your phone.
           </p>
         ) : (
           <div className="space-y-2">
@@ -377,7 +377,7 @@ export default function MyLittleExplorersPanel({ parentUserId }: MyLittleExplore
       <div className="text-[10px] text-slate-500 leading-relaxed border-t border-slate-800 pt-3 space-y-1">
         <p className="font-medium text-slate-400">Parent tips</p>
         <p>Explorer profiles are private to your family — not public accounts.</p>
-        <p>Kids cannot post on the adult forum. Supervise outdoor scavenger hunts.</p>
+        <p>Explorers cannot post on the adult forum. Supervise outdoor scavenger hunts.</p>
         <p>With Twilio env vars set, real SMS is used; otherwise demo codes appear in a toast.</p>
       </div>
     </div>

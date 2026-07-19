@@ -45,7 +45,7 @@ export default function KidsGamesHub({ userId, onBack, onPlay }: KidsGamesHubPro
         onClick={onBack}
         className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white"
       >
-        <ArrowLeft className="w-4 h-4" /> Kids
+        <ArrowLeft className="w-4 h-4" /> Explorers
       </button>
 
       <div className="rounded-3xl border border-sky-800/40 bg-gradient-to-br from-sky-950/50 via-slate-900 to-violet-950/30 p-6">
