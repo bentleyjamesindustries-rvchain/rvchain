@@ -385,12 +385,12 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
 
       if (playing) {
         if (jumpQueued.current && onGround) {
-          vy = -13.5;
+          vy = -15.8; // slightly higher, floatier jump
           onGround = false;
         }
         jumpQueued.current = false;
 
-        vy += 0.72 * dt;
+        vy += 0.62 * dt; // gentler gravity so jumps feel better
         playerY += vy * dt;
         if (playerY >= GROUND - PLAYER_H) {
           playerY = GROUND - PLAYER_H;
@@ -418,12 +418,13 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
           spawnTimer = 65 + Math.random() * 55 - Math.min(18, speed * 1.5);
         }
         if (leafTimer <= 0) {
+          // Leave leaves a bit lower / more reachable for jumps
           leaves.push({
             x: W + 10,
-            y: GROUND - 70 - Math.random() * 90,
+            y: GROUND - 55 - Math.random() * 75,
             taken: false,
           });
-          leafTimer = 28 + Math.random() * 40;
+          leafTimer = 22 + Math.random() * 32;
         }
 
         const move = speed * dt * 1.15;
@@ -450,11 +451,18 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
           }
         }
 
+        // Generous leaf pickup box (easier to collect)
+        const LEAF_HIT = 36;
         for (const l of leaves) {
           if (l.taken) continue;
-          if (px < l.x + 22 && px + pw > l.x && py < l.y + 22 && py + ph > l.y) {
+          if (
+            px < l.x + LEAF_HIT &&
+            px + pw > l.x - 4 &&
+            py < l.y + LEAF_HIT &&
+            py + ph > l.y - 4
+          ) {
             l.taken = true;
-            leafBonus += 25;
+            leafBonus += 100; // each leaf = 100 pts
           }
         }
 
@@ -513,8 +521,22 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
 
       for (const l of leaves) {
         if (l.taken) continue;
-        ctx.font = '22px serif';
-        ctx.fillText('🍃', l.x, l.y + 18);
+        // Bright glow so leaves pop on the trail
+        ctx.fillStyle = 'rgba(250, 204, 21, 0.45)';
+        ctx.beginPath();
+        ctx.arc(l.x + 14, l.y + 12, 20, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.fillStyle = 'rgba(74, 222, 128, 0.55)';
+        ctx.beginPath();
+        ctx.arc(l.x + 14, l.y + 12, 14, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.font = '28px serif';
+        ctx.fillText('🍃', l.x, l.y + 20);
+        // sparkle tip
+        ctx.fillStyle = '#fef08a';
+        ctx.beginPath();
+        ctx.arc(l.x + 22, l.y + 4, 3, 0, Math.PI * 2);
+        ctx.fill();
       }
 
       for (const o of obstacles) {
