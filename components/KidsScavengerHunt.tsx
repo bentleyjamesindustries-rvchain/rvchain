@@ -167,8 +167,8 @@ export default function KidsScavengerHunt({
               Adult geo-catch
             </h2>
             <p className="text-sm text-amber-100/80 mt-1 leading-relaxed">
-              Field Explorer (18+): snap a field photo and optionally tag GPS to unlock stickers.
-              Kids use Kids Zone — no location or photo logging there.
+              Big Explorer (18+): snap a field photo and optionally tag GPS to unlock stickers.
+              Kids use Little Explorer — no location or photo logging there.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-900/50 border border-emerald-700/50 text-emerald-200">

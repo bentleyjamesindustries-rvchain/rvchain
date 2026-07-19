@@ -16,7 +16,7 @@ interface AdultExplorerPanelProps {
 }
 
 /**
- * Adult Field Explorer — geo-catch, photos, stickers, packs.
+ * Big Explorer — geo-catch, photos, stickers, packs.
  * Not for under-13 collection of location/photos.
  */
 export default function AdultExplorerPanel({
@@ -41,7 +41,7 @@ export default function AdultExplorerPanel({
         <div className="rounded-3xl border border-sky-700/40 bg-gradient-to-br from-sky-950/50 via-slate-900 to-slate-950 p-6 space-y-4">
           <div className="inline-flex items-center gap-2 text-sky-300 text-xs font-bold uppercase tracking-wide">
             <MapPin className="w-4 h-4" />
-            Field Explorer
+            Big Explorer
           </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Adult explorers only</h1>
           <p className="text-sm text-slate-300 leading-relaxed">
@@ -51,7 +51,7 @@ export default function AdultExplorerPanel({
           </p>
           <ul className="text-xs text-slate-400 space-y-1.5 list-disc pl-4 leading-relaxed">
             <li>Location and photos stay on this device in the demo</li>
-            <li>Kids Zone (separate tab) has no GPS or photo capture</li>
+            <li>Little Explorer (separate tab) has no GPS or photo capture</li>
             <li>Supervise any shared device; do not create child profiles here</li>
           </ul>
           <button
@@ -59,7 +59,7 @@ export default function AdultExplorerPanel({
             onClick={() => setAdultOk(true)}
             className="w-full min-h-[48px] rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm"
           >
-            I am 18+ — continue to Field Explorer
+            I am 18+ — continue to Big Explorer
           </button>
           <p className="text-[10px] text-slate-500 text-center">
             This is a product gate, not legal COPPA certification. See our privacy policy for family
@@ -112,7 +112,7 @@ export default function AdultExplorerPanel({
           ← Back
         </button>
         <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6 space-y-3 text-sm text-slate-300">
-          <h2 className="text-xl font-bold text-white">How Field Explorer works</h2>
+          <h2 className="text-xl font-bold text-white">How Big Explorer works</h2>
           <ol className="list-decimal pl-5 space-y-2 leading-relaxed">
             <li>
               <strong className="text-white">Use my location</strong> to load a regional plant trail.
@@ -127,7 +127,7 @@ export default function AdultExplorerPanel({
             </li>
           </ol>
           <p className="text-xs text-slate-500 pt-2">
-            Kids play in Kids Zone without GPS or photo logging. Keep Field Explorer for adult
+            Kids play in Little Explorer without GPS or photo logging. Keep Big Explorer for adult
             accounts.
           </p>
         </div>
@@ -139,7 +139,7 @@ export default function AdultExplorerPanel({
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
       <div className="rounded-3xl border border-sky-800/40 bg-gradient-to-br from-sky-950/60 via-slate-900 to-slate-950 p-6 sm:p-8">
         <div className="text-sky-400 text-xs font-bold uppercase tracking-wide mb-1">
-          Adult Field Explorer
+          Big Explorer
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           {name !== 'Explorer' ? `${name}'s field log` : 'Field log'}

@@ -12,7 +12,7 @@ import type { KidsGameId } from '@/lib/kidsGames';
 type KidsView = 'hub' | 'guide' | 'howto' | 'games' | KidsGameId;
 
 /**
- * Kids Zone — play games + learn plants.
+ * Little Explorer — play games + learn plants.
  * No GPS, no camera capture, no accounts, no saved plant finds or photos.
  * Game high scores use a shared anonymous device key only.
  */
@@ -86,7 +86,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
           ← Back
         </button>
         <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-white">Kids Zone — privacy first</h2>
+          <h2 className="text-xl font-bold text-white">Little Explorer — privacy first</h2>
           <ul className="list-disc pl-5 space-y-2 text-sm text-slate-300 leading-relaxed">
             <li>
               <strong className="text-white">No GPS</strong> — we never request location here.
@@ -110,8 +110,8 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
           <div className="rounded-2xl border border-sky-800/40 bg-sky-950/30 p-4 text-xs text-sky-100/90 leading-relaxed">
             <p className="font-semibold text-sky-200 mb-1">Want geo-catch & stickers?</p>
             <p>
-              Grown-ups use the <strong>Field Explorer</strong> tab (18+) for location and photo
-              logging. Keep kids in Kids Zone.
+              Grown-ups use the <strong>Big Explorer</strong> tab (18+) for location and photo
+              logging. Keep kids in Little Explorer.
             </p>
           </div>
         </div>
@@ -122,7 +122,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
       <div className="rounded-3xl border border-emerald-800/40 bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 p-6 sm:p-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Kids Zone</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Little Explorer</h1>
         <p className="mt-2 text-sm text-slate-300 max-w-lg leading-relaxed">
           Play trail games and learn about plants — with a grown-up. This zone does not collect
           GPS, photos, or personal information.
@@ -133,7 +133,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
         <Shield className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
         <p>
           <strong className="text-sky-200">Privacy:</strong> no location, no camera saves, no child
-          accounts here. Adults geo-catch in <strong>Field Explorer</strong>.
+          accounts here. Adults geo-catch in <strong>Big Explorer</strong>.
         </p>
       </div>
 
@@ -165,7 +165,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
         className="w-full text-left rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 flex items-center gap-3 text-sm text-slate-400 hover:text-slate-200 hover:border-slate-600 transition"
       >
         <BookOpen className="w-4 h-4 shrink-0" />
-        How Kids Zone works & privacy
+        How Little Explorer works & privacy
       </button>
     </div>
   );

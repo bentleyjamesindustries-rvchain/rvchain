@@ -338,7 +338,7 @@ export default function ProfileEditor({
           </p>
           {trailBadges.length === 0 && trailCards.length === 0 ? (
             <p className="text-xs text-slate-500 py-2 border border-dashed border-slate-700 rounded-xl px-3">
-              No badges yet — open Little Explorers, find a plant, then open a free pack.
+              No badges yet — open Big Explorer, find a plant, then open a free pack.
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">

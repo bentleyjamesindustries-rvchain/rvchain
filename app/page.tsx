@@ -91,8 +91,8 @@ const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'marketplace', label: 'Market', icon: Caravan },
-  { id: 'kids', label: 'Kids Zone', icon: Sparkles },
-  { id: 'field', label: 'Field', icon: Leaf },
+  { id: 'kids', label: 'Little Explorer', icon: Sparkles },
+  { id: 'field', label: 'Big Explorer', icon: Leaf },
   { id: 'discover', label: 'Spots', icon: MapPin },
   { id: 'map', label: 'Map', icon: Search },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
