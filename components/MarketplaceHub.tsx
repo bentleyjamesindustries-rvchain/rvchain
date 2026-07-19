@@ -570,9 +570,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
         <div className="text-amber-400 text-sm font-medium mb-1">rvchain Market</div>
         <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">RVs · Gear · Parts</h2>
         <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-          Separate marketplaces. Low list fees; sale fee is a % when you sell through rvchain — you see
-          the % and what you&apos;ll receive. {DEMO_NOTICE_SHORT}
-        </p>
+          Listing software for RVs, gear, and parts. Seller Pro = unlimited ads. Buyers contact sellers — no escrow. Demo until Stripe is live.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
@@ -739,7 +737,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                   Buy single listing (demo)
                 </button>
                 <div className="border-t border-slate-800 pt-3">
-                  <p className="text-xs text-slate-400 mb-2">Or Seller Pro — unlimited listings</p>
+                  <p className="text-xs text-slate-400 mb-2">Or Seller Pro — unlimited listing software</p>
                   <div className="flex gap-2 mb-2">
                     <button
                       type="button"
@@ -773,7 +771,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
 
             {user && canPub(sellKind) && (
               <p className="text-xs text-emerald-300">
-                {subscribed ? 'Seller Pro active.' : `${credits[sellKind]} ${sellKind} credit(s) ready.`}
+                {subscribed ? 'Seller Pro active — unlimited listings · buyers contact you.' : `${credits[sellKind]} ${sellKind} credit(s) ready.`}
               </p>
             )}
 
@@ -1110,37 +1108,42 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                   : formatPartsPrice(detail.price)}
             </div>
             {user?.id && detail.sellerUserId === user.id && sellerPayoutPreview(detail.price, detail.itemType)}
-            <div className="flex gap-2">
-              {detail.sellerUserId && user?.id !== detail.sellerUserId && (
+            <div className="flex flex-col gap-2">
+              <p className="text-[11px] text-slate-500">
+                Contact the seller to negotiate. Payment is off-platform — rvchain hosts the ad only.
+              </p>
+              <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={() => {
-                    openBuy(detail);
-                    setDetail(null);
+                    if (!user) return onRequestSignIn();
+                    saveListingInterest({
+                      listingId: detail.id,
+                      listingTitle: detail.title,
+                      message: `Hi, interested in ${detail.title}.`,
+                      contactEmail: user.email,
+                      userId: user.id,
+                      createdAt: new Date().toISOString(),
+                    });
+                    toast.success('Interest saved locally (demo). Seller is not notified yet.');
                   }}
-                  className="flex-1 h-11 rounded-xl bg-emerald-600 font-semibold text-sm"
+                  className="flex-1 h-11 rounded-xl bg-amber-600 hover:bg-amber-500 text-white text-sm font-semibold flex items-center justify-center gap-1"
                 >
-                  Buy through rvchain
+                  <MessageCircle className="w-4 h-4" /> Contact seller
                 </button>
-              )}
-              <button
-                type="button"
-                onClick={() => {
-                  if (!user) return onRequestSignIn();
-                  saveListingInterest({
-                    listingId: detail.id,
-                    listingTitle: detail.title,
-                    message: `Hi, interested in ${detail.title}.`,
-                    contactEmail: user.email,
-                    userId: user.id,
-                    createdAt: new Date().toISOString(),
-                  });
-                  toast.success('Interest saved locally (demo).');
-                }}
-                className="flex-1 h-11 rounded-xl border border-amber-700 text-amber-300 text-sm font-semibold flex items-center justify-center gap-1"
-              >
-                <MessageCircle className="w-4 h-4" /> Contact
-              </button>
+                {user?.id && detail.sellerUserId === user.id && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      openBuy(detail);
+                      setDetail(null);
+                    }}
+                    className="flex-1 h-11 rounded-xl border border-slate-600 text-slate-300 text-sm font-semibold"
+                  >
+                    Mark sold (demo)
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         </div>

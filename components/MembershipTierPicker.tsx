@@ -37,6 +37,15 @@ export default function MembershipTierPicker({
 
   return (
     <div className="space-y-4">
+      <div className="rounded-2xl border border-emerald-800/40 bg-emerald-950/20 px-4 py-3 text-sm text-slate-300 leading-relaxed">
+        <p className="font-semibold text-emerald-200">rvchain membership = trip software</p>
+        <p className="text-xs text-slate-400 mt-1">
+          Pay for planning tools, forum posts, and Road Crew boosts — not for booking parks and not
+          for marketplace escrow. Demo upgrades simulate billing until Stripe is live under RV Chain
+          LLC.
+        </p>
+      </div>
+
       <div className="flex items-center justify-center gap-2 p-1 rounded-2xl bg-slate-950 border border-slate-800 w-fit mx-auto sm:mx-0">
         <button
           type="button"
@@ -112,14 +121,14 @@ export default function MembershipTierPicker({
                     onClick={() => handleSelect(plan.id, true)}
                     className="w-full h-10 rounded-2xl text-sm font-semibold bg-sky-700 hover:bg-sky-600 text-white transition"
                   >
-                    Start free trial (demo)
+                    Start free trial (demo · Stripe-ready)
                   </button>
                   <button
                     type="button"
                     onClick={() => handleSelect(plan.id, false)}
                     className="w-full h-9 rounded-2xl text-xs font-medium border border-slate-600 text-slate-300 hover:bg-slate-800 transition"
                   >
-                    Subscribe without trial (demo)
+                    Upgrade now (demo · Stripe-ready)
                   </button>
                 </div>
               ) : (
@@ -134,7 +143,7 @@ export default function MembershipTierPicker({
                         : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600'
                   }`}
                 >
-                  {isActive ? 'Subscribed (demo)' : isUpgrade ? 'Upgrade (demo)' : 'Switch plan (demo)'}
+                  {isActive ? 'Current plan (demo)' : isUpgrade ? 'Upgrade (demo · Stripe-ready)' : 'Switch plan (demo)'}
                 </button>
               )}
 

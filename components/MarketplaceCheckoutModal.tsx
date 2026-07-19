@@ -1,7 +1,7 @@
-'use client';
+﻿'use client';
 
 import { useState } from 'react';
-import { X, ShoppingBag } from 'lucide-react';
+import { X, Tag } from 'lucide-react';
 import {
   formatFeePercent,
   itemTypeLabel,
@@ -27,9 +27,7 @@ export default function MarketplaceCheckoutModal({
   onConfirm,
 }: MarketplaceCheckoutModalProps) {
   const quote = quoteMarketplaceFee(price, itemType);
-  const [agreePrivate, setAgreePrivate] = useState(false);
-  const [agreeFee, setAgreeFee] = useState(false);
-  const canSubmit = agreePrivate && agreeFee;
+  const [agree, setAgree] = useState(false);
 
   const priceLabel = new Intl.NumberFormat('en-US', {
     style: 'currency',
@@ -48,8 +46,8 @@ export default function MarketplaceCheckoutModal({
       >
         <div className="sticky top-0 bg-slate-900/95 border-b border-slate-800 px-5 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <ShoppingBag className="w-5 h-5 text-amber-400" />
-            <h2 className="font-semibold text-lg">Buy through rvchain</h2>
+            <Tag className="w-5 h-5 text-amber-400" />
+            <h2 className="font-semibold text-lg">Mark sold (demo)</h2>
           </div>
           <button type="button" onClick={onClose} className="text-slate-400 hover:text-white p-1">
             <X className="w-5 h-5" />
@@ -57,6 +55,12 @@ export default function MarketplaceCheckoutModal({
         </div>
 
         <div className="p-5 space-y-4">
+          <div className="rounded-2xl border border-sky-800/40 bg-sky-950/20 p-3 text-xs text-sky-100/90 leading-relaxed">
+            <strong className="text-sky-200">How Market works:</strong> rvchain hosts your ad.
+            Buyers contact you. Payment and handoff happen between you and the buyer off-platform.
+            We do not process the sale price or hold escrow today.
+          </div>
+
           <div>
             <div className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">
               {itemTypeLabel(itemType)}
@@ -68,20 +72,22 @@ export default function MarketplaceCheckoutModal({
 
           <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-400">You pay</span>
+              <span className="text-slate-400">List price</span>
               <span className="font-semibold text-amber-300">{priceLabel}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Marketplace fee rate</span>
-              <span className="font-semibold text-slate-200">{formatFeePercent(quote.feePercent)}</span>
+              <span className="text-slate-400">Future fee rate (if paid close ships)</span>
+              <span className="font-semibold text-slate-200">
+                {formatFeePercent(quote.feePercent)}
+              </span>
             </div>
             <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-800">
-              A marketplace fee of {formatFeePercent(quote.feePercent)} applies to the seller. Seller payout
-              details are only shown to the seller.
+              Planning only. Live product is listing plus contact. Optional paid close would use
+              Stripe under RV Chain LLC later.
             </p>
           </div>
 
-          <div className="max-h-32 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-[11px] text-slate-500 leading-relaxed">
+          <div className="max-h-28 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-[11px] text-slate-500 leading-relaxed">
             <p className="font-semibold text-slate-400 mb-1">{MARKETPLACE_DISCLOSURE.title}</p>
             <p>{MARKETPLACE_DISCLOSURE.summary}</p>
           </div>
@@ -89,35 +95,23 @@ export default function MarketplaceCheckoutModal({
           <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
             <input
               type="checkbox"
-              checked={agreePrivate}
-              onChange={(e) => setAgreePrivate(e.target.checked)}
+              checked={agree}
+              onChange={(e) => setAgree(e.target.checked)}
               className="mt-0.5 rounded border-slate-600"
             />
             <span>
-              I understand this is a private-party sale; rvchain does not transfer title or guarantee
-              the item.
-            </span>
-          </label>
-          <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={agreeFee}
-              onChange={(e) => setAgreeFee(e.target.checked)}
-              className="mt-0.5 rounded border-slate-600"
-            />
-            <span>
-              I agree to the Marketplace Terms and that a marketplace fee of{' '}
-              {formatFeePercent(quote.feePercent)} applies to the seller on this sale.
+              I understand this is demo listing software. Private-party deal; rvchain does not take
+              payment or transfer title.
             </span>
           </label>
 
           <button
             type="button"
-            disabled={!canSubmit}
+            disabled={!agree}
             onClick={onConfirm}
             className="w-full h-12 rounded-2xl bg-amber-600 hover:bg-amber-500 disabled:opacity-40 font-semibold text-sm"
           >
-            Complete purchase (demo)
+            Mark listing sold (demo)
           </button>
         </div>
       </div>

@@ -86,7 +86,7 @@ export default function HomeHub({
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
             <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              Dates, stops, pack lists — your road itinerary
+              Dates, stops, pack lists — upgrade to Weekender+ (demo)
             </p>
           </button>
 
@@ -101,7 +101,7 @@ export default function HomeHub({
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
             <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              RVs, gear & parts — browse or list
+              Listing software · contact sellers · no escrow
             </p>
           </button>
 

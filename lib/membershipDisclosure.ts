@@ -1,19 +1,19 @@
 export const MEMBERSHIP_DISCLOSURE = {
-  title: 'rvchain Membership Disclosure',
+  title: 'rvchain Membership (Pro tools)',
   summary:
-    'Memberships unlock trip planning, forum posting, loyalty perks, and family tools. Park stays are not booked through rvchain. Demo mode — no real charges until live billing is enabled.',
+    'Paid membership unlocks trip planning software, forum posting, and Road Crew loyalty — not campground booking and not marketplace escrow. Demo mode: no real card charges until Stripe is enabled under RV Chain LLC.',
   bullets: [
-    'Map: sign in required to use the interactive map.',
-    'Trip planner & park stops: Weekender or higher (Campfire does not include trips).',
-    'Loyalty rewards: Weekender or higher — mileage check-ins only (no stay booking on rvchain).',
-    'Forum: sign in to browse; paid membership (Weekender+) required to post.',
-    'RV marketplace: browsing is free; list with a low single-listing fee or Seller Pro. Sales through rvchain use a % marketplace fee (seller sees % and proceeds before close).',
-    'Memberships are non-transferable and tied to your rvchain account.',
-    'Demo billing: subscribing does not charge a card until Stripe is enabled.',
-    'Weekender includes a 7-day free trial in demo mode (tracked locally).',
-    'Checklists and survival tips are planning aids — not professional safety instruction.',
-    'Loyalty points have no cash value (see Rewards disclosure).',
+    'Campfire (free): browse spots, map (signed in), Market browse, Little Explorer play.',
+    'Weekender+: trip planner, packing checklists, forum posts, Road Crew earn boosts.',
+    'Road Tripper / Full Timer: more checklist packs, route tools, maintenance aids.',
+    'Membership is software access for your account — non-transferable.',
+    'Park stays are booked on official park/agency sites — not through membership.',
+    'Market listing is separate: Seller Pro or single-listing credits (listing software, not payment of the RV/gear).',
+    'Demo billing: Start trial / Upgrade simulates a subscription locally until live Stripe.',
+    'Weekender includes a 7-day free trial in demo (tracked on this device).',
+    'Checklists are planning aids — not professional safety instruction.',
+    'Road Crew points have no cash value.',
   ],
   footer:
-    'When live billing launches, subscription terms, cancellation, and refund policy will be published separately.',
+    'When live billing launches, subscription terms, cancellation, and refunds will be published separately.',
 } as const;

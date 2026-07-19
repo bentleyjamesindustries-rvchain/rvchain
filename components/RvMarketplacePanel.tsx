@@ -928,7 +928,7 @@ export default function RvMarketplacePanel({
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    {SELLER_PRO_LISTINGS_LABEL} · certify · featured boosts
+                    Unlimited listing software · buyers contact you
                   </p>
                   <button
                     type="button"
@@ -1376,18 +1376,6 @@ export default function RvMarketplacePanel({
               )}
 
               <div className="flex flex-col sm:flex-row gap-2 mt-5">
-                {user &&
-                  selected.sellerUserId &&
-                  selected.sellerUserId !== user.id &&
-                  (selected.status ?? 'active') === 'active' && (
-                    <button
-                      type="button"
-                      onClick={() => setCheckoutListing(selected)}
-                      className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 h-11 rounded-2xl font-semibold text-sm"
-                    >
-                      Buy through rvchain (demo)
-                    </button>
-                  )}
                 <button
                   type="button"
                   onClick={() => openContact(selected)}
@@ -1395,6 +1383,17 @@ export default function RvMarketplacePanel({
                 >
                   <MessageCircle className="w-4 h-4" /> Contact seller
                 </button>
+                {user &&
+                  selected.sellerUserId === user.id &&
+                  (selected.status ?? 'active') === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => setCheckoutListing(selected)}
+                      className="flex-1 flex items-center justify-center gap-2 border border-slate-600 hover:bg-slate-800 h-11 rounded-2xl font-semibold text-sm"
+                    >
+                      Mark sold (demo)
+                    </button>
+                  )}
                 {user &&
                   selected.sellerUserId === user.id &&
                   subscribed &&
