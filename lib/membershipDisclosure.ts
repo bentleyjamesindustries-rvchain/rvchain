@@ -7,7 +7,7 @@ export const MEMBERSHIP_DISCLOSURE = {
     'Trip planner & park stops: Weekender or higher (Campfire does not include trips).',
     'Loyalty rewards: Weekender or higher — mileage check-ins only (no stay booking on rvchain).',
     'Forum: sign in to browse; paid membership (Weekender+) required to post.',
-    'RV marketplace: browsing is free; listing requires separate Seller Pro (paid, no free listing).',
+    'RV marketplace: browsing is free; list with a low single-listing fee or Seller Pro. Sales through rvchain use a % marketplace fee (seller sees % and proceeds before close).',
     'Memberships are non-transferable and tied to your rvchain account.',
     'Demo billing: subscribing does not charge a card until Stripe is enabled.',
     'Weekender includes a 7-day free trial in demo mode (tracked locally).',

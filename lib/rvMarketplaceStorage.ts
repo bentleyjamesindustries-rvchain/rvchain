@@ -29,7 +29,33 @@ function normalizeListing(raw: Partial<RvListing> & Pick<RvListing, 'id' | 'titl
     sellerRating: raw.sellerRating ?? 5,
     sellerReviewCount: raw.sellerReviewCount ?? 0,
     isDemo: raw.isDemo,
+    listingAccess: raw.listingAccess,
+    expiresAt: raw.expiresAt ?? null,
+    status: raw.status ?? 'active',
+    soldAt: raw.soldAt,
+    saleId: raw.saleId,
+    rvchainCertified: raw.rvchainCertified,
+    certifiedAt: raw.certifiedAt,
+    certifiedBy: raw.certifiedBy,
   };
+}
+
+export function markListingSold(
+  listingId: string,
+  saleId: string
+): RvListing | null {
+  const all = loadUserListingsOnly();
+  const idx = all.findIndex((l) => l.id === listingId);
+  if (idx < 0) return null;
+  const updated: RvListing = {
+    ...all[idx],
+    status: 'sold',
+    soldAt: new Date().toISOString(),
+    saleId,
+  };
+  all[idx] = updated;
+  localStorage.setItem(LISTINGS_KEY, JSON.stringify(all));
+  return updated;
 }
 const INTEREST_KEY = 'rvchain_rv_interest';
 

@@ -27,9 +27,12 @@ import {
   loadUserListingsOnly,
   removeUserListing,
   saveListingInterest,
+  markListingSold,
 } from '@/lib/rvMarketplaceStorage';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
 import VerifiedBadge from '@/components/VerifiedBadge';
+import MarketplaceDisclosure from '@/components/MarketplaceDisclosure';
+import MarketplaceCheckoutModal from '@/components/MarketplaceCheckoutModal';
 import {
   createRvCertificationRecord,
   getRvCertificationInfo,
@@ -46,6 +49,23 @@ import {
   subscribeToRvchainServices,
   type SellerBillingInterval,
 } from '@/lib/rvSubscriptionStorage';
+import {
+  canPublishAnotherListing,
+  canPublishListing,
+  consumeListingCredit,
+  countUnusedListingCredits,
+  getPublishAccess,
+  listingExpiresAt,
+  purchaseSingleListingCredit,
+  SINGLE_LISTING_DAYS,
+  SINGLE_LISTING_PRICE,
+} from '@/lib/sellerListingAccess';
+import {
+  formatFeePercent,
+  formatSellerPayout,
+  quoteMarketplaceFee,
+} from '@/lib/marketplaceFees';
+import { createDemoMarketplaceSale } from '@/lib/marketplaceSales';
 
 type MarketView = 'browse' | 'sell' | 'mine';
 type PriceFilter = 'all' | 'under30' | '30to75' | '75to125' | 'over125';
@@ -174,18 +194,27 @@ export default function RvMarketplacePanel({
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [sellerInterval, setSellerInterval] = useState<SellerBillingInterval>('monthly');
+  const [creditCount, setCreditCount] = useState(0);
+  const [checkoutListing, setCheckoutListing] = useState<RvListing | null>(null);
+  const [sellerAgreeFee, setSellerAgreeFee] = useState(false);
+  const [sellerAgreeOwn, setSellerAgreeOwn] = useState(false);
 
   const refresh = useCallback(() => {
     setListings(loadAllListings());
-  }, []);
+    if (user) {
+      setSubscribed(isRvchainSubscriber(user.id));
+      setCreditCount(countUnusedListingCredits(user.id));
+    } else {
+      setSubscribed(false);
+      setCreditCount(0);
+    }
+  }, [user]);
 
   useEffect(() => {
     refresh();
   }, [refresh]);
 
-  useEffect(() => {
-    setSubscribed(user ? isRvchainSubscriber(user.id) : false);
-  }, [user]);
+  const canPublish = user ? canPublishListing(user.id) : false;
 
   const myListings = useMemo(
     () => (user ? loadUserListingsOnly(user.id) : []),
@@ -210,6 +239,7 @@ export default function RvMarketplacePanel({
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
     const matched = listings.filter((l) => {
+      if ((l.status ?? 'active') === 'sold' || (l.status ?? 'active') === 'expired') return false;
       if (stateFilter && l.state !== stateFilter) return false;
       if (classFilter && l.rvClass !== classFilter) return false;
       if (!matchesPrice(l, priceFilter)) return false;
@@ -261,8 +291,22 @@ export default function RvMarketplacePanel({
     }
     subscribeToRvchainServices(user.id, sellerInterval);
     setSubscribed(true);
+    refresh();
     toast.success(
       `Seller Pro activated (demo, ${formatSellerProPrice(sellerInterval)})! You can publish listings.`
+    );
+  };
+
+  const handleBuySingleListing = () => {
+    if (!user) {
+      toast.info('Sign in to buy a single listing.');
+      onRequestSignIn();
+      return;
+    }
+    purchaseSingleListingCredit(user.id);
+    refresh();
+    toast.success(
+      `Single listing purchased (demo, $${SINGLE_LISTING_PRICE}) — ${SINGLE_LISTING_DAYS} days when published.`
     );
   };
 
@@ -272,7 +316,35 @@ export default function RvMarketplacePanel({
       return toast.info('Seller Pro required before featured boost.');
     }
     purchaseFeaturedBoost(user.id);
+    refresh();
     toast.success(`Featured boost started (demo, $${SELLER_FEATURED_BOOST_PRICE} / 7 days).`);
+  };
+
+  const handleDemoCheckout = () => {
+    if (!user || !checkoutListing) return;
+    const sellerId = checkoutListing.sellerUserId;
+    if (!sellerId) {
+      toast.error('This listing cannot be purchased through rvchain (no seller account).');
+      return;
+    }
+    if (sellerId === user.id) {
+      toast.error('You cannot buy your own listing.');
+      return;
+    }
+    const sale = createDemoMarketplaceSale({
+      listingId: checkoutListing.id,
+      listingTitle: checkoutListing.title,
+      buyerUserId: user.id,
+      sellerUserId: sellerId,
+      grossPrice: checkoutListing.price,
+    });
+    markListingSold(checkoutListing.id, sale.id);
+    setCheckoutListing(null);
+    setSelected(null);
+    refresh();
+    toast.success(
+      `Demo purchase complete. Seller receives ${formatSellerPayout(sale.sellerNet)} (fee ${formatFeePercent(sale.feePercent)}).`
+    );
   };
 
   const handleCertifyListing = async (listing: RvListing) => {
@@ -350,13 +422,13 @@ export default function RvMarketplacePanel({
       onRequestSignIn();
       return;
     }
-    if (!isRvchainSubscriber(user.id)) {
-      toast.info('Seller Pro is required to publish listings — no free listings.');
-      setView('sell');
+    const gate = canPublishAnotherListing(user.id);
+    if (!gate.ok) {
+      toast.info(gate.error || 'Purchase a listing or Seller Pro first.');
       return;
     }
-    if (myListings.length >= SELLER_MAX_ACTIVE_LISTINGS) {
-      return toast.error(`Seller Pro allows up to ${SELLER_MAX_ACTIVE_LISTINGS} active listings.`);
+    if (!sellerAgreeOwn || !sellerAgreeFee) {
+      return toast.error('Confirm ownership and marketplace fee terms before publishing.');
     }
     const year = Number(form.year);
     const price = Number(form.price);
@@ -381,8 +453,26 @@ export default function RvMarketplacePanel({
     }
 
     setSubmitting(true);
+    const access = getPublishAccess(user.id);
+    const listingId = `rv-user-${Date.now()}`;
+    let expiresAt: string | null = null;
+    let listingAccess: 'single' | 'seller-pro' = 'seller-pro';
+
+    if (access === 'single-credit') {
+      const credit = consumeListingCredit(user.id, listingId);
+      if (!credit) {
+        setSubmitting(false);
+        return toast.error('No listing credit available.');
+      }
+      listingAccess = 'single';
+      expiresAt = listingExpiresAt(new Date(), credit.durationDays);
+    } else if (access === 'seller-pro') {
+      listingAccess = 'seller-pro';
+      expiresAt = null;
+    }
+
     const listing: RvListing = {
-      id: `rv-user-${Date.now()}`,
+      id: listingId,
       title: form.title.trim(),
       make: form.make.trim(),
       model: form.model.trim(),
@@ -405,14 +495,22 @@ export default function RvMarketplacePanel({
       reviewCount: 0,
       sellerRating: 5,
       sellerReviewCount: 0,
+      listingAccess,
+      expiresAt,
+      status: 'active',
     };
 
     saveUserListing(listing);
     refresh();
     setForm(EMPTY_FORM);
+    setSellerAgreeFee(false);
+    setSellerAgreeOwn(false);
     setView('mine');
     setSubmitting(false);
-    toast.success('Listing saved locally (demo) — not published to a live marketplace yet.');
+    const quote = quoteMarketplaceFee(price);
+    toast.success(
+      `Listing live (demo). If sold through rvchain at list price, you receive ${formatSellerPayout(quote.sellerNet)} (${formatFeePercent(quote.feePercent)} fee).`
+    );
   };
 
   const handleRemoveListing = (listingId: string) => {
@@ -520,17 +618,18 @@ export default function RvMarketplacePanel({
                 <BadgeCheck className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-emerald-200">Seller Pro — required to list</h3>
+                <h3 className="font-semibold text-emerald-200">Sell an RV — low list fee, fee % on sale</h3>
                 <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed max-w-2xl">
-                  No free listings. Seller Pro ({formatSellerProPrice('monthly')} or {formatSellerProPrice('annual')})
-                  unlocks publishing, certification badges, and optional featured boosts. Browse stays free.
+                  Single listing from ${SINGLE_LISTING_PRICE} or Seller Pro ({formatSellerProPrice('monthly')}).
+                  When sold through rvchain, marketplace fee is a % of price — sellers see what they&apos;ll receive.
+                  Browse free.
                 </p>
               </div>
             </div>
-            {subscribed ? (
+            {canPublish ? (
               <div className="flex items-center gap-2 text-sm text-emerald-300 font-semibold shrink-0 bg-emerald-950/50 border border-emerald-700/40 px-4 py-2.5 rounded-2xl">
                 <ShieldCheck className="w-4 h-4" />
-                Seller Pro active
+                {subscribed ? 'Seller Pro active' : 'Listing credit ready'}
               </div>
             ) : (
               <button
@@ -538,7 +637,7 @@ export default function RvMarketplacePanel({
                 onClick={() => setView('sell')}
                 className="shrink-0 bg-amber-600 hover:bg-amber-500 px-5 h-11 rounded-2xl font-semibold text-sm transition"
               >
-                Get Seller Pro
+                List your RV
               </button>
             )}
           </div>
@@ -765,10 +864,14 @@ export default function RvMarketplacePanel({
       )}
 
       {view === 'sell' && (
-        <div className="max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6">
+        <div className="max-w-2xl space-y-5">
+          <MarketplaceDisclosure compact />
+
+          <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6">
           {!user && (
             <div className="mb-5 p-4 rounded-2xl border border-slate-700 bg-slate-950/80 text-sm text-slate-300">
-              Sign in, then subscribe to Seller Pro to publish listings. There is no free listing tier.
+              Sign in, then buy a single listing or Seller Pro. Low list fees — the real fee is a % when you
+              sell through rvchain (you see what you&apos;ll receive before close).
               <button
                 type="button"
                 onClick={onRequestSignIn}
@@ -779,48 +882,76 @@ export default function RvMarketplacePanel({
             </div>
           )}
 
-          {user && !subscribed && (
+          {user && !canPublish && (
             <div className="mb-5 p-5 rounded-2xl border border-amber-700/40 bg-amber-950/20 space-y-4">
               <div>
-                <h3 className="font-semibold text-amber-100">Seller Pro required</h3>
+                <h3 className="font-semibold text-amber-100">Choose how to list</h3>
                 <p className="text-xs text-slate-400 mt-1 leading-relaxed">
-                  Publish up to {SELLER_MAX_ACTIVE_LISTINGS} listings, certify for trust badges, and buy
-                  optional featured boosts. No free single listing — keeps the market for serious sellers.
+                  Low list fees so inventory is easy. Platform revenue is mainly the marketplace % when a sale
+                  closes through rvchain — we show the % and what you&apos;ll receive, not our dollar take.
                 </p>
               </div>
-              <div className="flex gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800 w-fit">
-                <button
-                  type="button"
-                  onClick={() => setSellerInterval('monthly')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                    sellerInterval === 'monthly' ? 'bg-amber-700 text-white' : 'text-slate-400'
-                  }`}
-                >
-                  {formatSellerProPrice('monthly')}
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setSellerInterval('annual')}
-                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
-                    sellerInterval === 'annual' ? 'bg-amber-700 text-white' : 'text-slate-400'
-                  }`}
-                >
-                  {formatSellerProPrice('annual')}
-                </button>
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-2">
+                  <div className="text-sm font-semibold text-slate-100">Single listing</div>
+                  <div className="text-xl font-bold text-amber-300">${SINGLE_LISTING_PRICE}</div>
+                  <p className="text-[11px] text-slate-500">{SINGLE_LISTING_DAYS} days · one RV ad</p>
+                  <button
+                    type="button"
+                    onClick={handleBuySingleListing}
+                    className="w-full h-10 rounded-xl bg-amber-600 hover:bg-amber-500 text-sm font-semibold"
+                  >
+                    Buy single (demo)
+                  </button>
+                </div>
+                <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-2">
+                  <div className="text-sm font-semibold text-slate-100">Seller Pro</div>
+                  <div className="flex gap-1 p-0.5 rounded-lg bg-slate-900 border border-slate-800 w-fit">
+                    <button
+                      type="button"
+                      onClick={() => setSellerInterval('monthly')}
+                      className={`px-2 py-1 rounded-md text-[10px] font-semibold ${
+                        sellerInterval === 'monthly' ? 'bg-emerald-700 text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      {formatSellerProPrice('monthly')}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSellerInterval('annual')}
+                      className={`px-2 py-1 rounded-md text-[10px] font-semibold ${
+                        sellerInterval === 'annual' ? 'bg-emerald-700 text-white' : 'text-slate-400'
+                      }`}
+                    >
+                      {formatSellerProPrice('annual')}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-slate-500">
+                    Up to {SELLER_MAX_ACTIVE_LISTINGS} ads · certify · featured boosts
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleSubscribe}
+                    className="w-full h-10 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-sm font-semibold"
+                  >
+                    Activate Pro (demo)
+                  </button>
+                </div>
               </div>
-              <button
-                type="button"
-                onClick={handleSubscribe}
-                className="w-full h-11 rounded-2xl bg-amber-600 hover:bg-amber-500 font-semibold text-sm"
-              >
-                Activate Seller Pro (demo) — {formatSellerProPrice(sellerInterval)}
-              </button>
               <p className="text-[10px] text-slate-500">{DEMO_NOTICE_SHORT}</p>
             </div>
           )}
 
+          {user && canPublish && (
+            <div className="mb-4 text-xs text-emerald-300/90 bg-emerald-950/30 border border-emerald-800/40 rounded-xl px-3 py-2">
+              {subscribed
+                ? `Seller Pro active — up to ${SELLER_MAX_ACTIVE_LISTINGS} listings.`
+                : `${creditCount} single listing credit${creditCount === 1 ? '' : 's'} ready.`}
+            </div>
+          )}
+
           <h3 className="font-semibold text-lg mb-4">List your RV for sale</h3>
-          <div className={`space-y-4 ${user && !subscribed ? 'opacity-40 pointer-events-none select-none' : ''}`}>
+          <div className={`space-y-4 ${user && !canPublish ? 'opacity-40 pointer-events-none select-none' : ''}`}>
             <input
               type="text"
               placeholder="Listing title (e.g. 2020 Winnebago View 24D)"
@@ -953,30 +1084,73 @@ export default function RvMarketplacePanel({
                 })}
               </div>
             </div>
+
+            {Number(form.price) > 0 && (
+              <div className="rounded-2xl border border-emerald-800/40 bg-emerald-950/20 p-3 text-sm">
+                <div className="text-slate-400 text-xs">
+                  If sold through rvchain at this price — marketplace fee{' '}
+                  <strong className="text-slate-200">
+                    {formatFeePercent(quoteMarketplaceFee(Number(form.price)).feePercent)}
+                  </strong>
+                </div>
+                <div className="text-emerald-300 font-bold text-lg mt-1">
+                  You&apos;ll receive:{' '}
+                  {formatSellerPayout(quoteMarketplaceFee(Number(form.price)).sellerNet)}
+                </div>
+              </div>
+            )}
+
+            <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sellerAgreeOwn}
+                onChange={(e) => setSellerAgreeOwn(e.target.checked)}
+                className="mt-0.5 rounded border-slate-600"
+              />
+              <span>
+                I own this RV or am authorized to sell it, and my listing is accurate to the best of my
+                knowledge.
+              </span>
+            </label>
+            <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={sellerAgreeFee}
+                onChange={(e) => setSellerAgreeFee(e.target.checked)}
+                className="mt-0.5 rounded border-slate-600"
+              />
+              <span>
+                I understand sales closed through rvchain include a marketplace fee as a % of sale
+                price; I will see the rate and what I receive before any sale completes.
+              </span>
+            </label>
+
             <button
               type="button"
               onClick={handleSubmitListing}
-              disabled={submitting || !user || !subscribed}
+              disabled={submitting || !user || !canPublish}
               className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-50 h-12 rounded-2xl font-semibold text-sm transition"
             >
               {submitting
                 ? 'Saving...'
-                : !subscribed
-                  ? 'Seller Pro required to publish'
+                : !canPublish
+                  ? 'Buy a listing or Seller Pro to publish'
                   : 'Publish listing (demo)'}
             </button>
+          </div>
           </div>
         </div>
       )}
 
       {view === 'mine' && (
         <div className="space-y-4">
-          {user && !subscribed && (
+          {user && !canPublish && (
             <div className="p-4 rounded-3xl border border-amber-800/40 bg-amber-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-amber-200 text-sm">Seller Pro required to list</p>
+                <p className="font-semibold text-amber-200 text-sm">List a single RV or go Pro</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  {formatSellerProPrice('monthly')} · no free listings · certify &amp; feature when active
+                  From ${SINGLE_LISTING_PRICE} one ad · Pro {formatSellerProPrice('monthly')} · sale %
+                  when you sell through rvchain
                 </p>
               </div>
               <button
@@ -984,7 +1158,7 @@ export default function RvMarketplacePanel({
                 onClick={() => setView('sell')}
                 className="shrink-0 bg-amber-600 hover:bg-amber-500 px-5 h-10 rounded-2xl font-semibold text-sm"
               >
-                Get Seller Pro
+                Sell options
               </button>
             </div>
           )}
@@ -1182,7 +1356,34 @@ export default function RvMarketplacePanel({
                 </p>
               </div>
 
+              {(selected.status ?? 'active') === 'active' && selected.sellerUserId && (
+                <div className="mt-4 rounded-2xl border border-emerald-800/40 bg-emerald-950/20 p-3 text-sm">
+                  <div className="text-xs text-slate-400">
+                    Marketplace fee{' '}
+                    <strong className="text-slate-200">
+                      {formatFeePercent(quoteMarketplaceFee(selected.price).feePercent)}
+                    </strong>{' '}
+                    · seller receives at list price
+                  </div>
+                  <div className="text-emerald-300 font-bold text-lg">
+                    {formatSellerPayout(quoteMarketplaceFee(selected.price).sellerNet)}
+                  </div>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-2 mt-5">
+                {user &&
+                  selected.sellerUserId &&
+                  selected.sellerUserId !== user.id &&
+                  (selected.status ?? 'active') === 'active' && (
+                    <button
+                      type="button"
+                      onClick={() => setCheckoutListing(selected)}
+                      className="flex-1 flex items-center justify-center gap-2 bg-emerald-600 hover:bg-emerald-500 h-11 rounded-2xl font-semibold text-sm"
+                    >
+                      Buy through rvchain (demo)
+                    </button>
+                  )}
                 <button
                   type="button"
                   onClick={() => openContact(selected)}
@@ -1255,6 +1456,14 @@ export default function RvMarketplacePanel({
             </div>
           </div>
         </div>
+      )}
+
+      {checkoutListing && (
+        <MarketplaceCheckoutModal
+          listing={checkoutListing}
+          onClose={() => setCheckoutListing(null)}
+          onConfirm={handleDemoCheckout}
+        />
       )}
     </div>
   );

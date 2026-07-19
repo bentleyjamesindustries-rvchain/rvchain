@@ -8,15 +8,14 @@ export interface RvchainSubscription {
   active: boolean;
   billingInterval: SellerBillingInterval;
   subscribedAt: string;
-  /** Optional featured listing boost expires (ISO) */
   featuredUntil: string | null;
 }
 
-/** Seller Pro — required to publish listings (no free listing). */
-export const SELLER_PRO_PRICE_MONTHLY = 24.99;
-export const SELLER_PRO_PRICE_ANNUAL = 199;
+/** Competitive low Pro pricing — money is on sale commission */
+export const SELLER_PRO_PRICE_MONTHLY = 12.99;
+export const SELLER_PRO_PRICE_ANNUAL = 119;
 export const SELLER_FEATURED_BOOST_DAYS = 7;
-export const SELLER_FEATURED_BOOST_PRICE = 15;
+export const SELLER_FEATURED_BOOST_PRICE = 7.99;
 export const SELLER_MAX_ACTIVE_LISTINGS = 10;
 
 const KEY = 'rvchain_rv_subscriptions';
@@ -60,7 +59,7 @@ export function isRvchainSubscriber(userId?: string | null): boolean {
   return Boolean(getRvchainSubscription(userId));
 }
 
-/** Demo: activate Seller Pro locally — no real billing. */
+/** Demo: activate Seller Pro — no real billing */
 export function subscribeToRvchainServices(
   userId: string,
   billingInterval: SellerBillingInterval = 'monthly'
@@ -93,7 +92,6 @@ export function isSellerFeaturedActive(userId?: string | null): boolean {
   return new Date(sub.featuredUntil) > new Date();
 }
 
-/** Demo featured boost — no real charge. */
 export function purchaseFeaturedBoost(userId: string): RvchainSubscription | null {
   const sub = getRvchainSubscription(userId);
   if (!sub) return null;
@@ -102,10 +100,7 @@ export function purchaseFeaturedBoost(userId: string): RvchainSubscription | nul
       ? new Date(sub.featuredUntil)
       : new Date();
   base.setDate(base.getDate() + SELLER_FEATURED_BOOST_DAYS);
-  const next: RvchainSubscription = {
-    ...sub,
-    featuredUntil: base.toISOString(),
-  };
+  const next: RvchainSubscription = { ...sub, featuredUntil: base.toISOString() };
   const all = loadAll();
   all[userId] = next;
   saveAll(all);

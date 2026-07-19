@@ -40,6 +40,12 @@ export interface RvListing {
   certifiedAt?: string;
   certifiedBy?: string;
   isDemo?: boolean;
+  /** How the listing was paid for */
+  listingAccess?: 'single' | 'seller-pro';
+  expiresAt?: string | null;
+  status?: 'active' | 'sold' | 'expired' | 'draft';
+  soldAt?: string;
+  saleId?: string;
 }
 
 export interface UsMarketState {
