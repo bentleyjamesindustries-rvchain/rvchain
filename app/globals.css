@@ -352,6 +352,16 @@ body {
   background: #1e2937;
 }
 
+/* ── Kids in-browser games ── */
+.kids-game-stage {
+  position: relative;
+  max-height: min(70vh, 520px);
+}
+.kids-game-stage canvas {
+  max-height: min(70vh, 520px);
+  object-fit: contain;
+}
+
 /* ── Kids Trail Crew (Gen Alpha game polish) ── */
 .kids-adventure {
   --kids-pink: #ff4d9a;

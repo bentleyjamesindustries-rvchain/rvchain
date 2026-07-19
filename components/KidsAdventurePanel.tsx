@@ -1,13 +1,17 @@
 'use client';
 
 import { useState } from 'react';
-import { BookOpen, Leaf, Sparkles } from 'lucide-react';
+import { BookOpen, Gamepad2, Leaf, Sparkles } from 'lucide-react';
 import KidsScavengerHunt from './KidsScavengerHunt';
 import KidsCardAlbum from './KidsCardAlbum';
+import KidsGamesHub from './kids-games/KidsGamesHub';
+import TrailRunGame from './kids-games/TrailRunGame';
+import MarshmallowCatchGame from './kids-games/MarshmallowCatchGame';
 import { loadKidsProgress } from '@/lib/kidsProgress';
 import { TRAIL_BADGES } from '@/lib/trailBadges';
+import type { KidsGameId } from '@/lib/kidsGames';
 
-type KidsView = 'hub' | 'hunt' | 'cards' | 'howto';
+type KidsView = 'hub' | 'hunt' | 'cards' | 'howto' | 'games' | KidsGameId;
 
 interface KidsAdventurePanelProps {
   userId: string;
@@ -67,6 +71,34 @@ export default function KidsAdventurePanel({
     );
   }
 
+  if (view === 'games') {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <KidsGamesHub
+          userId={userId}
+          onBack={() => setView('hub')}
+          onPlay={(gameId) => setView(gameId)}
+        />
+      </div>
+    );
+  }
+
+  if (view === 'trail-run') {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <TrailRunGame userId={userId} onBack={() => setView('games')} />
+      </div>
+    );
+  }
+
+  if (view === 'marshmallow-catch') {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <MarshmallowCatchGame userId={userId} onBack={() => setView('games')} />
+      </div>
+    );
+  }
+
   if (view === 'howto') {
     return (
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
@@ -88,11 +120,15 @@ export default function KidsAdventurePanel({
               <strong className="text-white">Collect</strong> — each plant unlocks a sticker. Free
               packs give fun camping badges.
             </li>
+            <li>
+              <strong className="text-white">Games</strong> — play Trail Run and Marshmallow Catch
+              in the browser. High scores save on this device.
+            </li>
           </ol>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/50 p-4 text-xs text-slate-400 space-y-1.5 leading-relaxed">
             <p className="font-semibold text-slate-300">For parents</p>
             <p>Supervise outdoors. Don’t pick protected plants. Photos are just for fun.</p>
-            <p>No real-money purchases for kids. Progress saves on this device.</p>
+            <p>No real-money purchases for kids. Progress and scores save on this device.</p>
           </div>
         </div>
       </div>
@@ -106,7 +142,7 @@ export default function KidsAdventurePanel({
           Kids{name !== 'Explorer' ? ` · ${name}` : ''}
         </h1>
         <p className="mt-2 text-sm text-slate-300 max-w-md leading-relaxed">
-          Go outside, find plants, collect stickers and badges.
+          Find plants outside · collect badges · play trail games.
         </p>
         <p className="mt-3 text-sm font-semibold text-emerald-200/90">
           {plantsFound} plant{plantsFound === 1 ? '' : 's'} found · {badges}/{TRAIL_BADGES.length}{' '}
@@ -114,7 +150,7 @@ export default function KidsAdventurePanel({
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-3 gap-3">
         <button
           type="button"
           onClick={() => setView('hunt')}
@@ -133,6 +169,16 @@ export default function KidsAdventurePanel({
           <Sparkles className="w-8 h-8 text-violet-300 mb-3" />
           <div className="text-lg font-bold text-white">My collection</div>
           <p className="text-sm text-slate-400 mt-1">Stickers, badges, and free packs</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setView('games')}
+          className="text-left rounded-3xl border border-sky-700/40 bg-sky-950/40 hover:border-sky-500/50 p-5 sm:p-6 transition sm:col-span-1 col-span-1"
+        >
+          <Gamepad2 className="w-8 h-8 text-sky-300 mb-3" />
+          <div className="text-lg font-bold text-white">Games</div>
+          <p className="text-sm text-slate-400 mt-1">Trail Run, Marshmallow Catch, and more</p>
         </button>
       </div>
 
