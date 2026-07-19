@@ -739,7 +739,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                   Buy single listing (demo)
                 </button>
                 <div className="border-t border-slate-800 pt-3">
-                  <p className="text-xs text-slate-400 mb-2">Or Seller Pro (up to 10 mixed listings)</p>
+                  <p className="text-xs text-slate-400 mb-2">Or Seller Pro — unlimited listings</p>
                   <div className="flex gap-2 mb-2">
                     <button
                       type="button"

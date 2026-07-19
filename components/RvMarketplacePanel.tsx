@@ -45,7 +45,7 @@ import {
   isSellerFeaturedActive,
   purchaseFeaturedBoost,
   SELLER_FEATURED_BOOST_PRICE,
-  SELLER_MAX_ACTIVE_LISTINGS,
+  SELLER_PRO_LISTINGS_LABEL,
   subscribeToRvchainServices,
   type SellerBillingInterval,
 } from '@/lib/rvSubscriptionStorage';
@@ -928,7 +928,7 @@ export default function RvMarketplacePanel({
                     </button>
                   </div>
                   <p className="text-[11px] text-slate-500">
-                    Up to {SELLER_MAX_ACTIVE_LISTINGS} ads · certify · featured boosts
+                    {SELLER_PRO_LISTINGS_LABEL} · certify · featured boosts
                   </p>
                   <button
                     type="button"
@@ -946,7 +946,7 @@ export default function RvMarketplacePanel({
           {user && canPublish && (
             <div className="mb-4 text-xs text-emerald-300/90 bg-emerald-950/30 border border-emerald-800/40 rounded-xl px-3 py-2">
               {subscribed
-                ? `Seller Pro active — up to ${SELLER_MAX_ACTIVE_LISTINGS} listings.`
+                ? `Seller Pro active — ${SELLER_PRO_LISTINGS_LABEL.toLowerCase()}.`
                 : `${creditCount} single listing credit${creditCount === 1 ? '' : 's'} ready.`}
             </div>
           )}

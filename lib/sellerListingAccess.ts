@@ -156,7 +156,12 @@ export function canPublishAnotherListing(
       error: `Buy a ${itemType === 'rv' ? 'RV' : itemType} listing or activate Seller Pro.`,
     };
   }
-  if (access === 'seller-pro' && activeCountAll(userId) >= SELLER_MAX_ACTIVE_LISTINGS) {
+  // Seller Pro: unlimited active listings (no cap)
+  if (
+    access === 'seller-pro' &&
+    typeof SELLER_MAX_ACTIVE_LISTINGS === 'number' &&
+    activeCountAll(userId) >= SELLER_MAX_ACTIVE_LISTINGS
+  ) {
     return {
       ok: false,
       error: `Seller Pro allows up to ${SELLER_MAX_ACTIVE_LISTINGS} active listings total.`,

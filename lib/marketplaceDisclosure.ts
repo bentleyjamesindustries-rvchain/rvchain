@@ -13,7 +13,7 @@ export const MARKETPLACE_DISCLOSURE = {
     `Gear sale fees: ${feeScheduleSummary('gear')}.`,
     `Parts sale fees: ${feeScheduleSummary('parts')}.`,
     'Buyers see the sale price and that a marketplace fee % applies to the seller. The estimated seller payout is shown only to the seller (e.g. when listing or viewing their own ads).',
-    'Low list fees: RV single, gear single, or parts single — or Seller Pro. No free unlimited listings.',
+    'Low list fees: RV single, gear single, or parts single — or Seller Pro ($12.99/mo) for unlimited listings.',
     'Demo mode: fees and checkout are simulated on this device until live billing is enabled.',
   ],
   footer:

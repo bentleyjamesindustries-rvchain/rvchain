@@ -16,7 +16,9 @@ export const SELLER_PRO_PRICE_MONTHLY = 12.99;
 export const SELLER_PRO_PRICE_ANNUAL = 119;
 export const SELLER_FEATURED_BOOST_DAYS = 7;
 export const SELLER_FEATURED_BOOST_PRICE = 7.99;
-export const SELLER_MAX_ACTIVE_LISTINGS = 10;
+/** null = unlimited active listings for Seller Pro ($12.99/mo) */
+export const SELLER_MAX_ACTIVE_LISTINGS: number | null = null;
+export const SELLER_PRO_LISTINGS_LABEL = 'Unlimited listings';
 
 const KEY = 'rvchain_rv_subscriptions';
 
