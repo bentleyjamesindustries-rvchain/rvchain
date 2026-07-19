@@ -173,7 +173,8 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
             y: -20,
             vy: 2.4 + Math.random() * 2.2 + Math.min(3, scoreRef.current / 80),
             good,
-            r: good ? 14 : 12,
+            // Charcoal slightly larger so “lose a heart” items read clearly on dark sky
+            r: good ? 14 : 18,
           });
           spawnTimer = Math.max(18, 42 - scoreRef.current / 15);
         }
@@ -275,14 +276,48 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
           ctx.arc(d.x, d.y + 3, d.r * 0.55, 0, Math.PI * 2);
           ctx.fill();
         } else {
-          ctx.fillStyle = '#1c1917';
+          // Charcoal hazard — high contrast so kids spot it on the dark sky
+          const pulse = 0.65 + 0.35 * Math.sin(fireFlicker * 0.35 + d.x * 0.05);
+          ctx.save();
+          ctx.shadowColor = `rgba(239, 68, 68, ${0.55 + pulse * 0.35})`;
+          ctx.shadowBlur = 16 + pulse * 8;
+          // Outer danger ring
+          ctx.beginPath();
+          ctx.arc(d.x, d.y, d.r + 4, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(248, 113, 113, ${0.35 + pulse * 0.25})`;
+          ctx.fill();
+          // Body
           ctx.beginPath();
           ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2);
+          ctx.fillStyle = '#292524';
           ctx.fill();
-          ctx.fillStyle = '#44403c';
+          // Bright red outline
+          ctx.lineWidth = 4;
+          ctx.strokeStyle = '#f87171';
+          ctx.stroke();
+          // Inner hot embers
+          ctx.shadowBlur = 0;
+          ctx.fillStyle = '#fbbf24';
           ctx.beginPath();
-          ctx.arc(d.x - 3, d.y - 2, 3, 0, Math.PI * 2);
+          ctx.arc(d.x - 5, d.y - 3, 3.5, 0, Math.PI * 2);
+          ctx.arc(d.x + 4, d.y + 2, 2.8, 0, Math.PI * 2);
           ctx.fill();
+          ctx.fillStyle = '#ef4444';
+          ctx.beginPath();
+          ctx.arc(d.x + 1, d.y - 5, 2.5, 0, Math.PI * 2);
+          ctx.fill();
+          // Clear “X” so it never reads as a marshmallow
+          ctx.strokeStyle = '#fecaca';
+          ctx.lineWidth = 3.5;
+          ctx.lineCap = 'round';
+          const xPad = d.r * 0.38;
+          ctx.beginPath();
+          ctx.moveTo(d.x - xPad, d.y - xPad);
+          ctx.lineTo(d.x + xPad, d.y + xPad);
+          ctx.moveTo(d.x + xPad, d.y - xPad);
+          ctx.lineTo(d.x - xPad, d.y + xPad);
+          ctx.stroke();
+          ctx.restore();
         }
       }
 
@@ -322,7 +357,7 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
         ctx.fillText('Marshmallow Catch', W / 2, H / 2 - 36);
         ctx.font = '16px system-ui,sans-serif';
         ctx.fillStyle = '#e2e8f0';
-        ctx.fillText('Catch white mallows · avoid charcoal', W / 2, H / 2);
+        ctx.fillText('Catch white mallows · avoid red charcoal (X)', W / 2, H / 2);
         ctx.fillStyle = '#fdba74';
         ctx.font = 'bold 15px system-ui,sans-serif';
         ctx.fillText('Tap or press Enter to start', W / 2, H / 2 + 40);
@@ -367,7 +402,7 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
   return (
     <GameShell
       title="Marshmallow Catch"
-      subtitle="Catch mallows · skip charcoal"
+      subtitle="Catch white mallows · skip red charcoal (X)"
       onBack={onBack}
     >
       <div className="flex flex-col">
@@ -382,7 +417,7 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
         {phase === 'ready' && (
           <div className="p-3 border-t border-slate-700 space-y-2">
             <p className="text-center text-sm text-slate-300">
-              Drag on the screen or use the buttons to catch mallows
+              Catch white mallows. Avoid glowing red charcoal with an X — those cost a heart.
             </p>
             <button
               type="button"
