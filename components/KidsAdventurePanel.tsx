@@ -7,6 +7,7 @@ import KidsCardAlbum from './KidsCardAlbum';
 import KidsGamesHub from './kids-games/KidsGamesHub';
 import TrailRunGame from './kids-games/TrailRunGame';
 import MarshmallowCatchGame from './kids-games/MarshmallowCatchGame';
+import TreeClimbGame from './kids-games/TreeClimbGame';
 import { loadKidsProgress } from '@/lib/kidsProgress';
 import { TRAIL_BADGES } from '@/lib/trailBadges';
 import type { KidsGameId } from '@/lib/kidsGames';
@@ -99,6 +100,14 @@ export default function KidsAdventurePanel({
     );
   }
 
+  if (view === 'tree-climb') {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <TreeClimbGame userId={userId} onBack={() => setView('games')} />
+      </div>
+    );
+  }
+
   if (view === 'howto') {
     return (
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
@@ -121,8 +130,8 @@ export default function KidsAdventurePanel({
               packs give fun camping badges.
             </li>
             <li>
-              <strong className="text-white">Games</strong> — play Trail Run and Marshmallow Catch
-              in the browser. High scores save on this device.
+              <strong className="text-white">Games</strong> — Trail Run, Tree Climb, and
+              Marshmallow Catch. High scores save on this device.
             </li>
           </ol>
           <div className="rounded-2xl border border-slate-700 bg-slate-950/50 p-4 text-xs text-slate-400 space-y-1.5 leading-relaxed">

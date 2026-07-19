@@ -398,7 +398,10 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
           onGround = true;
         }
 
-        speed = Math.min(11, 5.2 + distance / 900);
+        // Start slow, ease up over a long distance (Icy Tower–style ramp)
+        const BASE_SPEED = 2.6;
+        const MAX_SPEED = 10.5;
+        speed = Math.min(MAX_SPEED, BASE_SPEED + distance / 1600);
         scroll += speed * dt;
         distance += speed * dt;
 

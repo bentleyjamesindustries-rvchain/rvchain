@@ -1,4 +1,4 @@
-export type KidsGameId = 'trail-run' | 'marshmallow-catch';
+export type KidsGameId = 'trail-run' | 'marshmallow-catch' | 'tree-climb';
 
 export interface KidsGameScores {
   highScores: Partial<Record<KidsGameId, number>>;

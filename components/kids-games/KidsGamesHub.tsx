@@ -1,6 +1,6 @@
 'use client';
 
-import { ArrowLeft, Flame, TreePine } from 'lucide-react';
+import { ArrowLeft, Flame, Mountain, TreePine } from 'lucide-react';
 import { getHighScore, type KidsGameId } from '@/lib/kidsGames';
 
 export type KidsGameScreen = KidsGameId;
@@ -23,9 +23,17 @@ const GAMES: Array<{
     id: 'trail-run',
     title: 'Trail Run',
     blurb: 'Help a pudgy trail buddy jump logs and grab leaves.',
-    how: 'Tap or press Space to jump',
+    how: 'Tap or press Space to jump · starts slow',
     icon: TreePine,
     accent: 'from-emerald-950/80 to-slate-900 border-emerald-700/40 hover:border-emerald-500/50',
+  },
+  {
+    id: 'tree-climb',
+    title: 'Tree Climb',
+    blurb: 'Jump branch to branch and climb high — like classic tower games.',
+    how: '← → move · Space / tap to jump',
+    icon: Mountain,
+    accent: 'from-lime-950/80 to-emerald-950/50 border-lime-600/40 hover:border-lime-400/50',
   },
   {
     id: 'marshmallow-catch',
