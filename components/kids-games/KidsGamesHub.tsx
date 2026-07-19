@@ -22,7 +22,7 @@ const GAMES: Array<{
   {
     id: 'trail-run',
     title: 'Trail Run',
-    blurb: 'Jump logs and grab leaves on the trail.',
+    blurb: 'Help a pudgy trail buddy jump logs and grab leaves.',
     how: 'Tap or press Space to jump',
     icon: TreePine,
     accent: 'from-emerald-950/80 to-slate-900 border-emerald-700/40 hover:border-emerald-500/50',

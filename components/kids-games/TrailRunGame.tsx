@@ -28,8 +28,148 @@ const W = 800;
 const H = 420;
 const GROUND = 340;
 const PLAYER_X = 120;
-const PLAYER_W = 44;
-const PLAYER_H = 52;
+/** Hitbox — slightly generous for a chubby chibi runner */
+const PLAYER_W = 48;
+const PLAYER_H = 50;
+
+/** Pudgy trail buddy: round chipmunk-fox hybrid, big eyes, blush */
+function drawCuteRunner(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  y: number,
+  onGround: boolean,
+  scroll: number
+) {
+  const cx = x + PLAYER_W / 2;
+  const bob = onGround ? Math.sin(scroll * 0.22) * 1.5 : 0;
+  const baseY = y + bob;
+  const legSwing = onGround ? Math.sin(scroll * 0.4) * 5 : 0;
+
+  // soft ground shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.18)';
+  ctx.beginPath();
+  ctx.ellipse(cx, y + PLAYER_H + 2, 18, 5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // stubby legs (behind body)
+  ctx.fillStyle = '#c2410c';
+  if (onGround) {
+    ctx.beginPath();
+    ctx.ellipse(cx - 10, baseY + PLAYER_H - 6 + legSwing * 0.15, 7, 9, 0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + 10, baseY + PLAYER_H - 6 - legSwing * 0.15, 7, 9, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // tucked for jump
+    ctx.beginPath();
+    ctx.ellipse(cx - 8, baseY + PLAYER_H - 10, 7, 7, -0.4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + 10, baseY + PLAYER_H - 8, 7, 7, 0.35, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // chubby body (big orange blob)
+  ctx.fillStyle = '#fb923c';
+  ctx.beginPath();
+  ctx.ellipse(cx, baseY + 30, 22, 18, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // cream belly
+  ctx.fillStyle = '#ffedd5';
+  ctx.beginPath();
+  ctx.ellipse(cx, baseY + 33, 13, 12, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // little arms
+  ctx.fillStyle = '#f97316';
+  ctx.beginPath();
+  ctx.ellipse(cx - 20, baseY + 28, 7, 6, -0.4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 20, baseY + 28, 7, 6, 0.4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // fluffy tail (behind-ish, peeks left)
+  ctx.fillStyle = '#ea580c';
+  ctx.beginPath();
+  ctx.ellipse(cx - 24, baseY + 22, 10, 12, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#fdba74';
+  ctx.beginPath();
+  ctx.ellipse(cx - 24, baseY + 20, 5, 6, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // big round head
+  ctx.fillStyle = '#fb923c';
+  ctx.beginPath();
+  ctx.arc(cx + 2, baseY + 12, 18, 0, Math.PI * 2);
+  ctx.fill();
+
+  // round ears
+  ctx.fillStyle = '#f97316';
+  ctx.beginPath();
+  ctx.arc(cx - 10, baseY - 2, 8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 14, baseY - 2, 8, 0, Math.PI * 2);
+  ctx.fill();
+  // inner ear pink
+  ctx.fillStyle = '#fda4af';
+  ctx.beginPath();
+  ctx.arc(cx - 10, baseY - 1, 4, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 14, baseY - 1, 4, 0, Math.PI * 2);
+  ctx.fill();
+
+  // blush cheeks
+  ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+  ctx.beginPath();
+  ctx.ellipse(cx - 8, baseY + 16, 5, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 12, baseY + 16, 5, 3.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // big shiny eyes
+  ctx.fillStyle = '#0f172a';
+  ctx.beginPath();
+  ctx.ellipse(cx - 3, baseY + 11, 4.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.ellipse(cx + 9, baseY + 11, 4.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.fill();
+  // eye shine
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.arc(cx - 1.5, baseY + 9, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 10.5, baseY + 9, 1.8, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx - 4, baseY + 13, 0.9, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.beginPath();
+  ctx.arc(cx + 8, baseY + 13, 0.9, 0, Math.PI * 2);
+  ctx.fill();
+
+  // tiny nose
+  ctx.fillStyle = '#9f1239';
+  ctx.beginPath();
+  ctx.ellipse(cx + 3, baseY + 17, 2.5, 2, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  // happy smile
+  ctx.strokeStyle = '#9f1239';
+  ctx.lineWidth = 1.5;
+  ctx.lineCap = 'round';
+  ctx.beginPath();
+  ctx.arc(cx + 3, baseY + 18.5, 4, 0.15 * Math.PI, 0.85 * Math.PI);
+  ctx.stroke();
+}
 
 export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -277,35 +417,7 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
         }
       }
 
-      const bob = onGround ? Math.sin(scroll * 0.2) * 2 : 0;
-      const pyDraw = playerY + bob;
-      ctx.fillStyle = '#ea580c';
-      ctx.fillRect(PLAYER_X, pyDraw + 12, PLAYER_W, PLAYER_H - 16);
-      ctx.beginPath();
-      ctx.arc(PLAYER_X + PLAYER_W - 6, pyDraw + 16, 16, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.beginPath();
-      ctx.moveTo(PLAYER_X + PLAYER_W + 2, pyDraw + 4);
-      ctx.lineTo(PLAYER_X + PLAYER_W + 10, pyDraw - 8);
-      ctx.lineTo(PLAYER_X + PLAYER_W - 6, pyDraw + 8);
-      ctx.fill();
-      ctx.fillStyle = '#fdba74';
-      ctx.beginPath();
-      ctx.ellipse(PLAYER_X + 18, pyDraw + 32, 12, 14, 0, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#0f172a';
-      ctx.beginPath();
-      ctx.arc(PLAYER_X + PLAYER_W + 2, pyDraw + 14, 2.5, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.fillStyle = '#c2410c';
-      if (onGround) {
-        const leg = Math.sin(scroll * 0.35) * 6;
-        ctx.fillRect(PLAYER_X + 8, pyDraw + PLAYER_H - 14, 8, 12);
-        ctx.fillRect(PLAYER_X + 28, pyDraw + PLAYER_H - 14 + leg * 0.15, 8, 12);
-      } else {
-        ctx.fillRect(PLAYER_X + 10, pyDraw + PLAYER_H - 10, 8, 10);
-        ctx.fillRect(PLAYER_X + 26, pyDraw + PLAYER_H - 8, 8, 8);
-      }
+      drawCuteRunner(ctx, PLAYER_X, playerY, onGround, scroll);
 
       ctx.fillStyle = 'rgba(15,23,42,0.55)';
       ctx.fillRect(12, 12, 168, 56);
