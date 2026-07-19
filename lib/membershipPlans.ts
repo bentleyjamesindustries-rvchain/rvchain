@@ -63,7 +63,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     trialDays: 7,
     features: [
       'Unlimited trip planner & park stops',
-      'Pick 1 camper checklist per trip',
+      'Pick 1 packing checklist pack per trip',
       'Printable checklists & trip notes',
       'Post in the camper forum',
       '+10% Road Crew earn boost',
@@ -88,7 +88,7 @@ export const MEMBERSHIP_PLANS: MembershipPlan[] = [
     priceAnnual: 99,
     trialDays: 0,
     features: [
-      'All checklist packs per trip',
+      'All packing checklist packs per trip',
       'Vehicle prep & route stop summary',
       'Community arrival tips',
       'Road Tripper forum badge',
@@ -205,17 +205,17 @@ export function canAccessChecklist(
 export function maxSelectablePacks(planId: MembershipPlanId): number {
   const plan = getMembershipPlan(planId);
   if (plan.checklistPacks === 'pick-one') return 1;
-  if (plan.checklistPacks === 'all') return 5;
+  if (plan.checklistPacks === 'all') return 6;
   return 0;
 }
 
 export function availablePacksForPlan(planId: MembershipPlanId): ChecklistPackId[] {
   if (planId === 'campfire') return [];
-  if (planId === 'weekender') return ['backpacking', 'car-camping', 'rv-drivable'];
+  if (planId === 'weekender') return ['backpacking', 'car-camping', 'rv-drivable', 'family-road'];
   if (planId === 'road-tripper') {
-    return ['backpacking', 'car-camping', 'rv-drivable', 'vehicle-prep'];
+    return ['backpacking', 'car-camping', 'rv-drivable', 'vehicle-prep', 'family-road'];
   }
-  return ['backpacking', 'car-camping', 'rv-drivable', 'vehicle-prep', 'survival'];
+  return ['backpacking', 'car-camping', 'rv-drivable', 'vehicle-prep', 'survival', 'family-road'];
 }
 
 export function canUseTripPlanner(planId: MembershipPlanId): boolean {

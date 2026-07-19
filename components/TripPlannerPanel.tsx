@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Plus, Calendar, Lock, Printer, MapPin, ChevronRight, LayoutDashboard,
+  Plus, Calendar, Lock, Printer, MapPin, ChevronRight, ChevronDown, LayoutDashboard, ListChecks,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Park } from '@/lib/parks';
@@ -36,8 +36,8 @@ import {
 } from '@/lib/membershipPlans';
 import type { BillingInterval } from '@/lib/membershipPlans';
 import {
-  CHECKLIST_PACKS,
   getChecklistPack,
+  countTripChecklistTotals,
   type ChecklistPackId,
 } from '@/lib/tripChecklists';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
@@ -45,6 +45,7 @@ import { awardRoadCrewForUser } from '@/lib/roadCrew';
 import MembershipTierPicker from './MembershipTierPicker';
 import MembershipDisclosure from './MembershipDisclosure';
 import CampingChecklist from './CampingChecklist';
+import ChecklistPackPicker from './ChecklistPackPicker';
 
 interface TripPlannerPanelProps {
   user: { id: string; email?: string } | null;
@@ -52,6 +53,8 @@ interface TripPlannerPanelProps {
   quickAddParks: Park[];
   onRequestSignIn: () => void;
 }
+
+type TripWorkspaceTab = 'checklists' | 'stops' | 'details';
 
 export default function TripPlannerPanel({
   user,
@@ -64,8 +67,10 @@ export default function TripPlannerPanel({
   const [tripParks, setTripParks] = useState<StoredTripPark[]>([]);
   const [newTripTitle, setNewTripTitle] = useState('');
   const [supabaseReady, setSupabaseReady] = useState(true);
-  const [activePackTab, setActivePackTab] = useState<ChecklistPackId>('backpacking');
+  const [activePackTab, setActivePackTab] = useState<ChecklistPackId | null>(null);
   const [checklistRefresh, setChecklistRefresh] = useState(0);
+  const [showMembership, setShowMembership] = useState(false);
+  const [workspaceTab, setWorkspaceTab] = useState<TripWorkspaceTab>('checklists');
 
   const planId = getMembershipPlanId(user?.id);
   const plan = getMembershipPlan(planId);
@@ -111,6 +116,11 @@ export default function TripPlannerPanel({
   const loadTripParks = async (trip: StoredTrip) => {
     if (!user) return;
     setSelectedTrip(trip);
+    setWorkspaceTab(
+      (trip.camper_packs?.length ?? 0) === 0 ? 'checklists' : 'checklists'
+    );
+    const packs = trip.camper_packs ?? [];
+    setActivePackTab(packs[0] ?? null);
     if (!supabaseReady) {
       setTripParks(listLocalTripParks(user.id, trip.id, allParks));
       return;
@@ -132,22 +142,27 @@ export default function TripPlannerPanel({
     if (!user) return toast.error('Sign in to create trips.');
     if (!newTripTitle.trim()) return toast.error('Give your trip a name.');
     if (!canUseTripPlanner(planId)) {
-      return toast.error('Trip planner requires Weekender or higher. Choose a plan above.');
+      return toast.error('Trip planner requires Weekender or higher.');
     }
     if (!canCreateTrip(planId, userTrips.length)) {
       return toast.error('Trip limit reached on your current plan.');
     }
     const title = newTripTitle.trim();
 
-    if (!supabaseReady) {
-      const trip = createLocalTrip(user.id, title);
-      setUserTrips([trip, ...userTrips]);
+    const afterCreate = (trip: StoredTrip) => {
+      setUserTrips((prev) => [trip, ...prev.filter((t) => t.id !== trip.id)]);
       setNewTripTitle('');
       setSelectedTrip(trip);
       setTripParks([]);
-      toast.success('Trip created!');
+      setActivePackTab(null);
+      setWorkspaceTab('checklists');
+      toast.success('Trip created — pick a checklist pack to pack smarter.');
       const pts = awardRoadCrewForUser(user.id, planId, 'trip_created', title);
       if (pts > 0) toast.message(`Road Crew +${pts} pts`);
+    };
+
+    if (!supabaseReady) {
+      afterCreate(createLocalTrip(user.id, title));
       return;
     }
 
@@ -160,29 +175,14 @@ export default function TripPlannerPanel({
     if (error) {
       if (isMissingTableError(error)) {
         setSupabaseReady(false);
-        const trip = createLocalTrip(user.id, title);
-        setUserTrips([trip, ...userTrips]);
-        setNewTripTitle('');
-        setSelectedTrip(trip);
-        setTripParks([]);
-        toast.success('Trip created (saved locally).');
-        const pts = awardRoadCrewForUser(user.id, planId, 'trip_created', title);
-        if (pts > 0) toast.message(`Road Crew +${pts} pts`);
+        afterCreate(createLocalTrip(user.id, title));
         return;
       }
       toast.error(error.message || 'Failed to create trip.');
       return;
     }
 
-    setUserTrips([data as StoredTrip, ...userTrips]);
-    setNewTripTitle('');
-    setSelectedTrip(data as StoredTrip);
-    {
-      const pts = awardRoadCrewForUser(user.id, planId, 'trip_created', title);
-      if (pts > 0) toast.message(`Road Crew +${pts} pts`);
-    }
-    setTripParks([]);
-    toast.success('Trip created!');
+    afterCreate(data as StoredTrip);
   };
 
   const saveTripMeta = async (
@@ -202,11 +202,11 @@ export default function TripPlannerPanel({
   const addParkToTrip = async (parkId: string) => {
     if (!selectedTrip || !user) return;
     if (!canUseTripPlanner(planId)) {
-      return toast.error('Park stops require Weekender or higher.');
+      return toast.error('Spot stops require Weekender or higher.');
     }
     if (!supabaseReady) {
       setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, allParks));
-      toast.success('Added to trip!');
+      toast.success('Spot added to trip!');
       return;
     }
     const { error } = await supabase.from('trip_parks').insert({
@@ -218,10 +218,10 @@ export default function TripPlannerPanel({
       if (isMissingTableError(error)) {
         setSupabaseReady(false);
         setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, allParks));
-        toast.success('Added to trip!');
+        toast.success('Spot added to trip!');
         return;
       }
-      toast.error(error.message || "Couldn't add park.");
+      toast.error(error.message || "Couldn't add spot.");
       return;
     }
     const { data } = await supabase
@@ -230,7 +230,7 @@ export default function TripPlannerPanel({
       .eq('trip_id', selectedTrip.id)
       .order('visit_order');
     if (data) setTripParks(data);
-    toast.success('Added to trip!');
+    toast.success('Spot added to trip!');
   };
 
   const handleSubscribe = (
@@ -256,11 +256,17 @@ export default function TripPlannerPanel({
       next = current.filter((p) => p !== packId);
     } else if (maxPacks === 1) {
       next = [packId];
+    } else if (current.length >= maxPacks) {
+      toast.info(`Your plan allows up to ${maxPacks} checklist packs.`);
+      return;
     } else {
       next = [...current, packId];
     }
     saveTripMeta({ camper_packs: next });
-    setActivePackTab(packId);
+    setActivePackTab(next.includes(packId) ? packId : next[0] ?? null);
+    if (!has) {
+      toast.success(`${getChecklistPack(packId)?.title ?? 'Pack'} added to this trip`);
+    }
   };
 
   const handlePrint = () => {
@@ -272,46 +278,61 @@ export default function TripPlannerPanel({
   };
 
   const selectedPacks = selectedTrip?.camper_packs ?? [];
-  const activeChecklistPack = getChecklistPack(activePackTab);
-  const checkedIds =
-    user && selectedTrip
-      ? getTripChecklistProgress(user.id, selectedTrip.id, activePackTab)
-      : [];
+  const activeChecklistPack = activePackTab ? getChecklistPack(activePackTab) : undefined;
 
   void checklistRefresh;
 
+  const tripProgress = (trip: StoredTrip) => {
+    if (!user) return null;
+    const packs = trip.camper_packs ?? [];
+    if (packs.length === 0) return null;
+    return countTripChecklistTotals(packs, (packId) =>
+      getTripChecklistProgress(user.id, trip.id, packId)
+    );
+  };
+
   return (
-    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
+    <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10 space-y-5">
+      {/* Header — trip first */}
+      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="section-intro">
-          <h2 className="text-xl sm:text-2xl font-semibold">rvchain Membership</h2>
-          <p className="text-slate-200 text-sm mt-1">
-            Plan trips, post in the forum, and earn bonus rewards — one membership across the app.
+          <h2 className="text-xl sm:text-2xl font-semibold">Trip planner</h2>
+          <p className="text-slate-300 text-sm mt-1 max-w-lg">
+            Name a trip, pick packing checklists, and add community spots along the way.
           </p>
           <p className="text-[10px] text-amber-400/80 mt-1">{DEMO_NOTICE_SHORT}</p>
         </div>
-        {planId !== 'campfire' && subscription && (
-          <div className="text-xs bg-emerald-950/40 border border-emerald-800/40 px-3 py-2 rounded-2xl text-emerald-300">
-            {plan.name} · {subscription.billingInterval}
-            {isOnTrial(subscription) && ' · trial active'}
-            {' · demo since '}{new Date(subscription.subscribedAt).toLocaleDateString()}
-          </div>
+        {user && (
+          <button
+            type="button"
+            onClick={() => setShowMembership((v) => !v)}
+            className="text-xs flex items-center gap-1.5 px-3 py-2 rounded-2xl border border-slate-700 bg-slate-900/80 text-slate-300 hover:border-slate-500 shrink-0"
+          >
+            Plan: <span className="font-semibold text-emerald-300">{plan.name}</span>
+            {subscription && isOnTrial(subscription) && (
+              <span className="text-amber-400">· trial</span>
+            )}
+            <ChevronDown className={`w-3.5 h-3.5 transition ${showMembership ? 'rotate-180' : ''}`} />
+          </button>
         )}
       </div>
 
-      <MembershipTierPicker
-        activePlan={planId}
-        activeInterval={subscription?.billingInterval}
-        onSelectPlan={handleSubscribe}
-        signedIn={Boolean(user)}
-        onRequestSignIn={onRequestSignIn}
-      />
-
-      <MembershipDisclosure />
+      {showMembership && (
+        <div className="space-y-4 rounded-3xl border border-slate-700 bg-slate-900/50 p-4 sm:p-5">
+          <MembershipTierPicker
+            activePlan={planId}
+            activeInterval={subscription?.billingInterval}
+            onSelectPlan={handleSubscribe}
+            signedIn={Boolean(user)}
+            onRequestSignIn={onRequestSignIn}
+          />
+          <MembershipDisclosure />
+        </div>
+      )}
 
       {!user ? (
-        <div className="text-center py-12 border border-slate-800 rounded-3xl">
-          <p className="text-slate-400 mb-4">Sign in to manage your membership and unlock trip planning.</p>
+        <div className="text-center py-12 border border-slate-800 rounded-3xl space-y-4">
+          <p className="text-slate-400">Sign in to create trips and use packing checklists.</p>
           <button
             type="button"
             onClick={onRequestSignIn}
@@ -319,120 +340,195 @@ export default function TripPlannerPanel({
           >
             Sign In
           </button>
+          <div className="max-w-2xl mx-auto pt-4 px-4 opacity-80">
+            <ChecklistPackPicker
+              availablePackIds={[]}
+              selectedPackIds={[]}
+              maxSelectable={1}
+              onToggle={() => {}}
+              previewAllLocked
+            />
+          </div>
         </div>
       ) : !canUseTripPlanner(planId) ? (
-        <div className="text-center py-12 border border-dashed border-emerald-800/50 rounded-3xl bg-emerald-950/20">
-          <Lock className="w-10 h-10 text-emerald-500/70 mx-auto mb-3" />
-          <h3 className="text-lg font-semibold text-slate-200">Trip planner is a paid feature</h3>
-          <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
-            Campfire (free) does not include trips or park stops. Upgrade to Weekender or higher above to
-            create trips, add park stops, and unlock checklists.
-          </p>
+        <div className="space-y-6">
+          <div className="text-center py-10 border border-dashed border-emerald-800/50 rounded-3xl bg-emerald-950/20 px-4">
+            <Lock className="w-10 h-10 text-emerald-500/70 mx-auto mb-3" />
+            <h3 className="text-lg font-semibold text-slate-200">Trip planner is a paid feature</h3>
+            <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
+              Upgrade to Weekender or higher to create trips, add community spots, and unlock packing
+              checklists.
+            </p>
+            <button
+              type="button"
+              onClick={() => setShowMembership(true)}
+              className="mt-4 px-5 h-10 rounded-2xl bg-emerald-700 hover:bg-emerald-600 text-sm font-semibold"
+            >
+              View plans
+            </button>
+          </div>
+          <div className="max-w-2xl mx-auto opacity-90">
+            <ChecklistPackPicker
+              availablePackIds={[]}
+              selectedPackIds={[]}
+              maxSelectable={1}
+              onToggle={() => {}}
+              previewAllLocked
+            />
+          </div>
         </div>
       ) : (
-        <>
-      <div className="flex flex-col min-[400px]:flex-row gap-2">
-        <input
-          value={newTripTitle}
-          onChange={(e) => setNewTripTitle(e.target.value)}
-          placeholder="New trip name (e.g. Yellowstone 2026)"
-          className="bg-slate-900 border border-slate-700 px-4 rounded-2xl text-sm flex-1 min-w-0 h-11"
-        />
-        <button
-          type="button"
-          onClick={createTrip}
-          className="bg-green-700 hover:bg-green-600 px-5 rounded-3xl text-sm font-semibold flex items-center justify-center gap-1 h-11"
-        >
-          <Plus className="w-4 h-4" /> Create Trip
-        </button>
-      </div>
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Trip list */}
           <div className="lg:col-span-1 space-y-3">
-            <div className="font-medium flex items-center justify-between">
-              <span>My Trips ({userTrips.length})</span>
+            <div className="flex flex-col gap-2">
+              <input
+                value={newTripTitle}
+                onChange={(e) => setNewTripTitle(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && createTrip()}
+                placeholder="New trip name…"
+                className="bg-slate-900 border border-slate-700 px-4 rounded-2xl text-sm h-11"
+              />
+              <button
+                type="button"
+                onClick={createTrip}
+                className="bg-green-700 hover:bg-green-600 px-4 rounded-2xl text-sm font-semibold flex items-center justify-center gap-1 h-11"
+              >
+                <Plus className="w-4 h-4" /> Create trip
+              </button>
+            </div>
+
+            <div className="font-medium flex items-center justify-between text-sm">
+              <span>My trips ({userTrips.length})</span>
               {plan.routeSummary && userTrips.length > 1 && (
                 <span className="text-[10px] text-sky-400 flex items-center gap-1">
                   <LayoutDashboard className="w-3 h-3" /> Multi-trip
                 </span>
               )}
             </div>
+
             {userTrips.length === 0 ? (
               <div className="text-sm text-slate-400 p-4 border border-slate-800 rounded-2xl">
-                No trips yet. Create one above!
+                No trips yet. Create one to open checklists.
               </div>
             ) : (
               <div className="space-y-2">
-                {userTrips.map((trip) => (
-                  <button
-                    key={trip.id}
-                    type="button"
-                    onClick={() => loadTripParks(trip)}
-                    className={`w-full text-left p-3 rounded-2xl border transition ${
-                      selectedTrip?.id === trip.id
-                        ? 'bg-green-900/30 border-green-700'
-                        : 'bg-slate-900 border-slate-700 hover:border-slate-500'
-                    }`}
-                  >
-                    <div className="font-medium">{trip.title}</div>
-                    <div className="text-xs text-slate-400">
-                      {trip.start_date && trip.end_date
-                        ? `${trip.start_date} → ${trip.end_date}`
-                        : new Date(trip.created_at).toLocaleDateString()}
-                    </div>
-                  </button>
-                ))}
+                {userTrips.map((trip) => {
+                  const prog = tripProgress(trip);
+                  return (
+                    <button
+                      key={trip.id}
+                      type="button"
+                      onClick={() => loadTripParks(trip)}
+                      className={`w-full text-left p-3 rounded-2xl border transition ${
+                        selectedTrip?.id === trip.id
+                          ? 'bg-green-900/30 border-green-700'
+                          : 'bg-slate-900 border-slate-700 hover:border-slate-500'
+                      }`}
+                    >
+                      <div className="font-medium">{trip.title}</div>
+                      <div className="text-xs text-slate-400 mt-0.5 flex flex-wrap gap-x-2 gap-y-0.5">
+                        <span>
+                          {trip.start_date && trip.end_date
+                            ? `${trip.start_date} → ${trip.end_date}`
+                            : new Date(trip.created_at).toLocaleDateString()}
+                        </span>
+                        {prog && (
+                          <span className="text-emerald-400/90">
+                            {prog.done}/{prog.total} packed
+                          </span>
+                        )}
+                        {(trip.camper_packs?.length ?? 0) === 0 && (
+                          <span className="text-amber-400/80">No checklist yet</span>
+                        )}
+                      </div>
+                    </button>
+                  );
+                })}
               </div>
             )}
           </div>
 
-          <div className="lg:col-span-2 space-y-5">
-            {selectedTrip ? (
+          {/* Workspace */}
+          <div className="lg:col-span-2 space-y-4">
+            {!selectedTrip ? (
+              <div className="text-center py-14 text-slate-400 border border-slate-800 rounded-3xl flex flex-col items-center gap-2">
+                <ChevronRight className="w-6 h-6 opacity-40" />
+                <p>Create or select a trip to plan stops and checklists.</p>
+              </div>
+            ) : (
               <>
-                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-5 space-y-4">
-                  <div className="font-semibold text-xl">{selectedTrip.title}</div>
-
-                  <div className="grid grid-cols-2 gap-3">
-                    <label className="block text-xs">
-                      <span className="text-slate-400 mb-1 block">Start date</span>
-                      <input
-                        type="date"
-                        value={selectedTrip.start_date ?? ''}
-                        onChange={(e) => saveTripMeta({ start_date: e.target.value || null })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 h-10 text-sm"
-                      />
-                    </label>
-                    <label className="block text-xs">
-                      <span className="text-slate-400 mb-1 block">End date</span>
-                      <input
-                        type="date"
-                        value={selectedTrip.end_date ?? ''}
-                        onChange={(e) => saveTripMeta({ end_date: e.target.value || null })}
-                        className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 h-10 text-sm"
-                      />
-                    </label>
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-lg font-semibold">{selectedTrip.title}</h3>
+                  <div className="flex p-1 rounded-xl bg-slate-950 border border-slate-800">
+                    {(
+                      [
+                        ['checklists', 'Checklists', ListChecks],
+                        ['stops', 'Stops', MapPin],
+                        ['details', 'Details', Calendar],
+                      ] as const
+                    ).map(([id, label, Icon]) => (
+                      <button
+                        key={id}
+                        type="button"
+                        onClick={() => setWorkspaceTab(id)}
+                        className={`px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1 ${
+                          workspaceTab === id
+                            ? 'bg-slate-800 text-white'
+                            : 'text-slate-400 hover:text-slate-200'
+                        }`}
+                      >
+                        <Icon className="w-3.5 h-3.5" />
+                        {label}
+                      </button>
+                    ))}
                   </div>
+                </div>
 
-                  {planId !== 'campfire' && (
+                {workspaceTab === 'details' && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-5 space-y-4">
+                    <div className="grid grid-cols-2 gap-3">
+                      <label className="block text-xs">
+                        <span className="text-slate-400 mb-1 block">Start date</span>
+                        <input
+                          type="date"
+                          value={selectedTrip.start_date ?? ''}
+                          onChange={(e) => saveTripMeta({ start_date: e.target.value || null })}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 h-10 text-sm"
+                        />
+                      </label>
+                      <label className="block text-xs">
+                        <span className="text-slate-400 mb-1 block">End date</span>
+                        <input
+                          type="date"
+                          value={selectedTrip.end_date ?? ''}
+                          onChange={(e) => saveTripMeta({ end_date: e.target.value || null })}
+                          className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 h-10 text-sm"
+                        />
+                      </label>
+                    </div>
                     <label className="block text-xs">
                       <span className="text-slate-400 mb-1 block">Trip notes</span>
                       <textarea
                         value={selectedTrip.notes ?? ''}
                         onChange={(e) => saveTripMeta({ notes: e.target.value })}
-                        rows={2}
+                        rows={3}
                         placeholder="Reservations, permits, pet notes…"
                         className="w-full bg-slate-950 border border-slate-700 rounded-xl px-3 py-2 text-sm resize-none"
                       />
                     </label>
-                  )}
+                  </div>
+                )}
 
-                  <div>
-                    <div className="text-sm font-medium mb-2 flex items-center gap-2">
+                {workspaceTab === 'stops' && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-5 space-y-4">
+                    <div className="text-sm font-medium flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-emerald-400" />
-                      Park stops ({tripParks.length})
+                      Community spots ({tripParks.length})
                     </div>
                     {tripParks.length === 0 ? (
                       <p className="text-xs text-slate-500 border border-dashed border-slate-700 p-4 rounded-2xl">
-                        Add parks from Discover or quick-add below.
+                        Add stops from the Spots tab or quick-add below.
                       </p>
                     ) : (
                       <div className="space-y-2">
@@ -441,146 +537,120 @@ export default function TripPlannerPanel({
                             key={`${tp.trip_id}-${tp.park_id}-${idx}`}
                             className="flex items-center justify-between bg-slate-950 border border-slate-800 p-3 rounded-2xl text-sm"
                           >
-                            <span>{tp.parks?.name ?? 'Park'}</span>
+                            <span>{tp.parks?.name ?? 'Spot'}</span>
                             <span className="text-xs text-emerald-400">Stop #{idx + 1}</span>
                           </div>
                         ))}
                       </div>
                     )}
                     {plan.routeSummary && tripParks.length > 0 && (
-                      <p className="text-[11px] text-sky-400/90 mt-2">
-                        Route: {tripParks.map((tp) => tp.parks?.city ?? tp.parks?.name).filter(Boolean).join(' → ')}
+                      <p className="text-[11px] text-sky-400/90">
+                        Route:{' '}
+                        {tripParks
+                          .map((tp) => tp.parks?.city ?? tp.parks?.name)
+                          .filter(Boolean)
+                          .join(' → ')}
                       </p>
                     )}
-                  </div>
-
-                  <div>
-                    <div className="text-xs text-slate-400 mb-2">Quick add</div>
-                    <div className="flex flex-wrap gap-2">
-                      {quickAddParks.slice(0, 8).map((p) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => addParkToTrip(p.id)}
-                          className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1 rounded-2xl"
-                        >
-                          + {p.name}
-                        </button>
-                      ))}
+                    <div>
+                      <div className="text-xs text-slate-400 mb-2">Quick add spots</div>
+                      <div className="flex flex-wrap gap-2">
+                        {quickAddParks.slice(0, 10).map((p) => (
+                          <button
+                            key={p.id}
+                            type="button"
+                            onClick={() => addParkToTrip(p.id)}
+                            className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-2xl"
+                          >
+                            + {p.name}
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   </div>
-                </div>
+                )}
 
-                {/* Checklists */}
-                <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-5">
-                  <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-amber-400" />
-                      Camping checklists
-                    </h3>
-                    {plan.printable && selectedPacks.length > 0 && (
-                      <button
-                        type="button"
-                        onClick={handlePrint}
-                        className="text-xs flex items-center gap-1 border border-slate-600 px-3 py-1.5 rounded-xl hover:bg-slate-800"
-                      >
-                        <Printer className="w-3.5 h-3.5" /> Print
-                      </button>
+                {workspaceTab === 'checklists' && (
+                  <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-5 space-y-5">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                      <h3 className="font-semibold flex items-center gap-2">
+                        <ListChecks className="w-4 h-4 text-amber-400" />
+                        Packing checklists
+                      </h3>
+                      {plan.printable && selectedPacks.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={handlePrint}
+                          className="text-xs flex items-center gap-1 border border-slate-600 px-3 py-1.5 rounded-xl hover:bg-slate-800"
+                        >
+                          <Printer className="w-3.5 h-3.5" /> Print
+                        </button>
+                      )}
+                    </div>
+
+                    <ChecklistPackPicker
+                      availablePackIds={availablePacks}
+                      selectedPackIds={selectedPacks}
+                      maxSelectable={maxPacks}
+                      onToggle={toggleCamperPack}
+                    />
+
+                    {selectedPacks.length > 0 && (
+                      <>
+                        <div className="flex flex-wrap gap-1 border-b border-slate-800 pb-2">
+                          {selectedPacks.map((packId) => {
+                            const pack = getChecklistPack(packId);
+                            if (!pack) return null;
+                            return (
+                              <button
+                                key={packId}
+                                type="button"
+                                onClick={() => setActivePackTab(packId)}
+                                className={`text-xs px-3 py-1.5 rounded-xl ${
+                                  activePackTab === packId
+                                    ? 'bg-slate-800 text-white'
+                                    : 'text-slate-400 hover:text-slate-200'
+                                }`}
+                              >
+                                {pack.icon} {pack.title}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {activeChecklistPack &&
+                        activePackTab &&
+                        canAccessChecklist(planId, activePackTab, selectedPacks) ? (
+                          <CampingChecklist
+                            pack={activeChecklistPack}
+                            checkedIds={getTripChecklistProgress(
+                              user.id,
+                              selectedTrip.id,
+                              activePackTab
+                            )}
+                            onToggle={(itemId) => {
+                              toggleChecklistItem(
+                                user.id,
+                                selectedTrip.id,
+                                activePackTab,
+                                itemId
+                              );
+                              setChecklistRefresh((n) => n + 1);
+                            }}
+                          />
+                        ) : (
+                          <p className="text-sm text-slate-500 text-center py-4">
+                            Select a pack tab above to open the checklist.
+                          </p>
+                        )}
+                      </>
                     )}
                   </div>
-
-                  {planId === 'campfire' ? (
-                    <div className="text-center py-8 border border-dashed border-slate-700 rounded-2xl">
-                      <Lock className="w-8 h-8 text-slate-600 mx-auto mb-2" />
-                      <p className="text-sm text-slate-400">Upgrade to Weekender to unlock camper checklists.</p>
-                      <p className="text-xs text-slate-500 mt-1">Backpacking, RV, vehicle prep &amp; more.</p>
-                    </div>
-                  ) : (
-                    <>
-                      <div className="text-xs text-slate-400 mb-3">
-                        {maxPacks === 1
-                          ? 'Pick one camper style for this trip (Weekender plan):'
-                          : 'Select checklist packs for this trip:'}
-                      </div>
-                      <div className="flex flex-wrap gap-2 mb-4">
-                        {CHECKLIST_PACKS.filter((p) => availablePacks.includes(p.id)).map((pack) => {
-                          const selected = selectedPacks.includes(pack.id);
-                          return (
-                            <button
-                              key={pack.id}
-                              type="button"
-                              onClick={() => toggleCamperPack(pack.id)}
-                              className={`text-xs px-3 py-1.5 rounded-2xl border transition ${
-                                selected
-                                  ? 'bg-emerald-900/40 border-emerald-600 text-emerald-200'
-                                  : 'border-slate-600 text-slate-400 hover:border-slate-500'
-                              }`}
-                            >
-                              {pack.icon} {pack.title}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {selectedPacks.length === 0 ? (
-                        <p className="text-sm text-slate-500 text-center py-6">
-                          Select a camper type above to open its checklist.
-                        </p>
-                      ) : (
-                        <>
-                          <div className="flex flex-wrap gap-1 mb-4 border-b border-slate-800 pb-2">
-                            {selectedPacks.map((packId) => {
-                              const pack = getChecklistPack(packId);
-                              if (!pack) return null;
-                              return (
-                                <button
-                                  key={packId}
-                                  type="button"
-                                  onClick={() => setActivePackTab(packId)}
-                                  className={`text-xs px-3 py-1.5 rounded-xl ${
-                                    activePackTab === packId
-                                      ? 'bg-slate-800 text-white'
-                                      : 'text-slate-400 hover:text-slate-200'
-                                  }`}
-                                >
-                                  {pack.icon} {pack.title}
-                                </button>
-                              );
-                            })}
-                          </div>
-
-                          {activeChecklistPack &&
-                          canAccessChecklist(planId, activePackTab, selectedPacks) ? (
-                            <CampingChecklist
-                              pack={activeChecklistPack}
-                              checkedIds={checkedIds}
-                              onToggle={(itemId) => {
-                                if (!user || !selectedTrip) return;
-                                toggleChecklistItem(user.id, selectedTrip.id, activePackTab, itemId);
-                                setChecklistRefresh((n) => n + 1);
-                              }}
-                            />
-                          ) : (
-                            <div className="text-sm text-amber-400/90 flex items-center gap-2 py-4">
-                              <Lock className="w-4 h-4" />
-                              Upgrade to access this checklist pack.
-                            </div>
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </div>
+                )}
               </>
-            ) : (
-              <div className="text-center py-12 text-slate-400 border border-slate-800 rounded-3xl flex flex-col items-center gap-2">
-                <ChevronRight className="w-6 h-6 opacity-40" />
-                Select or create a trip to start planning.
-              </div>
             )}
           </div>
         </div>
-        </>
       )}
     </div>
   );
