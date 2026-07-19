@@ -24,6 +24,7 @@ import {
   saveKidsProgress,
   type KidsProgress,
 } from '@/lib/kidsProgress';
+import { formatCoords } from '@/lib/geoState';
 
 interface KidsCardAlbumProps {
   userId: string;
@@ -227,7 +228,24 @@ export default function KidsCardAlbum({
               {ownsCard(progress, selectedPlant.id) ? selectedPlant.name : 'Not found yet'}
             </h3>
             {ownsCard(progress, selectedPlant.id) ? (
-              <p className="text-sm text-slate-300">{selectedPlant.description}</p>
+              <>
+                <p className="text-sm text-slate-300">{selectedPlant.description}</p>
+                {(() => {
+                  const plantId = selectedPlant.plantId;
+                  const find = plantId ? progress.finds[plantId] : undefined;
+                  if (find?.lat != null && find?.lng != null) {
+                    return (
+                      <p className="text-xs text-sky-300">
+                        Field GPS: {formatCoords(find.lat, find.lng)}
+                        {find.stateCode ? ` · ${find.stateCode}` : ''}
+                      </p>
+                    );
+                  }
+                  return (
+                    <p className="text-xs text-slate-500">No GPS tag on this catch.</p>
+                  );
+                })()}
+              </>
             ) : (
               <p className="text-sm text-slate-500">Find this plant on the scavenger hunt.</p>
             )}

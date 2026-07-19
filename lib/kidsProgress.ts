@@ -1,4 +1,4 @@
-import { getCardForPlant, KIDS_CARDS, LEGACY_TRAIL_CREATURE_IDS, type KidsCard } from './kidsCards';
+﻿import { getCardForPlant, KIDS_CARDS, LEGACY_TRAIL_CREATURE_IDS, type KidsCard } from './kidsCards';
 import {
   getTrailBadge,
   pickRandomUnownedBadges,
@@ -10,6 +10,18 @@ export interface PlantFind {
   plantId: string;
   foundAt: string;
   photoDataUrl: string | null;
+  /** Optional field GPS from geo-catch */
+  lat?: number;
+  lng?: number;
+  accuracyM?: number;
+  stateCode?: string;
+}
+
+export interface PlantFindGeo {
+  lat: number;
+  lng: number;
+  accuracyM?: number;
+  stateCode?: string;
 }
 
 export type DailyQuestId = 'find_plant' | 'open_pack' | 'view_album';
@@ -228,11 +240,12 @@ export function trailLevel(progress: KidsProgress): {
   return { level: cur.level, name: cur.name, pct };
 }
 
-/** Mark plant found with optional photo; awards matching plant Field Sticker. */
+/** Mark plant found with optional photo + GPS; awards matching plant Field Sticker. */
 export function recordPlantFind(
   progress: KidsProgress,
   plantId: string,
-  photoDataUrl: string | null
+  photoDataUrl: string | null,
+  geo?: PlantFindGeo | null
 ): { progress: KidsProgress; newCardId: string | null; alreadyFound: boolean } {
   if (progress.finds[plantId]) {
     return { progress, newCardId: null, alreadyFound: true };
@@ -244,6 +257,14 @@ export function recordPlantFind(
       plantId,
       foundAt: new Date().toISOString(),
       photoDataUrl,
+      ...(geo
+        ? {
+            lat: geo.lat,
+            lng: geo.lng,
+            accuracyM: geo.accuracyM,
+            stateCode: geo.stateCode,
+          }
+        : {}),
     },
   };
 
@@ -278,10 +299,10 @@ export function recordPlantFind(
 }
 
 export const PACK_ODDS_LABEL =
-  'Drop odds (approx): Common ~55% · Uncommon ~28% · Rare ~14% · Legendary ~3% · 1–3 badges per Drop';
+  'Drop odds (approx): Common ~55% Â· Uncommon ~28% Â· Rare ~14% Â· Legendary ~3% Â· 1â€“3 badges per Drop';
 
 /**
- * Trail Drop: awards 1–3 Trail Badges.
+ * Trail Drop: awards 1â€“3 Trail Badges.
  * Requires at least one plant find; max 8 free packs.
  */
 export function openTrailPack(progress: KidsProgress): {
