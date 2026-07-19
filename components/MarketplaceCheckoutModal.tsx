@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { X, ShoppingBag } from 'lucide-react';
 import {
   formatFeePercent,
-  formatSellerPayout,
   itemTypeLabel,
   quoteMarketplaceFee,
   type MarketplaceItemType,
@@ -69,19 +68,17 @@ export default function MarketplaceCheckoutModal({
 
           <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-2 text-sm">
             <div className="flex justify-between">
-              <span className="text-slate-400">Sale price</span>
-              <span className="font-semibold">{priceLabel}</span>
+              <span className="text-slate-400">You pay</span>
+              <span className="font-semibold text-amber-300">{priceLabel}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-slate-400">Marketplace fee</span>
+              <span className="text-slate-400">Marketplace fee rate</span>
               <span className="font-semibold text-slate-200">{formatFeePercent(quote.feePercent)}</span>
             </div>
-            <div className="flex justify-between border-t border-slate-800 pt-2">
-              <span className="text-emerald-300 font-semibold">Seller receives</span>
-              <span className="text-emerald-300 font-bold text-lg">
-                {formatSellerPayout(quote.sellerNet)}
-              </span>
-            </div>
+            <p className="text-[10px] text-slate-500 pt-1 border-t border-slate-800">
+              A marketplace fee of {formatFeePercent(quote.feePercent)} applies to the seller. Seller payout
+              details are only shown to the seller.
+            </p>
           </div>
 
           <div className="max-h-32 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-[11px] text-slate-500 leading-relaxed">
@@ -109,8 +106,8 @@ export default function MarketplaceCheckoutModal({
               className="mt-0.5 rounded border-slate-600"
             />
             <span>
-              I agree to the marketplace fee of {formatFeePercent(quote.feePercent)} and Terms. Seller
-              proceeds: <strong className="text-emerald-300">{formatSellerPayout(quote.sellerNet)}</strong>.
+              I agree to the Marketplace Terms and that a marketplace fee of{' '}
+              {formatFeePercent(quote.feePercent)} applies to the seller on this sale.
             </span>
           </label>
 

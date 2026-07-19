@@ -1,4 +1,10 @@
 import { getCardForPlant, KIDS_CARDS, type KidsCard } from './kidsCards';
+import {
+  getTrailBadge,
+  pickRandomUnownedBadges,
+  TRAIL_BADGES,
+  type TrailBadge,
+} from './trailBadges';
 
 export interface PlantFind {
   plantId: string;
@@ -9,6 +15,7 @@ export interface PlantFind {
 export interface KidsProgress {
   finds: Record<string, PlantFind>;
   ownedCardIds: string[];
+  ownedBadgeIds: string[];
   trailPacksOpened: number;
   updatedAt: string;
 }
@@ -23,6 +30,7 @@ export function createEmptyKidsProgress(): KidsProgress {
   return {
     finds: {},
     ownedCardIds: [],
+    ownedBadgeIds: [],
     trailPacksOpened: 0,
     updatedAt: new Date().toISOString(),
   };
@@ -33,10 +41,11 @@ export function loadKidsProgress(userId: string): KidsProgress {
   try {
     const raw = localStorage.getItem(storageKey(userId));
     if (!raw) return createEmptyKidsProgress();
-    const parsed = JSON.parse(raw) as KidsProgress;
+    const parsed = JSON.parse(raw) as Partial<KidsProgress>;
     return {
       finds: parsed.finds && typeof parsed.finds === 'object' ? parsed.finds : {},
       ownedCardIds: Array.isArray(parsed.ownedCardIds) ? parsed.ownedCardIds : [],
+      ownedBadgeIds: Array.isArray(parsed.ownedBadgeIds) ? parsed.ownedBadgeIds : [],
       trailPacksOpened: typeof parsed.trailPacksOpened === 'number' ? parsed.trailPacksOpened : 0,
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
     };
@@ -62,10 +71,21 @@ export function ownsCard(progress: KidsProgress, cardId: string): boolean {
   return progress.ownedCardIds.includes(cardId);
 }
 
+export function ownsBadge(progress: KidsProgress, badgeId: string): boolean {
+  return progress.ownedBadgeIds.includes(badgeId);
+}
+
 export function getOwnedCards(progress: KidsProgress): KidsCard[] {
   return progress.ownedCardIds
     .map((id) => KIDS_CARDS.find((c) => c.id === id))
     .filter((c): c is KidsCard => Boolean(c));
+}
+
+export function getOwnedBadges(progress: KidsProgress): TrailBadge[] {
+  return progress.ownedBadgeIds
+    .map((id) => getTrailBadge(id))
+    .filter((b): b is TrailBadge => Boolean(b))
+    .sort((a, b) => a.number - b.number);
 }
 
 /** Mark plant found with optional photo; awards matching plant card. */
@@ -95,21 +115,33 @@ export function recordPlantFind(
     newCardId = card.id;
   }
 
+  // Milestone: every 3 plant finds, grant a common/uncommon badge chance
+  let ownedBadgeIds = [...progress.ownedBadgeIds];
+  const findCount = Object.keys(finds).length;
+  if (findCount > 0 && findCount % 3 === 0) {
+    const bonus = pickRandomUnownedBadges(ownedBadgeIds, 1);
+    if (bonus[0]) ownedBadgeIds = [...ownedBadgeIds, bonus[0].id];
+  }
+
   return {
     progress: {
       ...progress,
       finds,
       ownedCardIds,
+      ownedBadgeIds,
     },
     newCardId,
     alreadyFound: false,
   };
 }
 
-/** Demo trail pack: award 1–3 random unowned common/uncommon cards (not legendary). */
+/**
+ * Trail pack: awards 1–3 Trail Badges (not plant cards).
+ * Requires at least one plant find; max 8 free packs.
+ */
 export function openTrailPack(progress: KidsProgress): {
   progress: KidsProgress;
-  awarded: KidsCard[];
+  awarded: TrailBadge[];
   error?: string;
 } {
   const findCount = Object.keys(progress.finds).length;
@@ -120,38 +152,36 @@ export function openTrailPack(progress: KidsProgress): {
       error: 'Find at least one plant on the scavenger hunt first!',
     };
   }
-  if (progress.trailPacksOpened >= 5) {
+  if (progress.trailPacksOpened >= 8) {
     return {
       progress,
       awarded: [],
-      error: 'You opened all free trail packs for now. Keep hunting plants!',
+      error: 'You opened all free trail packs for now. Keep collecting!',
     };
   }
 
-  const pool = KIDS_CARDS.filter(
-    (c) =>
-      !progress.ownedCardIds.includes(c.id) &&
-      (c.rarity === 'common' || c.rarity === 'uncommon' || c.type === 'trail')
-  );
-  if (pool.length === 0) {
+  const awarded = pickRandomUnownedBadges(progress.ownedBadgeIds, 3);
+  if (awarded.length === 0) {
     return {
       progress,
       awarded: [],
-      error: 'Your album is almost full — hunt rare plants for more cards!',
+      error: 'Your Trail Badge album is full — legendary hunter!',
     };
   }
-
-  const count = Math.min(3, pool.length);
-  const shuffled = [...pool].sort(() => Math.random() - 0.5);
-  const awarded = shuffled.slice(0, count);
-  const ownedCardIds = [...progress.ownedCardIds, ...awarded.map((c) => c.id)];
 
   return {
     progress: {
       ...progress,
-      ownedCardIds,
+      ownedBadgeIds: [...progress.ownedBadgeIds, ...awarded.map((b) => b.id)],
       trailPacksOpened: progress.trailPacksOpened + 1,
     },
     awarded,
+  };
+}
+
+export function badgeCollectionStats(progress: KidsProgress) {
+  return {
+    owned: progress.ownedBadgeIds.length,
+    total: TRAIL_BADGES.length,
   };
 }

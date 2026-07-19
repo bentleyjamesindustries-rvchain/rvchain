@@ -344,7 +344,7 @@ export default function RvMarketplacePanel({
     setSelected(null);
     refresh();
     toast.success(
-      `Demo purchase complete. Seller receives ${formatSellerPayout(sale.sellerNet)} (fee ${formatFeePercent(sale.feePercent)}).`
+      `Demo purchase complete (${formatFeePercent(sale.feePercent)} marketplace fee applies to seller).`
     );
   };
 
@@ -1357,16 +1357,19 @@ export default function RvMarketplacePanel({
                 </p>
               </div>
 
-              {(selected.status ?? 'active') === 'active' && selected.sellerUserId && (
+              {(selected.status ?? 'active') === 'active' &&
+                user &&
+                selected.sellerUserId === user.id && (
                 <div className="mt-4 rounded-2xl border border-emerald-800/40 bg-emerald-950/20 p-3 text-sm">
                   <div className="text-xs text-slate-400">
-                    Marketplace fee{' '}
+                    Your marketplace fee rate{' '}
                     <strong className="text-slate-200">
                       {formatFeePercent(quoteMarketplaceFee(selected.price, 'rv').feePercent)}
                     </strong>{' '}
-                    · seller receives at list price
+                    · estimated payout at list price
                   </div>
                   <div className="text-emerald-300 font-bold text-lg">
+                    You&apos;ll receive:{' '}
                     {formatSellerPayout(quoteMarketplaceFee(selected.price, 'rv').sellerNet)}
                   </div>
                 </div>

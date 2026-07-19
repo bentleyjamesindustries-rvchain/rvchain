@@ -245,7 +245,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     setDetail(null);
     refresh();
     toast.success(
-      `Demo purchase. Seller receives ${formatSellerPayout(sale.sellerNet)} (${formatFeePercent(sale.feePercent)} fee).`
+      `Demo purchase complete (${formatFeePercent(sale.feePercent)} marketplace fee applied).`
     );
     const pts = awardRoadCrewForUser(
       user.id,
@@ -451,17 +451,20 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     setCheckout(t);
   };
 
-  const payoutPreview = (price: number, type: MarketplaceItemType) => {
+  /** Seller-only payout estimate — never show to buyers/public browse */
+  const sellerPayoutPreview = (price: number, type: MarketplaceItemType) => {
     if (!Number.isFinite(price) || price <= 0) return null;
     const q = quoteMarketplaceFee(price, type);
     return (
       <div className="rounded-2xl border border-emerald-800/40 bg-emerald-950/20 p-3 text-sm">
         <div className="text-xs text-slate-400">
-          Marketplace fee <strong className="text-slate-200">{formatFeePercent(q.feePercent)}</strong>
+          Your marketplace fee rate{' '}
+          <strong className="text-slate-200">{formatFeePercent(q.feePercent)}</strong>
         </div>
         <div className="text-emerald-300 font-bold text-lg">
           You&apos;ll receive: {formatSellerPayout(q.sellerNet)}
         </div>
+        <p className="text-[10px] text-slate-500 mt-1">Only you see this estimate as the seller.</p>
       </div>
     );
   };
@@ -521,10 +524,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
           <MapPin className="w-3 h-3" /> {l.city}, {l.state}
         </p>
         <div className="text-lg font-bold text-amber-300 mt-2">{priceFmt}</div>
-        <div className="text-[11px] text-slate-500 mt-1">
-          Fee {formatFeePercent(quoteMarketplaceFee(l.price, itemType).feePercent)} · seller gets{' '}
-          {formatSellerPayout(quoteMarketplaceFee(l.price, itemType).sellerNet)}
-        </div>
         <div className="mt-auto pt-3 flex gap-2">
           <button
             type="button"
@@ -865,7 +864,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                     value={rvForm.description}
                     onChange={(e) => setRvForm((f) => ({ ...f, description: e.target.value }))}
                   />
-                  {payoutPreview(Number(rvForm.price), 'rv')}
+                  {sellerPayoutPreview(Number(rvForm.price), 'rv')}
                   {sellerChecks}
                   <button
                     type="button"
@@ -939,7 +938,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                     value={gearForm.description}
                     onChange={(e) => setGearForm((f) => ({ ...f, description: e.target.value }))}
                   />
-                  {payoutPreview(Number(gearForm.price), 'gear')}
+                  {sellerPayoutPreview(Number(gearForm.price), 'gear')}
                   {sellerChecks}
                   <button
                     type="button"
@@ -1013,7 +1012,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                     value={partsForm.description}
                     onChange={(e) => setPartsForm((f) => ({ ...f, description: e.target.value }))}
                   />
-                  {payoutPreview(Number(partsForm.price), 'parts')}
+                  {sellerPayoutPreview(Number(partsForm.price), 'parts')}
                   {sellerChecks}
                   <button
                     type="button"
@@ -1110,7 +1109,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
                   ? formatGearPrice(detail.price)
                   : formatPartsPrice(detail.price)}
             </div>
-            {payoutPreview(detail.price, detail.itemType)}
+            {user?.id && detail.sellerUserId === user.id && sellerPayoutPreview(detail.price, detail.itemType)}
             <div className="flex gap-2">
               {detail.sellerUserId && user?.id !== detail.sellerUserId && (
                 <button
