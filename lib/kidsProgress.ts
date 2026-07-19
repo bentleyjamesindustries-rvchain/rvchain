@@ -301,7 +301,7 @@ export function openTrailPack(progress: KidsProgress): {
     return {
       progress,
       awarded: [],
-      error: 'You opened all free Trail Drops for now. Keep collecting!',
+      error: 'You opened all free packs for now. Keep collecting!',
     };
   }
 
@@ -310,7 +310,7 @@ export function openTrailPack(progress: KidsProgress): {
     return {
       progress,
       awarded: [],
-      error: 'Your Trail Badge vault is full — legendary hunter!',
+      error: 'You already have every badge!',
     };
   }
 
