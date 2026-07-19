@@ -123,7 +123,7 @@ export default function KidsAdventurePanel({
           <ol className="list-decimal pl-5 space-y-2 text-sm text-slate-300 leading-relaxed">
             <li>
               <strong className="text-white">Hunt</strong> — find plants outside (with a grown-up)
-              and take a photo.
+              and take a photo (optional GPS tags your catch).
             </li>
             <li>
               <strong className="text-white">Collect</strong> — each plant unlocks a sticker. Free
