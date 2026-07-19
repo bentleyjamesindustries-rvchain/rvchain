@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import GameShell from './GameShell';
+import { HoldButton, MobileControlBar, TapButton } from './MobileGameControls';
 import { getHighScore, saveHighScore } from '@/lib/kidsGames';
 
 interface TreeClimbGameProps {
@@ -178,45 +179,15 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
       setPhaseBoth('over');
     };
 
-    const clientToX = (clientX: number) => {
-      const rect = canvas.getBoundingClientRect();
-      return ((clientX - rect.left) / rect.width) * W;
-    };
-
+    // Canvas tap = jump only (move uses on-screen buttons for reliable mobile play)
     const onPointerDown = (e: PointerEvent) => {
-      if (phaseRef.current === 'ready' || phaseRef.current === 'over') {
-        beginRun();
-        return;
-      }
+      e.preventDefault();
+      if (phaseRef.current === 'ready' || phaseRef.current === 'over') return;
       if (phaseRef.current !== 'playing') return;
-      const gx = clientToX(e.clientX);
-      // left half = left, right half = right, center upper = jump
-      if (e.clientY - canvas.getBoundingClientRect().top < canvas.getBoundingClientRect().height * 0.35) {
-        jumpQueued.current = true;
-      } else if (gx < W * 0.4) {
-        keys.current.left = true;
-        keys.current.right = false;
-      } else if (gx > W * 0.6) {
-        keys.current.right = true;
-        keys.current.left = false;
-      } else {
-        jumpQueued.current = true;
-      }
-    };
-    const onPointerUp = () => {
-      keys.current.left = false;
-      keys.current.right = false;
-    };
-    const onPointerMove = (e: PointerEvent) => {
-      if (phaseRef.current !== 'playing' || e.buttons === 0) return;
-      const gx = clientToX(e.clientX);
-      keys.current.left = gx < W * 0.42;
-      keys.current.right = gx > W * 0.58;
+      jumpQueued.current = true;
     };
 
-    canvas.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointerup', onPointerUp);
-    window.addEventListener('pointermove', onPointerMove);
+    canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
 
     const loop = (ts: number) => {
       const dt = lastTs ? Math.min(32, ts - lastTs) / 16.67 : 1;
@@ -237,14 +208,12 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
         }
         vx = Math.max(-MOVE_MAX, Math.min(MOVE_MAX, vx));
 
-        // jump
-        if ((jumpQueued.current || keys.current.jump) && onGround) {
+        // jump with buffer so mobile taps aren't lost mid-air
+        if (onGround && (jumpQueued.current || keys.current.jump)) {
           vy = JUMP_V;
           onGround = false;
           jumpQueued.current = false;
           keys.current.jump = false;
-        } else {
-          jumpQueued.current = false;
         }
 
         // gravity (slightly stronger higher for tension)
@@ -538,8 +507,6 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
     return () => {
       cancelAnimationFrame(rafRef.current);
       canvas.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointerup', onPointerUp);
-      window.removeEventListener('pointermove', onPointerMove);
     };
   }, [userId, setPhaseBoth, runKey, beginRun]);
 
@@ -549,37 +516,80 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
       subtitle="Icy Tower–style · jump up the tree"
       onBack={onBack}
     >
-      <div className="relative flex justify-center bg-slate-950">
+      <div className="flex flex-col bg-slate-950">
         <canvas
           ref={canvasRef}
           width={W}
           height={H}
-          className="w-full max-w-[420px] h-auto touch-none cursor-pointer block select-none mx-auto"
+          className="w-full max-w-[480px] h-auto touch-none cursor-pointer block select-none mx-auto"
+          style={{ touchAction: 'none' }}
         />
+
         {phase === 'ready' && (
-          <div className="absolute inset-x-0 bottom-6 flex justify-center pointer-events-none">
+          <div className="p-3 border-t border-slate-700 space-y-2">
+            <p className="text-center text-sm text-slate-300">
+              Hold ← → to move · Jump to climb branches
+            </p>
             <button
               type="button"
               onClick={beginRun}
-              className="pointer-events-auto px-8 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-base font-black shadow-lg"
+              className="w-full min-h-[52px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-base font-black shadow-lg"
             >
               Play →
             </button>
           </div>
         )}
+
+        {phase === 'playing' && (
+          <MobileControlBar>
+            <HoldButton
+              label="◀"
+              sub="left"
+              className="bg-sky-700 text-white"
+              onHoldStart={() => {
+                keys.current.left = true;
+                keys.current.right = false;
+              }}
+              onHoldEnd={() => {
+                keys.current.left = false;
+              }}
+            />
+            <TapButton
+              label="JUMP"
+              sub="up"
+              className="bg-emerald-600 text-white flex-[1.2]"
+              onTap={() => {
+                jumpQueued.current = true;
+              }}
+            />
+            <HoldButton
+              label="▶"
+              sub="right"
+              className="bg-sky-700 text-white"
+              onHoldStart={() => {
+                keys.current.right = true;
+                keys.current.left = false;
+              }}
+              onHoldEnd={() => {
+                keys.current.right = false;
+              }}
+            />
+          </MobileControlBar>
+        )}
+
         {phase === 'over' && (
-          <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2 px-4">
+          <div className="flex flex-col sm:flex-row gap-2 p-3 border-t border-slate-700">
             <button
               type="button"
               onClick={beginRun}
-              className="px-5 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg"
+              className="flex-1 min-h-[52px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
             >
               Climb again
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="px-5 h-11 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
+              className="flex-1 min-h-[52px] rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
             >
               Arcade
             </button>
@@ -588,7 +598,7 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
       </div>
       <p className="px-3 py-2 text-center text-xs text-slate-500">
         {phase === 'playing'
-          ? `Height ${score}${best > 0 ? ` · Best ${best}` : ''} · ←→ move · jump on branches`
+          ? `Height ${score}${best > 0 ? ` · Best ${best}` : ''} · use buttons below`
           : 'Classic tower climb — don’t fall!'}
       </p>
     </GameShell>

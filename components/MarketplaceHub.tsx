@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Caravan, Search, X, MapPin, MessageCircle, Trash2, Info, Package, Wrench, ShieldCheck,
+  Caravan, Search, X, MapPin, MessageCircle, Trash2, List, Package, Wrench, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import {
@@ -582,7 +582,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
             ['gear', 'Gear', Package],
             ['parts', 'Parts', Wrench],
             ['sell', 'Sell', ShieldCheck],
-            ['mine', 'Mine', Info],
+            ['mine', 'Manage listings', List],
           ] as const
         ).map(([id, label, Icon]) => (
           <button

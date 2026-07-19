@@ -13,12 +13,12 @@ interface GameShellProps {
 
 export default function GameShell({ title, subtitle, onBack, children, footer }: GameShellProps) {
   return (
-    <div className="kids-game space-y-3 max-w-screen-xl mx-auto">
-      <div className="flex items-center gap-3">
+    <div className="kids-game space-y-3 max-w-screen-xl mx-auto px-0">
+      <div className="flex items-center gap-3 px-1">
         <button
           type="button"
           onClick={onBack}
-          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white shrink-0"
+          className="inline-flex items-center gap-1.5 text-sm text-slate-400 hover:text-white shrink-0 min-h-[44px] min-w-[44px]"
         >
           <ArrowLeft className="w-4 h-4" /> Games
         </button>
@@ -27,7 +27,7 @@ export default function GameShell({ title, subtitle, onBack, children, footer }:
           {subtitle && <p className="text-xs text-slate-400 truncate">{subtitle}</p>}
         </div>
       </div>
-      <div className="kids-game-stage rounded-2xl sm:rounded-3xl overflow-hidden border border-slate-700 bg-slate-950 shadow-xl shadow-black/40">
+      <div className="kids-game-stage rounded-2xl sm:rounded-3xl border border-slate-700 bg-slate-950 shadow-xl shadow-black/40 overflow-hidden">
         {children}
       </div>
       {footer}

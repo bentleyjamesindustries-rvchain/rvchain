@@ -352,14 +352,45 @@ body {
   background: #1e2937;
 }
 
-/* ── Kids in-browser games ── */
+/* ── Kids in-browser games (mobile-first) ── */
+.kids-game {
+  /* Clear fixed mobile bottom nav */
+  padding-bottom: max(5.5rem, env(safe-area-inset-bottom, 0px));
+  -webkit-user-select: none;
+  user-select: none;
+}
 .kids-game-stage {
   position: relative;
-  max-height: min(70vh, 520px);
+  overflow: visible;
+  /* Do not clip character pickers / on-screen controls */
+  max-height: none;
 }
 .kids-game-stage canvas {
-  max-height: min(70vh, 520px);
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: min(48vh, 420px);
   object-fit: contain;
+  touch-action: none;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
+.kids-game-controls {
+  touch-action: manipulation;
+}
+.kids-game-btn {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: none;
+  cursor: pointer;
+}
+@media (min-width: 768px) {
+  .kids-game {
+    padding-bottom: 1rem;
+  }
+  .kids-game-stage canvas {
+    max-height: min(60vh, 520px);
+  }
 }
 
 /* ── Kids Trail Crew (Gen Alpha game polish) ── */

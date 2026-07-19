@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import GameShell from './GameShell';
+import { HoldButton, MobileControlBar } from './MobileGameControls';
 import { getHighScore, saveHighScore } from '@/lib/kidsGames';
 
 interface MarshmallowCatchGameProps {
@@ -109,31 +110,46 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
       return ((clientX - rect.left) / rect.width) * W;
     };
 
+    const moveBasketToClientX = (clientX: number) => {
+      basketX.current = Math.max(
+        8,
+        Math.min(W - BASKET_W - 8, clientToGameX(clientX) - BASKET_W / 2)
+      );
+    };
+
     const onPointerDown = (e: PointerEvent) => {
+      e.preventDefault();
+      if (phaseRef.current === 'ready' || phaseRef.current === 'over') return;
       pointerActive.current = true;
-      if (phaseRef.current === 'ready') {
-        beginRun();
-        return;
+      try {
+        canvas.setPointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
       }
       if (phaseRef.current === 'playing') {
-        basketX.current = Math.max(8, Math.min(W - BASKET_W - 8, clientToGameX(e.clientX) - BASKET_W / 2));
+        moveBasketToClientX(e.clientX);
       }
     };
     const onPointerMove = (e: PointerEvent) => {
-      if (!pointerActive.current && e.pointerType !== 'touch') {
-        // allow hover-drag without press on desktop optional — only if buttons held
-      }
       if (phaseRef.current !== 'playing') return;
-      if (e.buttons === 0 && e.pointerType === 'mouse' && !pointerActive.current) return;
-      basketX.current = Math.max(8, Math.min(W - BASKET_W - 8, clientToGameX(e.clientX) - BASKET_W / 2));
+      // Follow finger whenever dragging OR whenever touch is active
+      if (!pointerActive.current && e.pointerType === 'mouse' && e.buttons === 0) return;
+      e.preventDefault();
+      moveBasketToClientX(e.clientX);
     };
-    const onPointerUp = () => {
+    const onPointerUp = (e: PointerEvent) => {
       pointerActive.current = false;
+      try {
+        canvas.releasePointerCapture(e.pointerId);
+      } catch {
+        /* ignore */
+      }
     };
 
-    canvas.addEventListener('pointerdown', onPointerDown);
-    window.addEventListener('pointermove', onPointerMove);
-    window.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointerdown', onPointerDown, { passive: false });
+    canvas.addEventListener('pointermove', onPointerMove, { passive: false });
+    canvas.addEventListener('pointerup', onPointerUp);
+    canvas.addEventListener('pointercancel', onPointerUp);
 
     const loop = (ts: number) => {
       const dt = lastTs ? Math.min(32, ts - lastTs) / 16.67 : 1;
@@ -342,8 +358,9 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
     return () => {
       cancelAnimationFrame(rafRef.current);
       canvas.removeEventListener('pointerdown', onPointerDown);
-      window.removeEventListener('pointermove', onPointerMove);
-      window.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointermove', onPointerMove);
+      canvas.removeEventListener('pointerup', onPointerUp);
+      canvas.removeEventListener('pointercancel', onPointerUp);
     };
   }, [userId, setPhaseBoth, runKey, beginRun]);
 
@@ -353,26 +370,72 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
       subtitle="Catch mallows · skip charcoal"
       onBack={onBack}
     >
-      <div className="relative">
+      <div className="flex flex-col">
         <canvas
           ref={canvasRef}
           width={W}
           height={H}
           className="w-full h-auto touch-none cursor-pointer block bg-slate-900 select-none"
+          style={{ touchAction: 'none' }}
         />
-        {phase === 'over' && (
-          <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2 px-4">
+
+        {phase === 'ready' && (
+          <div className="p-3 border-t border-slate-700 space-y-2">
+            <p className="text-center text-sm text-slate-300">
+              Drag on the screen or use the buttons to catch mallows
+            </p>
             <button
               type="button"
               onClick={beginRun}
-              className="px-5 h-11 rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold shadow-lg"
+              className="w-full min-h-[52px] rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-base font-black"
+            >
+              Play →
+            </button>
+          </div>
+        )}
+
+        {phase === 'playing' && (
+          <MobileControlBar>
+            <HoldButton
+              label="◀"
+              sub="left"
+              className="bg-amber-700 text-white"
+              onHoldStart={() => {
+                keys.current.left = true;
+                keys.current.right = false;
+              }}
+              onHoldEnd={() => {
+                keys.current.left = false;
+              }}
+            />
+            <HoldButton
+              label="▶"
+              sub="right"
+              className="bg-amber-700 text-white"
+              onHoldStart={() => {
+                keys.current.right = true;
+                keys.current.left = false;
+              }}
+              onHoldEnd={() => {
+                keys.current.right = false;
+              }}
+            />
+          </MobileControlBar>
+        )}
+
+        {phase === 'over' && (
+          <div className="flex flex-col sm:flex-row gap-2 p-3 border-t border-slate-700">
+            <button
+              type="button"
+              onClick={beginRun}
+              className="flex-1 min-h-[52px] rounded-2xl bg-orange-600 hover:bg-orange-500 text-white text-sm font-bold"
             >
               Play again
             </button>
             <button
               type="button"
               onClick={onBack}
-              className="px-5 h-11 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
+              className="flex-1 min-h-[52px] rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
             >
               Arcade
             </button>
@@ -381,7 +444,7 @@ export default function MarshmallowCatchGame({ userId, onBack }: MarshmallowCatc
       </div>
       <p className="px-3 py-2 text-center text-xs text-slate-500">
         Score {score} · Lives {lives}
-        {best > 0 ? ` · Best ${best}` : ''} · Drag or ← →
+        {best > 0 ? ` · Best ${best}` : ''} · drag canvas or hold ◀ ▶
       </p>
     </GameShell>
   );

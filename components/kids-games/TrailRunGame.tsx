@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import GameShell from './GameShell';
+import { MobileControlBar, TapButton } from './MobileGameControls';
 import { getHighScore, saveHighScore } from '@/lib/kidsGames';
 import {
   getTrailRunCharacter,
@@ -362,6 +363,8 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
     let obstacles: Obstacle[] = [];
     let leaves: Leaf[] = [];
     let ended = false;
+    /** Keep jump intent for a few frames so mobile taps aren't lost mid-air */
+    let jumpBuffer = 0;
 
     const finish = () => {
       if (ended || phaseRef.current !== 'playing') return;
@@ -384,11 +387,18 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
       const over = phaseRef.current === 'over' || ended;
 
       if (playing) {
-        if (jumpQueued.current && onGround) {
-          vy = -15.8; // slightly higher, floatier jump
-          onGround = false;
+        if (jumpQueued.current) {
+          jumpBuffer = 10; // ~10 frames of jump buffer
+          jumpQueued.current = false;
         }
-        jumpQueued.current = false;
+        if (jumpBuffer > 0) {
+          jumpBuffer -= dt;
+          if (onGround) {
+            vy = -15.8;
+            onGround = false;
+            jumpBuffer = 0;
+          }
+        }
 
         vy += 0.62 * dt; // gentler gravity so jumps feel better
         playerY += vy * dt;
@@ -658,12 +668,13 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
 
   return (
     <GameShell title="Trail Run" subtitle="Pick a buddy · jump logs · grab leaves" onBack={onBack}>
-      <div className="relative">
+      <div className="flex flex-col">
         <canvas
           ref={canvasRef}
           width={W}
           height={H}
           className="w-full h-auto touch-none cursor-pointer block bg-slate-900 select-none"
+          style={{ touchAction: 'none' }}
           onPointerDown={(e) => {
             e.preventDefault();
             if (phaseRef.current === 'ready' || phaseRef.current === 'over') return;
@@ -671,82 +682,88 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
           }}
         />
 
+        {/* Character picker flows below canvas (not clipped overlay) — works on phones */}
         {phase === 'ready' && (
-          <div className="absolute inset-0 flex flex-col items-center justify-end sm:justify-center p-3 sm:p-5 bg-slate-950/55 backdrop-blur-[2px]">
-            <div className="w-full max-w-lg space-y-3">
-              <div className="text-center">
-                <h3 className="text-xl sm:text-2xl font-black text-white">Pick your runner</h3>
-                <p className="text-xs sm:text-sm text-slate-300 mt-1">
-                  Tap a buddy, then hit Play
-                </p>
-              </div>
-              <div className="grid grid-cols-3 gap-2 sm:gap-3">
-                {TRAIL_RUN_CHARACTERS.map((c) => {
-                  const selected = c.id === characterId;
-                  return (
-                    <button
-                      key={c.id}
-                      type="button"
-                      onClick={() => pickCharacter(c.id)}
-                      className={`rounded-2xl border-2 p-2 sm:p-3 text-center transition ${
-                        selected
-                          ? 'border-amber-400 bg-amber-500/20 shadow-lg shadow-amber-500/20 scale-[1.02]'
-                          : 'border-slate-600 bg-slate-900/80 hover:border-slate-400'
-                      }`}
-                    >
-                      <CharacterPreview character={c} />
-                      <div className="text-sm font-bold text-white mt-0.5">
-                        {c.emoji} {c.name}
-                      </div>
-                      <div className="text-[10px] sm:text-xs text-slate-400 leading-tight mt-0.5">
-                        {c.tagline}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-              <button
-                type="button"
-                onClick={beginRun}
-                className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-base font-black shadow-lg"
-              >
-                Play as {character.name} →
-              </button>
+          <div className="p-3 sm:p-4 space-y-3 bg-slate-900 border-t border-slate-700">
+            <div className="text-center">
+              <h3 className="text-lg sm:text-xl font-black text-white">Pick your runner</h3>
+              <p className="text-xs text-slate-300 mt-1">Tap a buddy, then Play</p>
             </div>
+            <div className="grid grid-cols-3 gap-2">
+              {TRAIL_RUN_CHARACTERS.map((c) => {
+                const selected = c.id === characterId;
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    onClick={() => pickCharacter(c.id)}
+                    className={`rounded-2xl border-2 p-2 text-center min-h-[100px] transition ${
+                      selected
+                        ? 'border-amber-400 bg-amber-500/20 shadow-lg shadow-amber-500/20'
+                        : 'border-slate-600 bg-slate-950/80'
+                    }`}
+                  >
+                    <CharacterPreview character={c} />
+                    <div className="text-xs sm:text-sm font-bold text-white mt-0.5">
+                      {c.emoji} {c.name}
+                    </div>
+                    <div className="text-[10px] text-slate-400 leading-tight hidden sm:block">
+                      {c.tagline}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+            <button
+              type="button"
+              onClick={beginRun}
+              className="w-full min-h-[52px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-base font-black shadow-lg"
+            >
+              Play as {character.name} →
+            </button>
           </div>
         )}
 
+        {phase === 'playing' && (
+          <MobileControlBar>
+            <TapButton
+              label="JUMP"
+              sub="tap or hold"
+              className="bg-emerald-600 text-white shadow-lg shadow-emerald-900/40"
+              onTap={queueJump}
+            />
+          </MobileControlBar>
+        )}
+
         {phase === 'over' && (
-          <div className="absolute inset-x-0 bottom-4 flex flex-col items-center gap-2 px-4">
-            <div className="flex justify-center gap-2 flex-wrap">
-              <button
-                type="button"
-                onClick={beginRun}
-                className="px-5 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg"
-              >
-                Play again
-              </button>
-              <button
-                type="button"
-                onClick={() => setPhaseBoth('ready')}
-                className="px-5 h-11 rounded-2xl bg-amber-700/90 hover:bg-amber-600 text-white text-sm font-semibold"
-              >
-                Change buddy
-              </button>
-              <button
-                type="button"
-                onClick={onBack}
-                className="px-5 h-11 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
-              >
-                Arcade
-              </button>
-            </div>
+          <div className="flex flex-col sm:flex-row gap-2 p-3 bg-slate-900 border-t border-slate-700">
+            <button
+              type="button"
+              onClick={beginRun}
+              className="flex-1 min-h-[52px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold"
+            >
+              Play again
+            </button>
+            <button
+              type="button"
+              onClick={() => setPhaseBoth('ready')}
+              className="flex-1 min-h-[52px] rounded-2xl bg-amber-700/90 hover:bg-amber-600 text-white text-sm font-semibold"
+            >
+              Change buddy
+            </button>
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex-1 min-h-[52px] rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
+            >
+              Arcade
+            </button>
           </div>
         )}
       </div>
       <p className="px-3 py-2 text-center text-xs text-slate-500">
         {phase === 'playing'
-          ? `Running as ${character.name} · Score ${score}${best > 0 ? ` · Best ${best}` : ''} · Tap to jump`
+          ? `Running as ${character.name} · Score ${score}${best > 0 ? ` · Best ${best}` : ''} · Tap JUMP`
           : phase === 'ready'
             ? `Selected: ${character.emoji} ${character.name}`
             : `Score ${score}${best > 0 ? ` · Best ${best}` : ''}`}
