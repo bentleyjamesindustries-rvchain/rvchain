@@ -92,7 +92,7 @@ export default function KidsScavengerHunt({
           onClick={onBack}
           className="flex items-center gap-1 text-sm text-amber-200/90 hover:text-amber-100"
         >
-          <ChevronLeft className="w-4 h-4" /> Base camp
+          <ChevronLeft className="w-4 h-4" /> HQ
         </button>
       </div>
 

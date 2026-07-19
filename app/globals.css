@@ -351,3 +351,138 @@ body {
 .leaflet-popup-tip {
   background: #1e2937;
 }
+
+/* ── Kids Trail Crew (Gen Alpha game polish) ── */
+.kids-adventure {
+  --kids-pink: #ff4d9a;
+  --kids-cyan: #22d3ee;
+  --kids-lime: #a3e635;
+  --kids-orange: #fb923c;
+  --kids-violet: #a78bfa;
+  --kids-yellow: #facc15;
+}
+
+.kids-adventure .kids-hq-bg {
+  background:
+    radial-gradient(ellipse 80% 50% at 10% 0%, rgba(255, 77, 154, 0.18), transparent 50%),
+    radial-gradient(ellipse 60% 40% at 90% 10%, rgba(34, 211, 238, 0.15), transparent 45%),
+    radial-gradient(ellipse 50% 30% at 50% 100%, rgba(167, 139, 250, 0.12), transparent 50%),
+    linear-gradient(165deg, #0c1222 0%, #0f172a 40%, #1a1030 100%);
+}
+
+.kids-adventure .kids-tile {
+  position: relative;
+  border-radius: 1.25rem;
+  padding: 1.1rem 1rem;
+  text-align: left;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  border: 2px solid transparent;
+  overflow: hidden;
+}
+.kids-adventure .kids-tile:active {
+  transform: scale(0.97);
+}
+.kids-adventure .kids-tile:hover {
+  transform: translateY(-2px);
+}
+.kids-adventure .kids-tile-hunt {
+  background: linear-gradient(145deg, #14532d 0%, #064e3b 50%, #0f766e 100%);
+  box-shadow: 0 0 0 1px rgba(163, 230, 53, 0.35), 0 12px 28px rgba(16, 185, 129, 0.25);
+}
+.kids-adventure .kids-tile-album {
+  background: linear-gradient(145deg, #4c1d95 0%, #5b21b6 50%, #7c3aed 100%);
+  box-shadow: 0 0 0 1px rgba(196, 181, 253, 0.4), 0 12px 28px rgba(124, 58, 237, 0.3);
+}
+.kids-adventure .kids-tile-family {
+  background: linear-gradient(145deg, #9d174d 0%, #db2777 55%, #f472b6 100%);
+  box-shadow: 0 0 0 1px rgba(251, 113, 133, 0.4), 0 12px 28px rgba(236, 72, 153, 0.25);
+}
+
+.kids-adventure .kids-level-ring {
+  width: 4.5rem;
+  height: 4.5rem;
+  border-radius: 9999px;
+  background: conic-gradient(var(--kids-cyan) calc(var(--pct, 0) * 1%), #1e293b 0);
+  padding: 4px;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+}
+.kids-adventure .kids-level-ring-inner {
+  width: 100%;
+  height: 100%;
+  border-radius: 9999px;
+  background: #0f172a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.kids-adventure .kids-quest {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.65rem 0.85rem;
+  border-radius: 0.9rem;
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+}
+.kids-adventure .kids-quest.done {
+  border-color: rgba(163, 230, 53, 0.45);
+  background: rgba(22, 101, 52, 0.25);
+}
+
+.kids-adventure .kids-streak {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 9999px;
+  font-weight: 800;
+  font-size: 0.8rem;
+  background: linear-gradient(90deg, #ea580c, #f59e0b);
+  color: #0f172a;
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.45);
+}
+
+.kids-adventure .kids-rarity-glow-common { box-shadow: 0 0 12px rgba(148, 163, 184, 0.35); }
+.kids-adventure .kids-rarity-glow-uncommon { box-shadow: 0 0 14px rgba(52, 211, 153, 0.45); }
+.kids-adventure .kids-rarity-glow-rare { box-shadow: 0 0 16px rgba(56, 189, 248, 0.5); }
+.kids-adventure .kids-rarity-glow-legendary { box-shadow: 0 0 22px rgba(251, 191, 36, 0.65); }
+
+@keyframes kids-pack-burst {
+  0% { transform: scale(0.4) rotate(-8deg); opacity: 0; }
+  50% { transform: scale(1.08) rotate(2deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes kids-card-flip-in {
+  0% { transform: rotateY(90deg) scale(0.8); opacity: 0; }
+  100% { transform: rotateY(0) scale(1); opacity: 1; }
+}
+@keyframes kids-pop {
+  0% { transform: scale(0.9); }
+  50% { transform: scale(1.04); }
+  100% { transform: scale(1); }
+}
+.kids-adventure .kids-pack-reveal {
+  animation: kids-pack-burst 0.55s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+.kids-adventure .kids-pack-card {
+  animation: kids-card-flip-in 0.45s ease both;
+}
+.kids-adventure .kids-pack-card:nth-child(2) { animation-delay: 0.12s; }
+.kids-adventure .kids-pack-card:nth-child(3) { animation-delay: 0.24s; }
+.kids-adventure .kids-pop-in {
+  animation: kids-pop 0.35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kids-adventure .kids-pack-reveal,
+  .kids-adventure .kids-pack-card,
+  .kids-adventure .kids-pop-in,
+  .kids-adventure .kids-tile {
+    animation: none !important;
+    transition: none !important;
+  }
+}

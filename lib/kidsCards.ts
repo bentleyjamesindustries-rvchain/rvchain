@@ -21,59 +21,25 @@ const RARITY_POWER: Record<CardRarity, string> = {
   legendary: 'Legend of the Road',
 };
 
-/** One collectible card per plant + a few bonus trail creature cards */
-export const KIDS_CARDS: KidsCard[] = [
-  ...KIDS_PLANTS.map((plant) => ({
-    id: `card-${plant.id}`,
-    name: plant.commonName,
-    emoji: plant.emoji,
-    rarity: plant.rarity,
-    plantId: plant.id,
-    type: 'plant' as const,
-    description: plant.funFact,
-    powerLabel: RARITY_POWER[plant.rarity],
-  })),
-  {
-    id: 'card-campfire-fox',
-    name: 'Campfire Fox',
-    emoji: '🦊',
-    rarity: 'rare',
-    plantId: null,
-    type: 'trail',
-    description: 'A clever trail buddy who loves marshmallow stories.',
-    powerLabel: 'Nature Ranger',
-  },
-  {
-    id: 'card-stargazer-owl',
-    name: 'Stargazer Owl',
-    emoji: '🦉',
-    rarity: 'rare',
-    plantId: null,
-    type: 'trail',
-    description: 'Keeps watch under the big sky on quiet nights.',
-    powerLabel: 'Nature Ranger',
-  },
-  {
-    id: 'card-rv-roadrunner',
-    name: 'RV Roadrunner',
-    emoji: '🐦',
-    rarity: 'legendary',
-    plantId: null,
-    type: 'trail',
-    description: 'Beep-beep! Fastest legend on the interstate trail.',
-    powerLabel: 'Legend of the Road',
-  },
-  {
-    id: 'card-compass-chipmunk',
-    name: 'Compass Chipmunk',
-    emoji: '🐿️',
-    rarity: 'uncommon',
-    plantId: null,
-    type: 'trail',
-    description: 'Never loses the way back to base camp.',
-    powerLabel: 'Field Explorer',
-  },
-];
+/** Field Stickers — plant cards from scavenger hunts only (no legacy trail creatures) */
+export const KIDS_CARDS: KidsCard[] = KIDS_PLANTS.map((plant) => ({
+  id: `card-${plant.id}`,
+  name: plant.commonName,
+  emoji: plant.emoji,
+  rarity: plant.rarity,
+  plantId: plant.id,
+  type: 'plant' as const,
+  description: plant.funFact,
+  powerLabel: RARITY_POWER[plant.rarity],
+}));
+
+/** Removed emoji trail creatures — use Trail Badges art set instead */
+export const LEGACY_TRAIL_CREATURE_IDS = [
+  'card-campfire-fox',
+  'card-stargazer-owl',
+  'card-rv-roadrunner',
+  'card-compass-chipmunk',
+] as const;
 
 const CARD_MAP = new Map(KIDS_CARDS.map((c) => [c.id, c]));
 
