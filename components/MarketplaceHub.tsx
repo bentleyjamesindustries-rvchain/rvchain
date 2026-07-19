@@ -76,6 +76,8 @@ import {
   type SellerBillingInterval,
 } from '@/lib/rvSubscriptionStorage';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
+import { awardRoadCrewForUser } from '@/lib/roadCrew';
+import { getMembershipPlanId } from '@/lib/membershipSubscription';
 import MarketplaceDisclosure from './MarketplaceDisclosure';
 import MarketplaceCheckoutModal from './MarketplaceCheckoutModal';
 
@@ -245,6 +247,13 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     toast.success(
       `Demo purchase. Seller receives ${formatSellerPayout(sale.sellerNet)} (${formatFeePercent(sale.feePercent)} fee).`
     );
+    const pts = awardRoadCrewForUser(
+      user.id,
+      getMembershipPlanId(user.id),
+      'market_sale',
+      checkout.title
+    );
+    if (pts > 0) toast.message(`Road Crew +${pts} pts`);
   };
 
   const publishRv = () => {
@@ -304,6 +313,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       status: 'active',
     });
     const q = quoteMarketplaceFee(price, 'rv');
+    const listedTitle = rvForm.title.trim();
     setRvForm(EMPTY_RV);
     setSellerAgreeFee(false);
     setSellerAgreeOwn(false);
@@ -313,6 +323,8 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     toast.success(
       `RV listed (demo). At list price you receive ${formatSellerPayout(q.sellerNet)} (${formatFeePercent(q.feePercent)}).`
     );
+    const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'market_list', listedTitle);
+    if (pts > 0) toast.message(`Road Crew +${pts} pts`);
   };
 
   const publishGear = () => {
@@ -358,6 +370,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       status: 'active',
     });
     const q = quoteMarketplaceFee(price, 'gear');
+    const listedTitle = gearForm.title.trim();
     setGearForm(EMPTY_GEAR);
     setSellerAgreeFee(false);
     setSellerAgreeOwn(false);
@@ -367,6 +380,8 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     toast.success(
       `Gear listed (demo). At list price you receive ${formatSellerPayout(q.sellerNet)} (${formatFeePercent(q.feePercent)}).`
     );
+    const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'market_list', listedTitle);
+    if (pts > 0) toast.message(`Road Crew +${pts} pts`);
   };
 
   const publishParts = () => {
@@ -413,6 +428,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       status: 'active',
     });
     const q = quoteMarketplaceFee(price, 'parts');
+    const listedTitle = partsForm.title.trim();
     setPartsForm(EMPTY_PARTS);
     setSellerAgreeFee(false);
     setSellerAgreeOwn(false);
@@ -422,6 +438,8 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     toast.success(
       `Parts listed (demo). At list price you receive ${formatSellerPayout(q.sellerNet)} (${formatFeePercent(q.feePercent)}).`
     );
+    const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'market_list', listedTitle);
+    if (pts > 0) toast.message(`Road Crew +${pts} pts`);
   };
 
   const openBuy = (t: CheckoutTarget) => {

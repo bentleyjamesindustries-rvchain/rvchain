@@ -41,6 +41,7 @@ import {
   type ChecklistPackId,
 } from '@/lib/tripChecklists';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
+import { awardRoadCrewForUser } from '@/lib/roadCrew';
 import MembershipTierPicker from './MembershipTierPicker';
 import MembershipDisclosure from './MembershipDisclosure';
 import CampingChecklist from './CampingChecklist';
@@ -145,6 +146,8 @@ export default function TripPlannerPanel({
       setSelectedTrip(trip);
       setTripParks([]);
       toast.success('Trip created!');
+      const pts = awardRoadCrewForUser(user.id, planId, 'trip_created', title);
+      if (pts > 0) toast.message(`Road Crew +${pts} pts`);
       return;
     }
 
@@ -163,6 +166,8 @@ export default function TripPlannerPanel({
         setSelectedTrip(trip);
         setTripParks([]);
         toast.success('Trip created (saved locally).');
+        const pts = awardRoadCrewForUser(user.id, planId, 'trip_created', title);
+        if (pts > 0) toast.message(`Road Crew +${pts} pts`);
         return;
       }
       toast.error(error.message || 'Failed to create trip.');
@@ -172,6 +177,10 @@ export default function TripPlannerPanel({
     setUserTrips([data as StoredTrip, ...userTrips]);
     setNewTripTitle('');
     setSelectedTrip(data as StoredTrip);
+    {
+      const pts = awardRoadCrewForUser(user.id, planId, 'trip_created', title);
+      if (pts > 0) toast.message(`Road Crew +${pts} pts`);
+    }
     setTripParks([]);
     toast.success('Trip created!');
   };

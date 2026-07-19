@@ -23,6 +23,7 @@ import { snapshotAvatarForPost } from '@/lib/imageCompress';
 import { getMembershipPlanId } from '@/lib/membershipSubscription';
 import { canPostOnForum, getMembershipPlan } from '@/lib/membershipPlans';
 import ProfileAvatar from './ProfileAvatar';
+import { awardRoadCrewForUser } from '@/lib/roadCrew';
 
 interface ForumPanelProps {
   user: { id: string; username?: string } | null;
@@ -186,6 +187,8 @@ export default function ForumPanel({
     if (useLocalOnly) {
       addLocalForumPost(optimistic);
       toast.success('Posted to forum (saved on this device).');
+      const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'forum_post', title);
+      if (pts > 0) toast.message(`Road Crew +${pts} pts`);
       setSubmitting(false);
       return;
     }
@@ -211,6 +214,8 @@ export default function ForumPanel({
         addLocalForumPost(optimistic);
         setPosts((prev) => [optimistic, ...prev.filter((p) => p.id !== optimistic.id)]);
         toast.success('Posted locally — run supabase-setup.sql for cloud sync.');
+        const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'forum_post', title);
+        if (pts > 0) toast.message(`Road Crew +${pts} pts`);
       } else {
         toast.error('Could not post. Try again.');
       }
@@ -218,6 +223,8 @@ export default function ForumPanel({
       const saved = mapSupabaseRow(data);
       setPosts((prev) => [saved, ...prev.filter((p) => p.id !== optimistic.id)]);
       toast.success('Posted to the forum!');
+      const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'forum_post', title);
+      if (pts > 0) toast.message(`Road Crew +${pts} pts`);
     }
 
     setSubmitting(false);

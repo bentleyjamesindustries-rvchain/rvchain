@@ -14,7 +14,7 @@ import TripPlannerPanel from '@/components/TripPlannerPanel';
 import dynamic from 'next/dynamic';
 import Image from 'next/image';
 import { toast } from 'sonner';
-import RewardsPanel from '@/components/RewardsPanel';
+import RoadCrewPanel from '@/components/RoadCrewPanel';
 import ForgotPasswordModal from '@/components/ForgotPasswordModal';
 import { updateUserPassword } from '@/lib/passwordRecovery';
 import {
@@ -24,13 +24,12 @@ import {
   signInWithEmail,
   resendSignupConfirmation,
 } from '@/lib/auth';
-import { performCheckIn } from '@/lib/rewards';
 import {
   loadUnifiedRewards,
-  saveUnifiedRewards,
   getRewardsUserId,
   getActivePoints,
 } from '@/lib/rewardsStorage';
+import { awardRoadCrewForUser } from '@/lib/roadCrew';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { createModeratorVerification, getParkVerificationInfo } from '@/lib/spotVerification';
 import { isModerator } from '@/lib/moderator';
@@ -57,7 +56,7 @@ import {
 import { useIsMobile } from '@/lib/useDeviceType';
 import { purgeLegacyWalletStorage } from '@/lib/legacyWalletCleanup';
 import { getMembershipPlanId } from '@/lib/membershipSubscription';
-import { canEarnLoyaltyPoints, canUseTripPlanner } from '@/lib/membershipPlans';
+import { canUseTripPlanner } from '@/lib/membershipPlans';
 import type { RewardProgramId } from '@/lib/rewardPrograms';
 import type { LucideIcon } from 'lucide-react';
 
@@ -71,7 +70,6 @@ const MapView = dynamic(() => import('@/components/MapView'), {
 });
 
 type Tab = 'discover' | 'kids' | 'marketplace' | 'map' | 'community' | 'trips' | 'rewards';
-type PriceTier = 'all' | 'budget' | 'mid' | 'premium';
 
 // Auth + Supabase state types
 interface User {
@@ -80,37 +78,26 @@ interface User {
   username?: string;
 }
 
-const ALL_AMENITIES = ["Full Hookups", "WiFi", "Pet Friendly", "Pool", "Laundry", "50 Amp", "Dump Station", "Propane", "Store"] as const;
-
-const PRICE_TIERS: { label: string; value: PriceTier }[] = [
-  { label: 'Any price', value: 'all' },
-  { label: '$25–45', value: 'budget' },
-  { label: '$46–65', value: 'mid' },
-  { label: '$66+', value: 'premium' },
-];
-
 const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
-  { id: 'discover', label: 'Discover', icon: Search },
-  { id: 'kids', label: 'Kids', icon: Sparkles },
   { id: 'marketplace', label: 'Market', icon: Caravan },
-  { id: 'map', label: 'Map', icon: MapPin },
+  { id: 'kids', label: 'Kids', icon: Sparkles },
+  { id: 'discover', label: 'Spots', icon: MapPin },
+  { id: 'map', label: 'Map', icon: Search },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
   { id: 'trips', label: 'Trips', icon: Calendar },
-  { id: 'rewards', label: 'Rewards', icon: Gift },
+  { id: 'rewards', label: 'Crew', icon: Gift },
 ];
 
 export default function RVChainApp() {
   const isMobile = useIsMobile();
   // Tab state
-  const [activeTab, setActiveTab] = useState<Tab>('discover');
+  const [activeTab, setActiveTab] = useState<Tab>('marketplace');
 
-  // Filter states
+  // Spot filters (community spots — search + state only)
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedState, setSelectedState] = useState('');
-  const [selectedAmenities, setSelectedAmenities] = useState<string[]>([]);
-  const [priceTier, setPriceTier] = useState<PriceTier>('all');
 
   // User data
   const [userLocation, setUserLocation] = useState<{ lat: number; lng: number } | null>(null);
@@ -260,7 +247,7 @@ export default function RVChainApp() {
     fetchParks();
   }, []);
 
-  // Computed filtered + sorted parks (from Supabase or seed)
+  // Community spots — search + state only (not a full campground database)
   const filteredParks = useMemo(() => {
     const sourceParks = enrichParks(dbParks.length > 0 ? dbParks : LOCAL_PARK_CATALOG);
     let result = sourceParks.filter((park) => {
@@ -271,23 +258,10 @@ export default function RVChainApp() {
         (park.city?.toLowerCase().includes(term) ?? false) ||
         (park.state?.toLowerCase().includes(term) ?? false) ||
         (park.description?.toLowerCase().includes(term) ?? false);
-
       const matchesState = !selectedState || park.state === selectedState;
-
-      const matchesAmenities =
-        selectedAmenities.length === 0 ||
-        selectedAmenities.every((a) => park.amenities.includes(a));
-
-      let matchesPrice = true;
-      const price = park.price ?? 0;
-      if (priceTier === 'budget') matchesPrice = price <= 45;
-      if (priceTier === 'mid') matchesPrice = price > 45 && price <= 65;
-      if (priceTier === 'premium') matchesPrice = price > 65;
-
-      return matchesSearch && matchesState && matchesAmenities && matchesPrice;
+      return matchesSearch && matchesState;
     });
 
-    // Attach distance and sort by nearest if we have location
     if (userLocation) {
       result = result
         .filter((park) => park.lat != null && park.lng != null)
@@ -299,26 +273,11 @@ export default function RVChainApp() {
     }
 
     return result;
-  }, [searchTerm, selectedState, selectedAmenities, priceTier, userLocation]);
-
-  // Handlers
-  const toggleAmenity = (amenity: string) => {
-    setSelectedAmenities((prev) =>
-      prev.includes(amenity)
-        ? prev.filter((a) => a !== amenity)
-        : [...prev, amenity]
-    );
-  };
-
-  const setPriceFilter = (tier: PriceTier) => {
-    setPriceTier(tier);
-  };
+  }, [searchTerm, selectedState, userLocation, dbParks]);
 
   const clearFilters = () => {
     setSearchTerm('');
     setSelectedState('');
-    setSelectedAmenities([]);
-    setPriceTier('all');
   };
 
   const useMyLocation = () => {
@@ -471,36 +430,9 @@ export default function RVChainApp() {
     toast.success("Signed out");
   };
 
-  const handleParkCheckIn = (park: Park) => {
-    if (!user) {
-      toast.error('Sign in to earn loyalty points.');
-      setShowAuthModal(true);
-      return;
-    }
-    const membershipPlanId = getMembershipPlanId(user.id);
-    if (!canEarnLoyaltyPoints(membershipPlanId)) {
-      toast.info('Loyalty rewards require Weekender or higher.');
-      setActiveTab('trips');
-      return;
-    }
-    const uid = getRewardsUserId(user.id);
-    const rewards = loadUnifiedRewards(uid);
-    const { profile: next, points, error } = performCheckIn(
-      rewards.mileage,
-      'campsite',
-      park.id,
-      park.name,
-      membershipPlanId
-    );
-    if (error) return toast.error(error);
-    saveUnifiedRewards(uid, { ...rewards, activeProgram: 'mileage', mileage: next });
-    syncRewardsState();
-    toast.success(`+${points} points! Checked in at ${park.name}`);
-  };
-
-  // === PARK SUBMISSION (real backend) ===
+  // === SPOT SUBMISSION ===
   const submitNewPark = async () => {
-    if (!user) return toast.error("Sign in to submit parks.");
+    if (!user) return toast.error("Sign in to share a spot.");
     if (!newPark.name || !newPark.city) return toast.error("Name and city required.");
 
     try {
@@ -519,7 +451,12 @@ export default function RVChainApp() {
       });
       if (error) throw error;
 
-      toast.success("Park submitted! It will appear after refresh (or verify it yourself).");
+      toast.success("Spot shared! Thanks for helping the community.");
+      const crewPts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'checklist_item', 'Shared a spot');
+      if (crewPts > 0) {
+        syncRewardsState();
+        toast.message(`Road Crew +${crewPts} pts`);
+      }
       setShowSubmitPark(false);
       setNewPark({ name: '', city: '', state: '', lat: '', lng: '', price: '', description: '', image: '' });
 
@@ -683,11 +620,11 @@ export default function RVChainApp() {
               <button
                 onClick={() => setActiveTab('rewards')}
                 className="flex items-center gap-x-1 text-xs sm:text-sm bg-amber-500/20 hover:bg-amber-500/30 backdrop-blur px-2 sm:px-3 py-1.5 rounded-2xl text-amber-200 transition"
-                title="Rewards points"
+                title="Road Crew points"
               >
                 <Gift className="w-3.5 h-3.5 shrink-0" />
                 <span className="font-semibold text-amber-100">{rewardPoints.toLocaleString()}</span>
-                <span className="text-amber-300/80 text-[10px] sm:text-xs hidden min-[380px]:inline">pts</span>
+                <span className="text-amber-300/80 text-[10px] sm:text-xs hidden min-[380px]:inline">crew</span>
               </button>
 
               <div className="hidden lg:flex items-center gap-x-2 text-sm bg-white/10 backdrop-blur px-3 py-1.5 rounded-2xl text-green-100">
@@ -761,8 +698,8 @@ export default function RVChainApp() {
       <div className="rv-hero max-w-screen-xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-3">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
           <div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Plan the trip.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Connect with the road.</h1>
-            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Community, trip tools, family adventures &amp; RV marketplace — not a booking engine.</p>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Market. Family.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Crew on the road.</h1>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Sell RVs &amp; gear, Kids adventures, community spots &amp; trips — not a campground booking engine.</p>
           </div>
 
           <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">
@@ -777,7 +714,7 @@ export default function RVChainApp() {
               onClick={() => setActiveTab('discover')}
               className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 border border-white/30 hover:bg-white/5 font-medium rounded-3xl transition text-sm"
             >
-              Browse {totalParks} parks
+              Browse community spots
             </button>
           </div>
         </div>
@@ -822,15 +759,22 @@ export default function RVChainApp() {
         />
       )}
 
-      {/* DISCOVER */}
+      {/* COMMUNITY SPOTS (not a full campground database) */}
       {activeTab === 'discover' && (
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
-          {/* Filters */}
-          <div className="flex flex-col lg:flex-row gap-3 mb-5">
+          <div className="mb-5 section-intro">
+            <h2 className="text-xl sm:text-2xl font-semibold">Community spots</h2>
+            <p className="text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
+              Shared picks and public leads — not a nationwide campground inventory. Use directions,
+              save favorites, and add stops on Trips. Book stays on the park or agency site.
+            </p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row gap-3 mb-5">
             <div className="flex-1 relative">
               <input
                 type="text"
-                placeholder="Search parks, cities, or states..."
+                placeholder="Search spots, cities, or states..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="w-full bg-slate-900 border border-slate-700 focus:border-green-600 transition pl-11 pr-4 h-12 rounded-3xl text-base placeholder:text-slate-500 outline-none"
@@ -846,63 +790,28 @@ export default function RVChainApp() {
             <select
               value={selectedState}
               onChange={(e) => setSelectedState(e.target.value)}
-              className="lg:w-52 bg-slate-900 border border-slate-700 focus:border-green-600 h-12 px-4 rounded-3xl text-base outline-none"
+              className="sm:w-52 bg-slate-900 border border-slate-700 focus:border-green-600 h-12 px-4 rounded-3xl text-base outline-none"
             >
               <option value="">All States</option>
               {STATES.map((s) => (
                 <option key={s} value={s}>{s}</option>
               ))}
             </select>
-
-            <div className="filter-scroll flex items-center bg-slate-900 border border-slate-700 rounded-3xl p-1 text-xs sm:text-sm min-w-0 w-full lg:w-auto">
-              {PRICE_TIERS.map((tier) => (
-                <button
-                  key={tier.value}
-                  onClick={() => setPriceFilter(tier.value)}
-                  className={`px-4 h-9 rounded-[20px] hover:bg-slate-800 active:bg-slate-700 font-medium transition ${priceTier === tier.value ? 'bg-green-700 text-white' : ''}`}
-                >
-                  {tier.label}
-                </button>
-              ))}
-            </div>
           </div>
 
-          {/* Amenity chips */}
-          <div className="mb-5 section-intro">
-            <div className="text-xs font-medium tracking-wider text-slate-400 mb-1.5 ml-1">FILTER BY AMENITIES</div>
-            <div className="flex flex-wrap gap-2">
-              {ALL_AMENITIES.map((amenity) => {
-                const active = selectedAmenities.includes(amenity);
-                return (
-                  <button
-                    key={amenity}
-                    onClick={() => toggleAmenity(amenity)}
-                    className={`filter-chip px-3 py-1 text-xs border rounded-2xl hover:border-green-600 transition ${active ? 'active border-green-700' : 'border-slate-600'}`}
-                  >
-                    {amenity}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Results header */}
           <div className="flex items-center justify-between mb-3 px-1 section-intro">
             <div>
               <span className="font-semibold text-xl">{filteredParks.length}</span>
-              <span className="text-slate-400 text-sm ml-1">community park picks</span>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                Growing list of public &amp; community spots — not a complete catalog. Plan trips &amp; connect; book stays with parks directly.
-              </p>
+              <span className="text-slate-400 text-sm ml-1">community spots</span>
             </div>
             <div className="flex items-center gap-3">
               {user && (
                 <button onClick={() => setShowSubmitPark(true)} className="text-xs flex items-center gap-1 bg-orange-600 hover:bg-orange-500 px-3 py-1.5 rounded-2xl font-medium">
-                  <Plus className="w-3 h-3"/> Submit Park
+                  <Plus className="w-3 h-3"/> Share a spot
                 </button>
               )}
               <button onClick={clearFilters} className="text-xs text-emerald-400 hover:text-emerald-300 flex items-center gap-1">
-                <X className="w-3 h-3" /> Clear all filters
+                <X className="w-3 h-3" /> Clear
               </button>
             </div>
           </div>
@@ -911,8 +820,8 @@ export default function RVChainApp() {
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 pb-10">
             {filteredParks.length === 0 ? (
               <div className="col-span-full text-center py-10 text-slate-400">
-                No parks match your filters.<br />
-                <button onClick={clearFilters} className="mt-3 underline text-green-400">Clear filters</button>
+                No spots match.<br />
+                <button onClick={clearFilters} className="mt-3 underline text-green-400">Clear search</button>
               </div>
             ) : (
               filteredParks.map((park) => {
@@ -1040,8 +949,8 @@ export default function RVChainApp() {
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
           <div className="flex items-center justify-between mb-3 section-intro">
             <div>
-              <h2 className="font-semibold text-2xl">Explore on the map</h2>
-              <p className="text-slate-400 text-sm">Click any marker for quick info and directions</p>
+              <h2 className="font-semibold text-2xl">Spots on the map</h2>
+              <p className="text-slate-400 text-sm">Community picks — tap for directions (book stays off-site)</p>
             </div>
             <div className="text-sm bg-slate-900 px-4 py-1.5 rounded-2xl border border-slate-700">
               Showing <span className="font-semibold">{filteredParks.length}</span> parks
@@ -1170,14 +1079,15 @@ export default function RVChainApp() {
                 <span className="font-semibold">Get Directions in Google Maps</span>
               </button>
 
-              {user && canEarnLoyaltyPoints(getMembershipPlanId(user.id)) && (
-                <button
-                  onClick={() => handleParkCheckIn(selectedPark)}
-                  className="w-full bg-amber-700 hover:bg-amber-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
+              {selectedPark.sourceUrl && (
+                <a
+                  href={selectedPark.sourceUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full bg-sky-800 hover:bg-sky-700 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
                 >
-                  <Gift className="w-4 h-4" />
-                  <span>Check In (+250 pts)</span>
-                </button>
+                  Open park / agency site
+                </a>
               )}
 
               <div className="grid grid-cols-2 gap-2 text-sm">
@@ -1439,10 +1349,8 @@ export default function RVChainApp() {
 
       {/* REWARDS TAB */}
       {activeTab === 'rewards' && (
-        <RewardsPanel
+        <RoadCrewPanel
           user={user}
-          parks={allParks}
-          userLocation={userLocation}
           onRequestSignIn={() => setShowAuthModal(true)}
           onRequestUpgrade={() => setActiveTab('trips')}
           onPointsChange={syncRewardsState}

@@ -13,6 +13,8 @@ import {
   saveKidsProgress,
   type KidsProgress,
 } from '@/lib/kidsProgress';
+import { awardRoadCrewForUser } from '@/lib/roadCrew';
+import { getMembershipPlanId } from '@/lib/membershipSubscription';
 
 interface KidsScavengerHuntProps {
   userId: string;
@@ -62,6 +64,18 @@ export default function KidsScavengerHunt({
           ? `Found ${selected.commonName}! Card unlocked: ${card.name}`
           : `Found ${selected.commonName}! Great field work!`
       );
+      // Road Crew: award to parent account if explorer id is guest-style; use progress userId host
+      const crewUser =
+        userId.startsWith('explorer:') ? null : userId;
+      if (crewUser && !crewUser.startsWith('guest')) {
+        const pts = awardRoadCrewForUser(
+          crewUser,
+          getMembershipPlanId(crewUser),
+          'kids_plant_found',
+          selected.commonName
+        );
+        if (pts > 0) toast.message(`Road Crew +${pts} pts`);
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not save photo.');
     } finally {
