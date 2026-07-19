@@ -3,6 +3,14 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import GameShell from './GameShell';
 import { getHighScore, saveHighScore } from '@/lib/kidsGames';
+import {
+  getTrailRunCharacter,
+  loadTrailRunCharacter,
+  saveTrailRunCharacter,
+  TRAIL_RUN_CHARACTERS,
+  type TrailRunCharacter,
+  type TrailRunCharacterId,
+} from '@/lib/trailRunCharacters';
 
 interface TrailRunGameProps {
   userId: string;
@@ -28,31 +36,32 @@ const W = 800;
 const H = 420;
 const GROUND = 340;
 const PLAYER_X = 120;
-/** Hitbox — slightly generous for a chubby chibi runner */
 const PLAYER_W = 48;
 const PLAYER_H = 50;
 
-/** Pudgy trail buddy: round chipmunk-fox hybrid, big eyes, blush */
 function drawCuteRunner(
   ctx: CanvasRenderingContext2D,
   x: number,
   y: number,
   onGround: boolean,
-  scroll: number
+  scroll: number,
+  character: TrailRunCharacter
 ) {
+  const p = character.palette;
   const cx = x + PLAYER_W / 2;
   const bob = onGround ? Math.sin(scroll * 0.22) * 1.5 : 0;
   const baseY = y + bob;
   const legSwing = onGround ? Math.sin(scroll * 0.4) * 5 : 0;
+  const style = character.style;
 
-  // soft ground shadow
+  // ground shadow
   ctx.fillStyle = 'rgba(0,0,0,0.18)';
   ctx.beginPath();
   ctx.ellipse(cx, y + PLAYER_H + 2, 18, 5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // stubby legs (behind body)
-  ctx.fillStyle = '#c2410c';
+  // legs
+  ctx.fillStyle = p.bodyDark;
   if (onGround) {
     ctx.beginPath();
     ctx.ellipse(cx - 10, baseY + PLAYER_H - 6 + legSwing * 0.15, 7, 9, 0.15, 0, Math.PI * 2);
@@ -61,7 +70,6 @@ function drawCuteRunner(
     ctx.ellipse(cx + 10, baseY + PLAYER_H - 6 - legSwing * 0.15, 7, 9, -0.15, 0, Math.PI * 2);
     ctx.fill();
   } else {
-    // tucked for jump
     ctx.beginPath();
     ctx.ellipse(cx - 8, baseY + PLAYER_H - 10, 7, 7, -0.4, 0, Math.PI * 2);
     ctx.fill();
@@ -70,20 +78,49 @@ function drawCuteRunner(
     ctx.fill();
   }
 
-  // chubby body (big orange blob)
-  ctx.fillStyle = '#fb923c';
+  // tail by species
+  if (style === 'fox') {
+    ctx.fillStyle = p.bodyDark;
+    ctx.beginPath();
+    ctx.ellipse(cx - 24, baseY + 22, 10, 12, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = p.accent || p.belly;
+    ctx.beginPath();
+    ctx.ellipse(cx - 24, baseY + 20, 5, 6, -0.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (style === 'bunny') {
+    ctx.fillStyle = p.bodyDark;
+    ctx.beginPath();
+    ctx.arc(cx - 20, baseY + 28, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = p.belly;
+    ctx.beginPath();
+    ctx.arc(cx - 20, baseY + 28, 4, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // bear stubby tail
+    ctx.fillStyle = p.bodyDark;
+    ctx.beginPath();
+    ctx.arc(cx - 20, baseY + 26, 6, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // chubby body — bear a bit rounder
+  const bodyRx = style === 'bear' ? 24 : 22;
+  const bodyRy = style === 'bear' ? 19 : 18;
+  ctx.fillStyle = p.body;
   ctx.beginPath();
-  ctx.ellipse(cx, baseY + 30, 22, 18, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, baseY + 30, bodyRx, bodyRy, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // cream belly
-  ctx.fillStyle = '#ffedd5';
+  // belly
+  ctx.fillStyle = p.belly;
   ctx.beginPath();
-  ctx.ellipse(cx, baseY + 33, 13, 12, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx, baseY + 33, style === 'bear' ? 14 : 13, style === 'bear' ? 13 : 12, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // little arms
-  ctx.fillStyle = '#f97316';
+  // arms
+  ctx.fillStyle = p.bodyDark;
   ctx.beginPath();
   ctx.ellipse(cx - 20, baseY + 28, 7, 6, -0.4, 0, Math.PI * 2);
   ctx.fill();
@@ -91,41 +128,64 @@ function drawCuteRunner(
   ctx.ellipse(cx + 20, baseY + 28, 7, 6, 0.4, 0, Math.PI * 2);
   ctx.fill();
 
-  // fluffy tail (behind-ish, peeks left)
-  ctx.fillStyle = '#ea580c';
+  // head
+  ctx.fillStyle = p.body;
   ctx.beginPath();
-  ctx.ellipse(cx - 24, baseY + 22, 10, 12, -0.5, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#fdba74';
-  ctx.beginPath();
-  ctx.ellipse(cx - 24, baseY + 20, 5, 6, -0.5, 0, Math.PI * 2);
+  ctx.arc(cx + 2, baseY + 12, style === 'bear' ? 19 : 18, 0, Math.PI * 2);
   ctx.fill();
 
-  // big round head
-  ctx.fillStyle = '#fb923c';
-  ctx.beginPath();
-  ctx.arc(cx + 2, baseY + 12, 18, 0, Math.PI * 2);
-  ctx.fill();
+  // ears
+  if (style === 'bunny') {
+    // tall floppy ears
+    ctx.fillStyle = p.ear;
+    ctx.beginPath();
+    ctx.ellipse(cx - 8, baseY - 10, 6, 16, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + 14, baseY - 12, 6, 17, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = p.earInner;
+    ctx.beginPath();
+    ctx.ellipse(cx - 8, baseY - 10, 2.5, 10, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(cx + 14, baseY - 12, 2.5, 11, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+  } else if (style === 'bear') {
+    ctx.fillStyle = p.ear;
+    ctx.beginPath();
+    ctx.arc(cx - 12, baseY - 2, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 16, baseY - 2, 9, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = p.earInner;
+    ctx.beginPath();
+    ctx.arc(cx - 12, baseY - 1, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 16, baseY - 1, 4.5, 0, Math.PI * 2);
+    ctx.fill();
+  } else {
+    // fox round ears
+    ctx.fillStyle = p.ear;
+    ctx.beginPath();
+    ctx.arc(cx - 10, baseY - 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 14, baseY - 2, 8, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = p.earInner;
+    ctx.beginPath();
+    ctx.arc(cx - 10, baseY - 1, 4, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + 14, baseY - 1, 4, 0, Math.PI * 2);
+    ctx.fill();
+  }
 
-  // round ears
-  ctx.fillStyle = '#f97316';
-  ctx.beginPath();
-  ctx.arc(cx - 10, baseY - 2, 8, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx + 14, baseY - 2, 8, 0, Math.PI * 2);
-  ctx.fill();
-  // inner ear pink
-  ctx.fillStyle = '#fda4af';
-  ctx.beginPath();
-  ctx.arc(cx - 10, baseY - 1, 4, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.beginPath();
-  ctx.arc(cx + 14, baseY - 1, 4, 0, Math.PI * 2);
-  ctx.fill();
-
-  // blush cheeks
-  ctx.fillStyle = 'rgba(251, 113, 133, 0.45)';
+  // blush
+  ctx.fillStyle = p.cheek;
   ctx.beginPath();
   ctx.ellipse(cx - 8, baseY + 16, 5, 3.5, 0, 0, Math.PI * 2);
   ctx.fill();
@@ -133,42 +193,76 @@ function drawCuteRunner(
   ctx.ellipse(cx + 12, baseY + 16, 5, 3.5, 0, 0, Math.PI * 2);
   ctx.fill();
 
-  // big shiny eyes
+  // snout for bear
+  if (style === 'bear') {
+    ctx.fillStyle = p.belly;
+    ctx.beginPath();
+    ctx.ellipse(cx + 3, baseY + 17, 8, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // eyes
   ctx.fillStyle = '#0f172a';
+  const eyeY = baseY + (style === 'bear' ? 10 : 11);
   ctx.beginPath();
-  ctx.ellipse(cx - 3, baseY + 11, 4.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx - 3, eyeY, 4.5, 5.5, 0, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.ellipse(cx + 9, baseY + 11, 4.5, 5.5, 0, 0, Math.PI * 2);
+  ctx.ellipse(cx + 9, eyeY, 4.5, 5.5, 0, 0, Math.PI * 2);
   ctx.fill();
-  // eye shine
   ctx.fillStyle = '#ffffff';
   ctx.beginPath();
-  ctx.arc(cx - 1.5, baseY + 9, 1.8, 0, Math.PI * 2);
+  ctx.arc(cx - 1.5, eyeY - 2, 1.8, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(cx + 10.5, baseY + 9, 1.8, 0, Math.PI * 2);
+  ctx.arc(cx + 10.5, eyeY - 2, 1.8, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(cx - 4, baseY + 13, 0.9, 0, Math.PI * 2);
+  ctx.arc(cx - 4, eyeY + 2, 0.9, 0, Math.PI * 2);
   ctx.fill();
   ctx.beginPath();
-  ctx.arc(cx + 8, baseY + 13, 0.9, 0, Math.PI * 2);
+  ctx.arc(cx + 8, eyeY + 2, 0.9, 0, Math.PI * 2);
   ctx.fill();
 
-  // tiny nose
-  ctx.fillStyle = '#9f1239';
+  // nose
+  ctx.fillStyle = p.nose;
   ctx.beginPath();
-  ctx.ellipse(cx + 3, baseY + 17, 2.5, 2, 0, 0, Math.PI * 2);
+  if (style === 'bear') {
+    ctx.ellipse(cx + 3, baseY + 16, 3.5, 2.5, 0, 0, Math.PI * 2);
+  } else {
+    ctx.ellipse(cx + 3, baseY + 17, 2.5, 2, 0, 0, Math.PI * 2);
+  }
   ctx.fill();
 
-  // happy smile
-  ctx.strokeStyle = '#9f1239';
+  // smile
+  ctx.strokeStyle = p.nose;
   ctx.lineWidth = 1.5;
   ctx.lineCap = 'round';
   ctx.beginPath();
   ctx.arc(cx + 3, baseY + 18.5, 4, 0.15 * Math.PI, 0.85 * Math.PI);
   ctx.stroke();
+}
+
+/** Mini preview for picker cards (canvas) */
+function CharacterPreview({ character }: { character: TrailRunCharacter }) {
+  const ref = useRef<HTMLCanvasElement>(null);
+  useEffect(() => {
+    const canvas = ref.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+    ctx.clearRect(0, 0, 96, 96);
+    ctx.fillStyle = 'transparent';
+    // scale draw into preview box
+    ctx.save();
+    ctx.translate(24, 20);
+    ctx.scale(1.05, 1.05);
+    drawCuteRunner(ctx, 0, 0, true, 0, character);
+    ctx.restore();
+  }, [character]);
+  return (
+    <canvas ref={ref} width={96} height={96} className="w-20 h-20 mx-auto block pointer-events-none" />
+  );
 }
 
 export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
@@ -178,18 +272,32 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
   const bestRef = useRef(getHighScore(userId, 'trail-run'));
   const jumpQueued = useRef(false);
   const rafRef = useRef(0);
+  const characterRef = useRef<TrailRunCharacter>(
+    getTrailRunCharacter(loadTrailRunCharacter(userId))
+  );
 
   const [phase, setPhase] = useState<Phase>('ready');
   const [score, setScore] = useState(0);
   const [best, setBest] = useState(bestRef.current);
   const [isNewBest, setIsNewBest] = useState(false);
-  /** Bumps to hard-reset the world when starting a new run */
   const [runKey, setRunKey] = useState(0);
+  const [characterId, setCharacterId] = useState<TrailRunCharacterId>(() =>
+    loadTrailRunCharacter(userId)
+  );
+
+  const character = getTrailRunCharacter(characterId);
+  characterRef.current = character;
 
   const setPhaseBoth = useCallback((p: Phase) => {
     phaseRef.current = p;
     setPhase(p);
   }, []);
+
+  const pickCharacter = (id: TrailRunCharacterId) => {
+    setCharacterId(id);
+    saveTrailRunCharacter(userId, id);
+    characterRef.current = getTrailRunCharacter(id);
+  };
 
   const beginRun = useCallback(() => {
     setScore(0);
@@ -200,20 +308,21 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
   }, [setPhaseBoth]);
 
   const queueJump = useCallback(() => {
-    if (phaseRef.current === 'ready') {
-      beginRun();
-      jumpQueued.current = true;
-      return;
-    }
+    // On ready screen, picking starts only via Play button (not canvas jump)
     if (phaseRef.current === 'playing') {
       jumpQueued.current = true;
     }
-  }, [beginRun]);
+  }, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.code === 'Space' || e.code === 'ArrowUp' || e.key === ' ') {
         e.preventDefault();
+        if (phaseRef.current === 'ready') {
+          beginRun();
+          jumpQueued.current = true;
+          return;
+        }
         if (phaseRef.current === 'over') return;
         queueJump();
       }
@@ -221,10 +330,17 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
         e.preventDefault();
         beginRun();
       }
+      // 1/2/3 pick character while ready
+      if (phaseRef.current === 'ready') {
+        if (e.key === '1') pickCharacter('maple-fox');
+        if (e.key === '2') pickCharacter('bun-bunny');
+        if (e.key === '3') pickCharacter('cocoa-bear');
+      }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [queueJump, beginRun]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queueJump, beginRun, userId]);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -345,7 +461,6 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
         }
       }
 
-      // --- draw ---
       const sky = ctx.createLinearGradient(0, 0, 0, H);
       sky.addColorStop(0, '#0c4a6e');
       sky.addColorStop(0.5, '#155e75');
@@ -417,32 +532,28 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
         }
       }
 
-      drawCuteRunner(ctx, PLAYER_X, playerY, onGround, scroll);
+      if (!ready) {
+        drawCuteRunner(ctx, PLAYER_X, playerY, onGround, scroll, characterRef.current);
+      }
 
-      ctx.fillStyle = 'rgba(15,23,42,0.55)';
-      ctx.fillRect(12, 12, 168, 56);
-      ctx.fillStyle = '#f8fafc';
-      ctx.font = 'bold 18px system-ui,sans-serif';
-      ctx.textAlign = 'left';
-      ctx.fillText(`Score ${scoreRef.current}`, 24, 38);
-      ctx.font = '13px system-ui,sans-serif';
-      ctx.fillStyle = '#fcd34d';
-      ctx.fillText(`Best ${bestRef.current}`, 24, 56);
+      if (playing || over) {
+        ctx.fillStyle = 'rgba(15,23,42,0.55)';
+        ctx.fillRect(12, 12, 168, 56);
+        ctx.fillStyle = '#f8fafc';
+        ctx.font = 'bold 18px system-ui,sans-serif';
+        ctx.textAlign = 'left';
+        ctx.fillText(`Score ${scoreRef.current}`, 24, 38);
+        ctx.font = '13px system-ui,sans-serif';
+        ctx.fillStyle = '#fcd34d';
+        ctx.fillText(`Best ${bestRef.current}`, 24, 56);
+      }
 
       if (ready) {
-        ctx.fillStyle = 'rgba(0,0,0,0.45)';
+        // soft trail backdrop; picker is HTML overlay
+        ctx.fillStyle = 'rgba(15,23,42,0.25)';
         ctx.fillRect(0, 0, W, H);
-        ctx.textAlign = 'center';
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 36px system-ui,sans-serif';
-        ctx.fillText('Trail Run', W / 2, H / 2 - 30);
-        ctx.font = '18px system-ui,sans-serif';
-        ctx.fillStyle = '#e2e8f0';
-        ctx.fillText('Tap or press Space to jump', W / 2, H / 2 + 10);
-        ctx.fillStyle = '#86efac';
-        ctx.font = 'bold 16px system-ui,sans-serif';
-        ctx.fillText('Tap anywhere to start', W / 2, H / 2 + 48);
-        ctx.textAlign = 'left';
+        // idle preview of selected character in center
+        drawCuteRunner(ctx, W / 2 - PLAYER_W / 2, GROUND - PLAYER_H - 20, true, scroll * 0.3, characterRef.current);
       }
 
       if (over) {
@@ -477,8 +588,10 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
     return () => cancelAnimationFrame(rafRef.current);
   }, [userId, setPhaseBoth, runKey]);
 
+  void isNewBest;
+
   return (
-    <GameShell title="Trail Run" subtitle="Jump over logs · grab leaves" onBack={onBack}>
+    <GameShell title="Trail Run" subtitle="Pick a buddy · jump logs · grab leaves" onBack={onBack}>
       <div className="relative">
         <canvas
           ref={canvasRef}
@@ -487,32 +600,90 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
           className="w-full h-auto touch-none cursor-pointer block bg-slate-900 select-none"
           onPointerDown={(e) => {
             e.preventDefault();
-            if (phaseRef.current === 'over') return;
+            if (phaseRef.current === 'ready' || phaseRef.current === 'over') return;
             queueJump();
           }}
         />
+
+        {phase === 'ready' && (
+          <div className="absolute inset-0 flex flex-col items-center justify-end sm:justify-center p-3 sm:p-5 bg-slate-950/55 backdrop-blur-[2px]">
+            <div className="w-full max-w-lg space-y-3">
+              <div className="text-center">
+                <h3 className="text-xl sm:text-2xl font-black text-white">Pick your runner</h3>
+                <p className="text-xs sm:text-sm text-slate-300 mt-1">
+                  Tap a buddy, then hit Play
+                </p>
+              </div>
+              <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                {TRAIL_RUN_CHARACTERS.map((c) => {
+                  const selected = c.id === characterId;
+                  return (
+                    <button
+                      key={c.id}
+                      type="button"
+                      onClick={() => pickCharacter(c.id)}
+                      className={`rounded-2xl border-2 p-2 sm:p-3 text-center transition ${
+                        selected
+                          ? 'border-amber-400 bg-amber-500/20 shadow-lg shadow-amber-500/20 scale-[1.02]'
+                          : 'border-slate-600 bg-slate-900/80 hover:border-slate-400'
+                      }`}
+                    >
+                      <CharacterPreview character={c} />
+                      <div className="text-sm font-bold text-white mt-0.5">
+                        {c.emoji} {c.name}
+                      </div>
+                      <div className="text-[10px] sm:text-xs text-slate-400 leading-tight mt-0.5">
+                        {c.tagline}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+              <button
+                type="button"
+                onClick={beginRun}
+                className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-base font-black shadow-lg"
+              >
+                Play as {character.name} →
+              </button>
+            </div>
+          </div>
+        )}
+
         {phase === 'over' && (
-          <div className="absolute inset-x-0 bottom-4 flex justify-center gap-2 px-4">
-            <button
-              type="button"
-              onClick={beginRun}
-              className="px-5 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg"
-            >
-              Play again
-            </button>
-            <button
-              type="button"
-              onClick={onBack}
-              className="px-5 h-11 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
-            >
-              Arcade
-            </button>
+          <div className="absolute inset-x-0 bottom-4 flex flex-col items-center gap-2 px-4">
+            <div className="flex justify-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={beginRun}
+                className="px-5 h-11 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-bold shadow-lg"
+              >
+                Play again
+              </button>
+              <button
+                type="button"
+                onClick={() => setPhaseBoth('ready')}
+                className="px-5 h-11 rounded-2xl bg-amber-700/90 hover:bg-amber-600 text-white text-sm font-semibold"
+              >
+                Change buddy
+              </button>
+              <button
+                type="button"
+                onClick={onBack}
+                className="px-5 h-11 rounded-2xl bg-slate-700 hover:bg-slate-600 text-white text-sm font-semibold"
+              >
+                Arcade
+              </button>
+            </div>
           </div>
         )}
       </div>
       <p className="px-3 py-2 text-center text-xs text-slate-500">
-        Score {score}
-        {best > 0 ? ` · Best ${best}` : ''} · Tap to jump
+        {phase === 'playing'
+          ? `Running as ${character.name} · Score ${score}${best > 0 ? ` · Best ${best}` : ''} · Tap to jump`
+          : phase === 'ready'
+            ? `Selected: ${character.emoji} ${character.name}`
+            : `Score ${score}${best > 0 ? ` · Best ${best}` : ''}`}
       </p>
     </GameShell>
   );
