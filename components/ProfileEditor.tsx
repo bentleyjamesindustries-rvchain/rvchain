@@ -16,8 +16,9 @@ import {
   removeProfilePhoto,
   MAX_PHOTOS_PER_TYPE,
 } from '@/lib/userProfile';
-import { getOwnedCards, loadKidsProgress } from '@/lib/kidsProgress';
+import { getOwnedBadges, getOwnedCards, loadKidsProgress } from '@/lib/kidsProgress';
 import { getRarityColor, getRarityLabel } from '@/lib/kidsCards';
+import { getRarityColor as badgeRarityColor, getRarityLabel as badgeRarityLabel } from '@/lib/trailBadges';
 import ProfileAvatar from './ProfileAvatar';
 import MyLittleExplorersPanel from './MyLittleExplorersPanel';
 
@@ -116,7 +117,9 @@ export default function ProfileEditor({
 }: ProfileEditorProps) {
   const [tab, setTab] = useState<'profile' | 'explorers'>(initialTab);
   const [draft, setDraft] = useState<UserProfile>(profile);
-  const trailCards = getOwnedCards(loadKidsProgress(profileUserId)).slice(0, 6);
+  const kidsProg = loadKidsProgress(profileUserId);
+  const trailCards = getOwnedCards(kidsProg).slice(0, 4);
+  const trailBadges = getOwnedBadges(kidsProg).slice(0, 6);
   const [captionPrompt, setCaptionPrompt] = useState<ProfilePhotoType | null>(null);
   const [pendingCaption, setPendingCaption] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -327,19 +330,52 @@ export default function ProfileEditor({
           </div>
         )}
 
-        {/* Kids trail cards showcase */}
+        {/* Kids Trail Badges showcase */}
         <div>
-          <div className="text-sm font-medium mb-1">Trail Card showcase</div>
+          <div className="text-sm font-medium mb-1">Trail Badge showcase</div>
           <p className="text-xs text-slate-400 mb-3">
-            Cards earned in the Kids adventure tab. Collect more on scavenger hunts!
+            50 camping collector badges from Kids packs · plants from scavenger hunts.
           </p>
-          {trailCards.length === 0 ? (
+          {trailBadges.length === 0 && trailCards.length === 0 ? (
             <p className="text-xs text-slate-500 py-2 border border-dashed border-slate-700 rounded-xl px-3">
-              No Trail Cards yet — open the Kids tab to start hunting.
+              No badges yet — open the Kids tab, find a plant, then open a trail pack.
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">
-              {trailCards.map((card) => (
+              {trailBadges.map((badge) => (
+                <div
+                  key={badge.id}
+                  className="rounded-xl p-[1.5px]"
+                  style={{
+                    background: `linear-gradient(145deg, ${badgeRarityColor(badge.rarity)}, #1e293b)`,
+                  }}
+                >
+                  <div className="bg-slate-950 rounded-[10px] overflow-hidden text-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={badge.imageSrc}
+                      alt={badge.name}
+                      className="w-full aspect-square object-cover"
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        if (el.src.endsWith('.png')) el.src = badge.imageSrc.replace(/\.png$/, '.svg');
+                      }}
+                    />
+                    <div className="p-1.5">
+                      <div className="text-[10px] font-semibold text-slate-200 truncate">
+                        {badge.name}
+                      </div>
+                      <div
+                        className="text-[9px] font-medium"
+                        style={{ color: badgeRarityColor(badge.rarity) }}
+                      >
+                        {badgeRarityLabel(badge.rarity)}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {trailCards.slice(0, Math.max(0, 3 - trailBadges.length)).map((card) => (
                 <div
                   key={card.id}
                   className="rounded-xl p-[1.5px]"
@@ -351,12 +387,6 @@ export default function ProfileEditor({
                     <div className="text-2xl">{card.emoji}</div>
                     <div className="text-[10px] font-semibold text-slate-200 truncate mt-0.5">
                       {card.name}
-                    </div>
-                    <div
-                      className="text-[9px] font-medium"
-                      style={{ color: getRarityColor(card.rarity) }}
-                    >
-                      {getRarityLabel(card.rarity)}
                     </div>
                   </div>
                 </div>

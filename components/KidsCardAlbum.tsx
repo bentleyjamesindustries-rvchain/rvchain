@@ -161,7 +161,10 @@ export default function KidsCardAlbum({
                         alt={badge.name}
                         className="w-full h-full object-cover"
                         onError={(e) => {
-                          (e.target as HTMLImageElement).style.display = 'none';
+                          const el = e.target as HTMLImageElement;
+                          if (el.src.endsWith('.png')) {
+                            el.src = badge.imageSrc.replace(/\.png$/, '.svg');
+                          }
                         }}
                       />
                     ) : (
@@ -306,6 +309,12 @@ export default function KidsCardAlbum({
                   src={selectedBadge.imageSrc}
                   alt={selectedBadge.name}
                   className="w-full aspect-square object-cover"
+                  onError={(e) => {
+                    const el = e.target as HTMLImageElement;
+                    if (el.src.endsWith('.png')) {
+                      el.src = selectedBadge.imageSrc.replace(/\.png$/, '.svg');
+                    }
+                  }}
                 />
               ) : (
                 <div className="w-full aspect-square bg-slate-900 flex items-center justify-center text-6xl opacity-40">
@@ -375,6 +384,12 @@ export default function KidsCardAlbum({
                       src={badge.imageSrc}
                       alt={badge.name}
                       className="w-full aspect-square object-cover"
+                      onError={(e) => {
+                        const el = e.target as HTMLImageElement;
+                        if (el.src.endsWith('.png')) {
+                          el.src = badge.imageSrc.replace(/\.png$/, '.svg');
+                        }
+                      }}
                     />
                     <div className="p-2">
                       <div className="text-[11px] font-bold text-slate-100">{badge.name}</div>

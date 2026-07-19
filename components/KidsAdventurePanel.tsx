@@ -80,8 +80,8 @@ export default function KidsAdventurePanel({
               grown-up and look for plants on your trail list. Snap a photo to mark a find.
             </li>
             <li>
-              <strong className="text-slate-100">Earn Trail Cards</strong> — every plant you find
-              unlocks a matching collectible card in your album.
+              <strong className="text-slate-100">Collect Trail Badges</strong> — find plants for plant
+              cards, then open trail packs for 50 camping wildlife &amp; landscape badges.
             </li>
             <li>
               <strong className="text-slate-100">Open trail packs</strong> — after your first find,
@@ -122,8 +122,8 @@ export default function KidsAdventurePanel({
             Base camp{displayHandle ? `, ${displayHandle}` : ''}!
           </h1>
           <p className="mt-2 text-sm sm:text-base text-amber-100/80 max-w-xl leading-relaxed">
-            Grab your field guide and start an outdoor quest. Hunt for plants, collect legendary
-            Trail Cards, and build your explorer profile.
+            Grab your field guide and start an outdoor quest. Hunt for plants, collect 50 Trail
+            Badges, and build your explorer profile.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             <span className="px-3 py-1.5 rounded-full bg-emerald-900/50 border border-emerald-700/50 text-emerald-200">
@@ -198,10 +198,10 @@ export default function KidsAdventurePanel({
           <div className="w-12 h-12 rounded-2xl bg-violet-800/50 flex items-center justify-center mb-4 group-hover:scale-110 transition">
             <Sparkles className="w-6 h-6 text-violet-300" />
           </div>
-          <h2 className="text-lg sm:text-xl font-bold text-violet-50">Trail Card collection</h2>
+          <h2 className="text-lg sm:text-xl font-bold text-violet-50">Trail Badge collection</h2>
           <p className="text-sm text-violet-100/70 mt-2 leading-relaxed">
-            Collect plant cards and trail creatures like a deck of adventure legends. Rare borders
-            sparkle!
+            50 camping collector badges — wildlife, mountains, camp life &amp; legendaries. Plus plant
+            cards from hunts.
           </p>
           <span className="inline-block mt-4 text-xs font-bold text-violet-400 uppercase tracking-wide">
             Open album →

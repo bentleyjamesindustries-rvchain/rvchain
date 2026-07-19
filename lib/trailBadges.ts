@@ -31,6 +31,7 @@ function badge(
     rarity,
     theme,
     description,
+    // Prefer generated PNG art; SVG placeholder used when PNG missing (see album onError)
     imageSrc: `/kids/badges/${id}.png`,
     artSubject,
   };
