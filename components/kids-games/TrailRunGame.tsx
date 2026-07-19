@@ -49,9 +49,10 @@ function drawCuteRunner(
 ) {
   const p = character.palette;
   const cx = x + PLAYER_W / 2;
-  const bob = onGround ? Math.sin(scroll * 0.22) * 1.5 : 0;
+  // ~25% slower bounce / leg cycle than before
+  const bob = onGround ? Math.sin(scroll * 0.165) * 1.5 : 0;
   const baseY = y + bob;
-  const legSwing = onGround ? Math.sin(scroll * 0.4) * 5 : 0;
+  const legSwing = onGround ? Math.sin(scroll * 0.3) * 5 : 0;
   const style = character.style;
 
   // ground shadow
@@ -515,20 +516,60 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
 
       for (const o of obstacles) {
         const oy = GROUND - o.h;
+        // Bright hazards so kids can see what to jump
         if (o.kind === 'log') {
-          ctx.fillStyle = '#7c2d12';
+          // light wood body
+          ctx.fillStyle = '#d97706';
           ctx.fillRect(o.x, oy, o.w, o.h);
-          ctx.strokeStyle = '#431407';
+          // bark rings
+          ctx.strokeStyle = '#fbbf24';
           ctx.lineWidth = 2;
-          ctx.strokeRect(o.x, oy, o.w, o.h);
+          for (let r = 8; r < o.w - 4; r += 12) {
+            ctx.beginPath();
+            ctx.moveTo(o.x + r, oy + 3);
+            ctx.lineTo(o.x + r, oy + o.h - 3);
+            ctx.stroke();
+          }
+          // cream end-cap
+          ctx.fillStyle = '#fde68a';
+          ctx.fillRect(o.x, oy, 8, o.h);
+          // thick outline
+          ctx.strokeStyle = '#fff7ed';
+          ctx.lineWidth = 3;
+          ctx.strokeRect(o.x + 0.5, oy + 0.5, o.w - 1, o.h - 1);
+          ctx.strokeStyle = '#b45309';
+          ctx.lineWidth = 2;
+          ctx.strokeRect(o.x + 1.5, oy + 1.5, o.w - 3, o.h - 3);
         } else {
-          ctx.fillStyle = '#57534e';
+          // bright rock
+          const tipX = o.x + o.w / 2;
+          ctx.fillStyle = '#a8a29e';
           ctx.beginPath();
-          ctx.moveTo(o.x + o.w / 2, oy);
-          ctx.lineTo(o.x + o.w, oy + o.h);
-          ctx.lineTo(o.x, oy + o.h);
+          ctx.moveTo(tipX, oy);
+          ctx.lineTo(o.x + o.w + 2, oy + o.h);
+          ctx.lineTo(o.x - 2, oy + o.h);
           ctx.closePath();
           ctx.fill();
+          // highlight face
+          ctx.fillStyle = '#e7e5e4';
+          ctx.beginPath();
+          ctx.moveTo(tipX, oy + 4);
+          ctx.lineTo(o.x + o.w * 0.55, oy + o.h * 0.55);
+          ctx.lineTo(o.x + o.w * 0.25, oy + o.h * 0.7);
+          ctx.closePath();
+          ctx.fill();
+          // outline
+          ctx.strokeStyle = '#fafaf9';
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(tipX, oy);
+          ctx.lineTo(o.x + o.w + 2, oy + o.h);
+          ctx.lineTo(o.x - 2, oy + o.h);
+          ctx.closePath();
+          ctx.stroke();
+          ctx.strokeStyle = '#57534e';
+          ctx.lineWidth = 1.5;
+          ctx.stroke();
         }
       }
 
@@ -553,7 +594,7 @@ export default function TrailRunGame({ userId, onBack }: TrailRunGameProps) {
         ctx.fillStyle = 'rgba(15,23,42,0.25)';
         ctx.fillRect(0, 0, W, H);
         // idle preview of selected character in center
-        drawCuteRunner(ctx, W / 2 - PLAYER_W / 2, GROUND - PLAYER_H - 20, true, scroll * 0.3, characterRef.current);
+        drawCuteRunner(ctx, W / 2 - PLAYER_W / 2, GROUND - PLAYER_H - 20, true, scroll * 0.22, characterRef.current);
       }
 
       if (over) {
