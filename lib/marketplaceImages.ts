@@ -1,4 +1,6 @@
-/** Local Grok-generated marketplace assets in /public/marketplace */
+/** Local Grok Imagine marketplace assets in /public/marketplace — app-owned art only. */
+
+import { isLocalGrokAsset } from './spotImages';
 
 export const MARKETPLACE_RV_IMAGES = [
   '/marketplace/rv-class-a.jpg',
@@ -52,4 +54,15 @@ export function marketplacePartsImage(index: number): string {
 
 export function marketplaceRvImageByIndex(index: number): string {
   return MARKETPLACE_RV_IMAGES[index % MARKETPLACE_RV_IMAGES.length];
+}
+
+/** Reject remote stock URLs; keep local Grok paths or data: uploads. */
+export function resolveMarketplaceImage(
+  image: string | null | undefined,
+  fallback: string
+): string {
+  if (!image) return fallback;
+  if (image.startsWith('data:image/')) return image;
+  if (isLocalGrokAsset(image)) return image;
+  return fallback;
 }

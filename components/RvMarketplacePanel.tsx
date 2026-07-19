@@ -29,6 +29,11 @@ import {
   saveListingInterest,
   markListingSold,
 } from '@/lib/rvMarketplaceStorage';
+import {
+  MARKETPLACE_RV_IMAGES,
+  marketplaceRvImageForClass,
+  resolveMarketplaceImage,
+} from '@/lib/marketplaceImages';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import MarketplaceDisclosure from '@/components/MarketplaceDisclosure';
@@ -488,7 +493,10 @@ export default function RvMarketplacePanel({
       state: form.state,
       description: form.description.trim() || 'No additional description provided.',
       features: form.features,
-      image: form.image.trim() || '/marketplace/rv-travel-trailer.jpg',
+      image: resolveMarketplaceImage(
+        form.image,
+        marketplaceRvImageForClass(form.rvClass)
+      ),
       sellerName: displayHandle,
       sellerUserId: user.id,
       listedAt: new Date().toISOString(),
@@ -955,7 +963,7 @@ export default function RvMarketplacePanel({
           <div className={`space-y-4 ${user && !canPublish ? 'opacity-40 pointer-events-none select-none' : ''}`}>
             <input
               type="text"
-              placeholder="Listing title (e.g. 2020 Winnebago View 24D)"
+              placeholder="Listing title (e.g. 2020 HorizonNest Drift 240)"
               value={form.title}
               onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               className="w-full bg-slate-950 border border-slate-700 px-4 h-11 rounded-2xl text-sm outline-none focus:border-amber-600"
@@ -1058,13 +1066,29 @@ export default function RvMarketplacePanel({
               rows={4}
               className="w-full bg-slate-950 border border-slate-700 px-4 py-3 rounded-2xl text-sm outline-none focus:border-amber-600 resize-y"
             />
-            <input
-              type="url"
-              placeholder="Photo URL (optional)"
-              value={form.image}
-              onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-              className="w-full bg-slate-950 border border-slate-700 px-4 h-11 rounded-2xl text-sm outline-none focus:border-amber-600"
-            />
+            <div>
+              <div className="text-xs font-medium text-slate-400 mb-2">
+                Listing photo (Grok Imagine art)
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+                {MARKETPLACE_RV_IMAGES.map((src) => {
+                  const active =
+                    (form.image || marketplaceRvImageForClass(form.rvClass)) === src;
+                  return (
+                    <button
+                      key={src}
+                      type="button"
+                      onClick={() => setForm((f) => ({ ...f, image: src }))}
+                      className={`rounded-xl overflow-hidden border-2 ${
+                        active ? 'border-amber-500' : 'border-slate-700'
+                      }`}
+                    >
+                      <img src={src} alt="" className="h-12 w-full object-cover" />
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
             <div>
               <div className="text-xs font-medium text-slate-400 mb-2">Features</div>
               <div className="flex flex-wrap gap-2">

@@ -110,21 +110,22 @@ export const REWARD_TIERS: RewardTier[] = [
 ];
 
 export const REWARD_CATALOG: RewardItem[] = [
-  { id: 'fuel-25', name: '$25 Fuel Gift Card', description: 'Shell, Chevron, or Love\'s Travel Stops', pointsCost: 2500, category: 'fuel', icon: '⛽', tierRequired: 'scout' },
-  { id: 'fuel-50', name: '$50 Fuel Gift Card', description: 'Use at major truck stops nationwide', pointsCost: 4500, category: 'fuel', icon: '⛽', tierRequired: 'explorer' },
-  { id: 'propane-15', name: '$15 Propane Credit', description: 'Blue Rhino or AmeriGas refill credit', pointsCost: 1500, category: 'propane', icon: '🔥', tierRequired: 'scout' },
-  { id: 'propane-30', name: '$30 Propane Credit', description: 'Perfect for a full tank refill', pointsCost: 2800, category: 'propane', icon: '🔥', tierRequired: 'navigator' },
+  { id: 'fuel-25', name: '$25 Fuel Credit (demo)', description: 'Fictional demo reward — not a real gift card or brand partner', pointsCost: 2500, category: 'fuel', icon: '⛽', tierRequired: 'scout' },
+  { id: 'fuel-50', name: '$50 Fuel Credit (demo)', description: 'Fictional demo reward — no real redemption', pointsCost: 4500, category: 'fuel', icon: '⛽', tierRequired: 'explorer' },
+  { id: 'propane-15', name: '$15 Propane Credit (demo)', description: 'Fictional demo reward — not a real propane partner', pointsCost: 1500, category: 'propane', icon: '🔥', tierRequired: 'scout' },
+  { id: 'propane-30', name: '$30 Propane Credit (demo)', description: 'Fictional demo reward — no real refill credit', pointsCost: 2800, category: 'propane', icon: '🔥', tierRequired: 'navigator' },
   { id: 'gear-kit', name: 'Camping Gear Bundle', description: 'LED lantern, hose kit, leveling blocks', pointsCost: 5000, category: 'gear', icon: '🏕️', tierRequired: 'explorer' },
   { id: 'gear-premium', name: 'Premium RV Kit', description: 'Surge protector, water filter, tire gauge set', pointsCost: 8500, category: 'gear', icon: '🎒', tierRequired: 'legend' },
 ];
 
+/** Fictional demo dispersed zones — not real public-land sites or agency places. */
 export const BOONDOCKING_SPOTS: BoondockingSpot[] = [
-  { id: 'bd1', name: 'Bureau of Land Management — Quartzsite', state: 'AZ', lat: 33.663, lng: -114.230 },
-  { id: 'bd2', name: 'Coconino National Forest Dispersed', state: 'AZ', lat: 34.869, lng: -111.761 },
-  { id: 'bd3', name: 'Moab BLM Dispersed Area', state: 'UT', lat: 38.573, lng: -109.550 },
-  { id: 'bd4', name: 'Death Valley Wildrose Camp', state: 'CA', lat: 36.238, lng: -117.079 },
-  { id: 'bd5', name: 'Big Bend Boondocking Zone', state: 'TX', lat: 29.250, lng: -103.250 },
-  { id: 'bd6', name: 'Olympic National Forest Dispersed', state: 'WA', lat: 47.802, lng: -123.604 },
+  { id: 'bd1', name: 'Demo Open Flat Zone A', state: 'AZ', lat: 33.663, lng: -114.23 },
+  { id: 'bd2', name: 'Demo Forest Road Pull-Off B', state: 'AZ', lat: 34.869, lng: -111.761 },
+  { id: 'bd3', name: 'Demo Redrock Dispersed C', state: 'UT', lat: 38.573, lng: -109.55 },
+  { id: 'bd4', name: 'Demo Desert Basin Camp D', state: 'CA', lat: 36.238, lng: -117.079 },
+  { id: 'bd5', name: 'Demo River Bend Zone E', state: 'TX', lat: 29.25, lng: -103.25 },
+  { id: 'bd6', name: 'Demo Coastal Forest Zone F', state: 'WA', lat: 47.802, lng: -123.604 },
 ];
 
 const TIER_RANK: Record<RewardTierId, number> = {

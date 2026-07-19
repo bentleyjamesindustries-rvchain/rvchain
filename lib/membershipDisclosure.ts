@@ -13,7 +13,8 @@ export const MEMBERSHIP_DISCLOSURE = {
     'Weekender includes a 7-day free trial in demo (tracked on this device).',
     'Checklists are planning aids — not professional safety instruction.',
     'Road Crew points have no cash value.',
+    'Sample content (parks, RVs, gear, forum seeds) uses fictional names — not third-party brands or real listings.',
   ],
   footer:
-    'When live billing launches, subscription terms, cancellation, and refunds will be published separately.',
+    'When live billing launches, subscription terms, cancellation, and refunds will be published separately. Demo content is fictional sample data only.',
 } as const;

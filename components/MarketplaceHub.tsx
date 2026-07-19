@@ -45,6 +45,12 @@ import {
   formatPartsPrice,
 } from '@/lib/partsListings';
 import {
+  marketplaceGearImage,
+  marketplacePartsImage,
+  marketplaceRvImageForClass,
+  resolveMarketplaceImage,
+} from '@/lib/marketplaceImages';
+import {
   loadAllPartsListings,
   saveUserPartsListing,
   loadUserPartsListingsOnly,
@@ -300,7 +306,10 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       state: rvForm.state,
       description: rvForm.description.trim() || 'No description.',
       features: [],
-      image: rvForm.image.trim() || '/marketplace/rv-travel-trailer.jpg',
+      image: resolveMarketplaceImage(
+        rvForm.image,
+        marketplaceRvImageForClass(rvForm.rvClass)
+      ),
       sellerName: displayHandle,
       sellerUserId: user.id,
       listedAt: new Date().toISOString(),
@@ -361,7 +370,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       city: gearForm.city.trim() || 'Unknown',
       state: gearForm.state,
       description: gearForm.description.trim() || 'No description.',
-      image: gearForm.image.trim() || '/marketplace/gear-cooler.jpg',
+      image: resolveMarketplaceImage(gearForm.image, marketplaceGearImage(0)),
       sellerName: displayHandle,
       sellerUserId: user.id,
       listedAt: new Date().toISOString(),
@@ -419,7 +428,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       state: partsForm.state,
       description:
         partsForm.description.trim() || 'No description. Fitment is buyer responsibility.',
-      image: partsForm.image.trim() || '/marketplace/parts-hitch.jpg',
+      image: resolveMarketplaceImage(partsForm.image, marketplacePartsImage(0)),
       sellerName: displayHandle,
       sellerUserId: user.id,
       listedAt: new Date().toISOString(),

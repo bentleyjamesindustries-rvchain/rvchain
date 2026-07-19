@@ -307,7 +307,7 @@ export default function ProfileEditor({
               type="text"
               value={pendingCaption}
               onChange={(e) => setPendingCaption(e.target.value)}
-              placeholder="e.g. Sunset at Zion site 47"
+              placeholder="e.g. Sunset at Red Mesa site 12"
               maxLength={80}
               className="w-full bg-slate-900 border border-slate-600 px-3 h-10 rounded-xl text-sm"
             />

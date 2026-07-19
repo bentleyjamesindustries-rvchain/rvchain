@@ -34,6 +34,7 @@ import VerifiedBadge from '@/components/VerifiedBadge';
 import { createModeratorVerification, getParkVerificationInfo } from '@/lib/spotVerification';
 import { isModerator } from '@/lib/moderator';
 import { enrichParks } from '@/lib/localVerification';
+import { DEFAULT_SPOT_IMAGE, SPOT_IMAGES, isLocalGrokAsset } from '@/lib/spotImages';
 import ForumPanel from '@/components/ForumPanel';
 import KidsAdventurePanel from '@/components/KidsAdventurePanel';
 import AdultExplorerPanel from '@/components/AdultExplorerPanel';
@@ -319,7 +320,7 @@ export default function RVChainApp() {
   const getDirections = (park: Park) => {
     const url = `https://www.google.com/maps/dir/?api=1&destination=${park.lat},${park.lng}&travelmode=driving`;
     window.open(url, '_blank');
-    toast.success(`Opening Google Maps navigation to ${park.name}`);
+    toast.success(`Opening directions to ${park.name}`);
   };
 
   const showParkDetails = (park: Park) => {
@@ -458,7 +459,10 @@ export default function RVChainApp() {
         lng: newPark.lng ? parseFloat(newPark.lng) : null,
         price: newPark.price ? parseInt(newPark.price) : null,
         description: newPark.description || null,
-        image: newPark.image || 'https://picsum.photos/id/160/800/400',
+        image:
+          newPark.image && isLocalGrokAsset(newPark.image)
+            ? newPark.image
+            : DEFAULT_SPOT_IMAGE,
         submitted_by: user.id,
         verified: false,
         amenities: []  // user can expand later
@@ -788,7 +792,7 @@ export default function RVChainApp() {
             <h2 className="text-xl sm:text-2xl font-semibold">Community spots</h2>
             <p className="text-sm text-slate-300 mt-1 max-w-xl leading-relaxed">
               Shared picks and public leads — not a nationwide campground inventory. Use directions,
-              save favorites, and add stops on Trips. Book stays on the park or agency site.
+              save favorites, and add stops on Trips. Sample spots are fictional demo data.
             </p>
           </div>
 
@@ -992,7 +996,7 @@ export default function RVChainApp() {
               <span>Available now</span>
             </div>
             <span>•</span>
-            <span>Tap markers → Get Directions opens full Google Maps GPS navigation</span>
+            <span>Tap markers → Open directions for GPS navigation</span>
           </div>
         </div>
         )
@@ -1077,17 +1081,9 @@ export default function RVChainApp() {
                 </div>
               </div>
 
-              {selectedPark.sourceUrl && (
-                <p className="mt-4 text-[10px] text-slate-500 leading-relaxed">
-                  Public listing source:{' '}
-                  <a
-                    href={selectedPark.sourceUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400/90 hover:text-emerald-300 underline"
-                  >
-                    {selectedPark.source ?? 'agency website'}
-                  </a>
+              {selectedPark.source === 'demo-sample' && (
+                <p className="mt-4 text-[10px] text-amber-500/90 leading-relaxed">
+                  Fictional demo sample — not a real campground, agency site, or brand.
                 </p>
               )}
             </div>
@@ -1098,19 +1094,8 @@ export default function RVChainApp() {
                 className="w-full bg-orange-600 hover:bg-orange-500 transition text-white font-semibold h-12 rounded-3xl flex items-center justify-center gap-x-2 shadow-sm active:scale-[0.985]"
               >
                 <Navigation className="w-4 h-4" />
-                <span className="font-semibold">Get Directions in Google Maps</span>
+                <span className="font-semibold">Open directions</span>
               </button>
-
-              {selectedPark.sourceUrl && (
-                <a
-                  href={selectedPark.sourceUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="w-full bg-sky-800 hover:bg-sky-700 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
-                >
-                  Open park / agency site
-                </a>
-              )}
 
               <div className="grid grid-cols-2 gap-2 text-sm">
                 <button 
@@ -1357,7 +1342,24 @@ export default function RVChainApp() {
                 <input placeholder="Price/night" value={newPark.price} onChange={e=>setNewPark({...newPark, price:e.target.value})} className="bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
               </div>
               <textarea placeholder="Description" value={newPark.description} onChange={e=>setNewPark({...newPark, description:e.target.value})} className="w-full bg-slate-800 border border-slate-600 p-4 rounded-2xl h-20" />
-              <input placeholder="Image URL (optional)" value={newPark.image} onChange={e=>setNewPark({...newPark, image:e.target.value})} className="w-full bg-slate-800 border border-slate-600 px-4 h-10 rounded-2xl" />
+              <div>
+                <p className="text-xs text-slate-400 mb-2">Scene (Grok Imagine art)</p>
+                <div className="grid grid-cols-4 gap-2">
+                  {SPOT_IMAGES.map((src) => {
+                    const active = (newPark.image || DEFAULT_SPOT_IMAGE) === src;
+                    return (
+                      <button
+                        key={src}
+                        type="button"
+                        onClick={() => setNewPark({ ...newPark, image: src })}
+                        className={`rounded-xl overflow-hidden border-2 ${active ? 'border-orange-500' : 'border-slate-700'}`}
+                      >
+                        <img src={src} alt="" className="h-12 w-full object-cover" />
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
 
             <div className="flex gap-3 mt-6">

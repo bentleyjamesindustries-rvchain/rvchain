@@ -15,7 +15,9 @@ export const MARKETPLACE_DISCLOSURE = {
     'If a future paid close through rvchain ships, fees would be disclosed then; reference schedules today are planning only: ' +
       `RV ${feeScheduleSummary('rv')}; gear ${feeScheduleSummary('gear')}; parts ${feeScheduleSummary('parts')}.`,
     'Demo mode: list fees, Seller Pro, and interest messages are simulated on this device until live billing is enabled.',
+    'Sample listings use fictional makes, models, sellers, and photos (Grok Imagine art). They are not real vehicles, dealers, or third-party brands.',
+    'rvchain is not affiliated with any RV manufacturer, campground brand, retailer, or public land agency named only by coincidence.',
   ],
   footer:
-    'This notice is product information, not legal advice. Have counsel review before live payments.',
+    'This notice is product information, not legal advice. Have counsel review before live payments. Demo content is fictional sample data only.',
 } as const;

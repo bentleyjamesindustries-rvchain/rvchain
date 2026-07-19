@@ -1,7 +1,9 @@
 import { SEED_RV_LISTINGS, type RvListing } from './rvListings';
 import { enrichAllListings } from './rvCertificationStorage';
+import { resolveMarketplaceImage } from './marketplaceImages';
 
-const LISTINGS_KEY = 'rvchain_rv_listings';
+/** Bumped so old seed listings with real brand names are dropped from local cache. */
+const LISTINGS_KEY = 'rvchain_rv_listings_v2';
 
 function normalizeListing(raw: Partial<RvListing> & Pick<RvListing, 'id' | 'title' | 'price'>): RvListing {
   return {
@@ -20,7 +22,7 @@ function normalizeListing(raw: Partial<RvListing> & Pick<RvListing, 'id' | 'titl
     state: raw.state ?? 'TX',
     description: raw.description ?? '',
     features: raw.features ?? [],
-    image: raw.image ?? '/marketplace/rv-travel-trailer.jpg',
+    image: resolveMarketplaceImage(raw.image, '/marketplace/rv-travel-trailer.jpg'),
     sellerName: raw.sellerName ?? 'Seller',
     sellerUserId: raw.sellerUserId,
     listedAt: raw.listedAt ?? new Date().toISOString(),

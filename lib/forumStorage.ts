@@ -13,61 +13,63 @@ export interface ForumPost {
   createdAt: string;
 }
 
-const STORAGE_KEY = 'rvchain_forum_posts';
+/** Bumped so old seed posts with real place/brand names are not reloaded from cache. */
+const STORAGE_KEY = 'rvchain_forum_posts_v2';
 
+/** Fictional demo posts — invented places and tips, not real venues or brands. */
 const SEED_POSTS: ForumPost[] = [
   {
     id: 'seed-rv-dest-1',
     category: 'rv',
     subcategory: 'destinations',
-    title: 'Zion site 47 at sunset',
-    body: 'Just left Zion Canyon RV Resort — the red rocks at sunset from site 47 were unreal. Full hookups, easy big-rig access. Book early in spring.',
-    author: 'DesertNomad',
+    title: 'Red Mesa Rest — site 12 at sunset',
+    body: 'Demo post: fictional red-rock loop at sunset from site 12. Full hookups vibe. Sample community content only — not a real park review.',
+    author: 'DemoNomad',
     createdAt: '2026-06-15T14:00:00.000Z',
   },
   {
     id: 'seed-tent-dest-1',
     category: 'tent',
     subcategory: 'destinations',
-    title: 'Dispersed camping near Sedona',
-    body: 'Forest Road 525 has several pull-offs with fire rings. No facilities — pack water. Red Rock Pass required for day use in some zones.',
-    author: 'PineTreeTrekker',
+    title: 'Dispersed pull-offs near Coppercliff',
+    body: 'Demo post: fictional forest road pull-offs with fire rings. Pack water. Sample tip only — not real access rules for any public land.',
+    author: 'DemoTrekker',
     createdAt: '2026-06-14T10:30:00.000Z',
   },
   {
     id: 'seed-all-dest-1',
     category: 'all',
     subcategory: 'destinations',
-    title: 'Yellowstone River RV Park alternative',
-    body: 'Livingston MT is way less crowded than West Yellowstone and the fishing on the Yellowstone River is excellent right now. Tent loops are quiet too.',
-    author: 'FullTimeRVer',
+    title: 'Riverstone Pads as a quieter base',
+    body: 'Demo post: fictional riverside town stays quieter than the main gate. Sample discussion — not a real reservation tip.',
+    author: 'DemoFullTimer',
     createdAt: '2026-06-13T18:00:00.000Z',
   },
   {
     id: 'seed-rv-con-1',
     category: 'rv',
     subcategory: 'construction',
-    title: 'I-40 bridge repair east of Flagstaff',
-    body: 'Single-lane controls 7am–7pm through July. Add 20–30 min if you are hauling a rig toward Albuquerque. Watch for gusty crosswinds on the approach.',
-    author: 'RoadWarrior42',
+    title: 'Demo highway work east of Highpass',
+    body: 'Demo alert: sample single-lane controls. Add 20–30 min if hauling. Fictional road note for UI only.',
+    author: 'DemoRoad42',
     createdAt: '2026-06-16T08:00:00.000Z',
   },
   {
     id: 'seed-all-con-1',
     category: 'all',
     subcategory: 'construction',
-    title: 'US-101 landslide detour near Florence OR',
-    body: 'Expect a 45-minute detour on OR-126. Not recommended for trailers over 30 ft on the alternate — take OR-38 if you are coming from the east.',
-    author: 'CoastalCamper',
+    title: 'Coastal detour sample near Seacliff',
+    body: 'Demo alert: sample 45-minute detour. Fictional routing tip — not a real DOT notice.',
+    author: 'DemoCoastal',
     createdAt: '2026-06-12T12:00:00.000Z',
   },
   {
     id: 'seed-tent-con-1',
     category: 'tent',
     subcategory: 'construction',
-    title: 'Trail closure — Angels Landing permit path',
-    body: 'Chain section open but scout trail rerouted for erosion repair. Permit check-in moved to the south lot. Hike boots with grip still mandatory.',
-    author: 'SwitchbackSam',
+    title: 'Trail loop closed for demo erosion work',
+    body: 'Demo post: fictional trail reroute for erosion repair. Sample content only.',
+    author: 'DemoHiker',
     createdAt: '2026-06-11T09:00:00.000Z',
   },
   {
@@ -75,8 +77,8 @@ const SEED_POSTS: ForumPost[] = [
     category: 'rv',
     subcategory: 'maintenance',
     title: 'Black tank sensor false readings',
-    body: 'After years of full-timing: flush with ice cubes + Geo Method, then a dedicated tank cleaner. Calibrate only when tank is provably empty.',
-    author: 'RVGrannyPat',
+    body: 'Demo tip: flush thoroughly, then clean sensors when the tank is empty. Generic maintenance talk — no product brands named.',
+    author: 'DemoGrannyPat',
     createdAt: '2026-06-10T16:00:00.000Z',
   },
   {
@@ -84,8 +86,8 @@ const SEED_POSTS: ForumPost[] = [
     category: 'tent',
     subcategory: 'maintenance',
     title: 'Re-waterproofing a rain fly',
-    body: 'Nikwax Tent & Gear SolarProof on a clean dry fly made our 6-year-old tent survive a Gulf Coast downpour. Two light coats > one heavy coat.',
-    author: 'WanderWheels',
+    body: 'Demo tip: clean dry fly, light coats of a generic tent waterproofing spray. Sample post only.',
+    author: 'DemoWander',
     createdAt: '2026-06-09T11:00:00.000Z',
   },
   {
@@ -93,8 +95,8 @@ const SEED_POSTS: ForumPost[] = [
     category: 'all',
     subcategory: 'maintenance',
     title: 'Portable power station sizing',
-    body: 'For fridge + phones + LED lights overnight: 500Wh minimum. If you run a CPAP or electric kettle, plan for 1kWh+. Solar input matters more than capacity on long stays.',
-    author: 'OffGridOwen',
+    body: 'Demo tip: fridge + phones + LED overnight often needs ~500Wh; more if you run medical gear. Generic advice for UI sample.',
+    author: 'DemoOffGrid',
     createdAt: '2026-06-08T13:00:00.000Z',
   },
 ];

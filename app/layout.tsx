@@ -29,8 +29,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "rvchain — RV Parks & Community",
-  description: "Find RV parks and campgrounds nationwide. Use GPS and Google Maps navigation. Chat with fellow RVers about destinations and spots.",
+  title: "rvchain — Demo · Family Road Life",
+  description:
+    "Demonstration app for RV community tools. Sample parks, market listings, and brand names are fictional. No real sales or third-party brand affiliations.",
   icons: {
     icon: "/rvchain-logo.jpg",
     apple: "/rvchain-logo.jpg",

@@ -5,7 +5,7 @@ function dedupeKey(park: Park): string {
   return `${park.name.toLowerCase().trim()}|${(park.state ?? '').toUpperCase()}|${(park.city ?? '').toLowerCase().trim()}`;
 }
 
-/** Demo seed parks plus free public-agency campground listings. */
+/** Demo seed parks plus extra fictional sample campgrounds (not real places). */
 export function getLocalParkCatalog(): Park[] {
   const seen = new Set<string>();
   const merged: Park[] = [];

@@ -1,6 +1,7 @@
 import { SEED_GEAR_LISTINGS, type GearListing } from './gearListings';
+import { resolveMarketplaceImage } from './marketplaceImages';
 
-const KEY = 'rvchain_gear_listings';
+const KEY = 'rvchain_gear_listings_v2';
 
 function normalize(raw: Partial<GearListing> & Pick<GearListing, 'id' | 'title' | 'price'>): GearListing {
   return {
@@ -14,7 +15,7 @@ function normalize(raw: Partial<GearListing> & Pick<GearListing, 'id' | 'title' 
     city: raw.city ?? '',
     state: raw.state ?? 'TX',
     description: raw.description ?? '',
-    image: raw.image ?? '/marketplace/gear-cooler.jpg',
+    image: resolveMarketplaceImage(raw.image, '/marketplace/gear-cooler.jpg'),
     sellerName: raw.sellerName ?? 'Seller',
     sellerUserId: raw.sellerUserId,
     listedAt: raw.listedAt ?? new Date().toISOString(),
