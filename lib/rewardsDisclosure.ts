@@ -5,12 +5,12 @@ export const REWARDS_DISCLOSURE = {
   summary:
     'rvchain loyalty points are promotional rewards only. They have no cash value and cannot be sold, transferred, or exchanged for money.',
   bullets: [
+    'Points are earned from mileage tracking and campsite check-ins (paid members). rvchain does not take campsite bookings or stay payments.',
     'Points are non-transferable and may not be assigned, sold, or gifted to another person or account.',
     'Points are not cash redeemable and cannot be converted to currency or stored value.',
     'Loyalty points have no cash value and do not create any property right or entitlement.',
-    'Redemptions are fulfilled through sponsor and partner programs — camping gear, fuel cards, propane credits, and similar perks when available. Not cash payouts.',
-    'rvchain works with outdoor brands and campground sponsors to source rewards; item availability varies by region, season, and active partnerships.',
-    'Demo mode: redemptions shown on this site are simulated on your device until live sponsor fulfillment is enabled.',
+    'Redemptions are fulfilled through sponsor programs — gear, fuel cards, propane credits when available. Not cash payouts.',
+    'Demo mode: redemptions shown on this site are simulated until live sponsor fulfillment is enabled.',
   ],
   footer:
     'Program terms may change. rvchain reserves the right to modify, suspend, or end the rewards program at any time.',

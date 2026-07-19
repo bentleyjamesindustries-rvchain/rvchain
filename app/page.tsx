@@ -31,13 +31,6 @@ import {
   getRewardsUserId,
   getActivePoints,
 } from '@/lib/rewardsStorage';
-import {
-  createSiteBooking,
-  addBooking,
-  performBookingCheckIn,
-  getBookableCheckIn,
-} from '@/lib/bookingRewards';
-import BookParkModal from '@/components/BookParkModal';
 import VerifiedBadge from '@/components/VerifiedBadge';
 import { createModeratorVerification, getParkVerificationInfo } from '@/lib/spotVerification';
 import { isModerator } from '@/lib/moderator';
@@ -161,7 +154,6 @@ export default function RVChainApp() {
   const [showProfile, setShowProfile] = useState(false);
   const [profileInitialTab, setProfileInitialTab] = useState<'profile' | 'explorers'>('profile');
   const [showSubmitPark, setShowSubmitPark] = useState(false);
-  const [bookParkTarget, setBookParkTarget] = useState<Park | null>(null);
   const [verifyingParkId, setVerifyingParkId] = useState<string | null>(null);
   const [showExplorerSignIn, setShowExplorerSignIn] = useState(false);
   const [explorerSession, setExplorerSession] = useState<ActiveExplorerSession | null>(() =>
@@ -493,30 +485,6 @@ export default function RVChainApp() {
     }
     const uid = getRewardsUserId(user.id);
     const rewards = loadUnifiedRewards(uid);
-
-    if (rewards.activeProgram === 'booking') {
-      const booking = getBookableCheckIn(rewards.booking, park.id);
-      if (!booking) {
-        toast.error('Book this park on rvchain first, then check in on arrival day.');
-        setBookParkTarget(park);
-        return;
-      }
-      const { state: next, points, error } = performBookingCheckIn(
-        rewards.booking,
-        booking,
-        userLocation?.lat,
-        userLocation?.lng,
-        park.lat,
-        park.lng,
-        membershipPlanId
-      );
-      if (error) return toast.error(error);
-      saveUnifiedRewards(uid, { ...rewards, booking: next });
-      syncRewardsState();
-      toast.success(`+${points} points! Stay check-in at ${park.name}`);
-      return;
-    }
-
     const { profile: next, points, error } = performCheckIn(
       rewards.mileage,
       'campsite',
@@ -525,35 +493,9 @@ export default function RVChainApp() {
       membershipPlanId
     );
     if (error) return toast.error(error);
-    saveUnifiedRewards(uid, { ...rewards, mileage: next });
+    saveUnifiedRewards(uid, { ...rewards, activeProgram: 'mileage', mileage: next });
     syncRewardsState();
     toast.success(`+${points} points! Checked in at ${park.name}`);
-  };
-
-  const handleConfirmBooking = (checkIn: string, checkOut: string) => {
-    if (!bookParkTarget) return;
-    const uid = getRewardsUserId(user?.id);
-    const rewards = loadUnifiedRewards(uid);
-    const booking = createSiteBooking(bookParkTarget, checkIn, checkOut, {
-      method: 'demo',
-      usdAmount: (bookParkTarget.price ?? 0) * Math.max(
-        1,
-        Math.round((new Date(checkOut).getTime() - new Date(checkIn).getTime()) / (1000 * 60 * 60 * 24))
-      ),
-      paidAt: new Date().toISOString(),
-    });
-    const nextBooking = addBooking(rewards.booking, booking);
-    const next = { ...rewards, activeProgram: 'booking' as const, booking: nextBooking };
-    saveUnifiedRewards(uid, next);
-    setActiveRewardProgram('booking');
-    syncRewardsState();
-    const parkName = bookParkTarget.name;
-    setBookParkTarget(null);
-    closeModal();
-    toast.success(
-      `Demo booking saved for ${parkName}! Nothing was charged or reserved — check in on ${checkIn} to try rewards.`
-    );
-    setActiveTab('rewards');
   };
 
   // === PARK SUBMISSION (real backend) ===
@@ -819,8 +761,8 @@ export default function RVChainApp() {
       <div className="rv-hero max-w-screen-xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-3">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
           <div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Find your next spot.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Connect with the road.</h1>
-            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Nationwide RV parks &amp; campgrounds + real talk from fellow travelers.</p>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Plan the trip.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Connect with the road.</h1>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Community, trip tools, family adventures &amp; RV marketplace — not a booking engine.</p>
           </div>
 
           <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">
@@ -948,8 +890,10 @@ export default function RVChainApp() {
           <div className="flex items-center justify-between mb-3 px-1 section-intro">
             <div>
               <span className="font-semibold text-xl">{filteredParks.length}</span>
-              <span className="text-slate-400 text-sm ml-1">parks found nationwide</span>
-              <p className="text-xs text-slate-300 mt-1 leading-relaxed">Includes free public listings from NPS, state parks, USFS &amp; BLM.</p>
+              <span className="text-slate-400 text-sm ml-1">community park picks</span>
+              <p className="text-xs text-slate-300 mt-1 leading-relaxed">
+                Growing list of public &amp; community spots — not a complete catalog. Plan trips &amp; connect; book stays with parks directly.
+              </p>
             </div>
             <div className="flex items-center gap-3">
               {user && (
@@ -1226,25 +1170,13 @@ export default function RVChainApp() {
                 <span className="font-semibold">Get Directions in Google Maps</span>
               </button>
 
-              <button
-                onClick={() => setBookParkTarget(selectedPark)}
-                className="w-full bg-sky-700 hover:bg-sky-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
-              >
-                <Calendar className="w-4 h-4" />
-                <span>Book on rvchain (Demo)</span>
-              </button>
-
               {user && canEarnLoyaltyPoints(getMembershipPlanId(user.id)) && (
                 <button
                   onClick={() => handleParkCheckIn(selectedPark)}
                   className="w-full bg-amber-700 hover:bg-amber-600 transition text-white font-semibold h-11 rounded-3xl flex items-center justify-center gap-x-2"
                 >
                   <Gift className="w-4 h-4" />
-                  <span>
-                    {activeRewardProgram === 'booking'
-                      ? 'Check In to Earn Points'
-                      : 'Check In (+250 pts)'}
-                  </span>
+                  <span>Check In (+250 pts)</span>
                 </button>
               )}
 
@@ -1304,14 +1236,6 @@ export default function RVChainApp() {
             setShowExplorerSignIn(false);
             setActiveTab('kids');
           }}
-        />
-      )}
-
-      {bookParkTarget && (
-        <BookParkModal
-          park={bookParkTarget}
-          onClose={() => setBookParkTarget(null)}
-          onConfirm={handleConfirmBooking}
         />
       )}
 
@@ -1522,7 +1446,6 @@ export default function RVChainApp() {
           onRequestSignIn={() => setShowAuthModal(true)}
           onRequestUpgrade={() => setActiveTab('trips')}
           onPointsChange={syncRewardsState}
-          onBookPark={() => setActiveTab('discover')}
         />
       )}
 
@@ -1537,7 +1460,7 @@ export default function RVChainApp() {
 
       <footer className="section-intro max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
         <p className="text-amber-400/90 max-w-lg mx-auto leading-relaxed">
-          Demonstration only — bookings, payments, rewards, and RV listings are simulated on your device. No charges, reservations, or seller notifications.
+          Demonstration only — memberships, Seller Pro, rewards, and listings are simulated on your device. No real charges or seller notifications.
         </p>
         <p>rvchain • Powered by Supabase</p>
       </footer>

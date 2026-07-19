@@ -36,9 +36,15 @@ import {
 } from '@/lib/rvCertification';
 import { saveRvCertification } from '@/lib/rvCertificationStorage';
 import {
+  formatSellerProPrice,
   getRvchainSubscription,
   isRvchainSubscriber,
+  isSellerFeaturedActive,
+  purchaseFeaturedBoost,
+  SELLER_FEATURED_BOOST_PRICE,
+  SELLER_MAX_ACTIVE_LISTINGS,
   subscribeToRvchainServices,
+  type SellerBillingInterval,
 } from '@/lib/rvSubscriptionStorage';
 
 type MarketView = 'browse' | 'sell' | 'mine';
@@ -167,6 +173,7 @@ export default function RvMarketplacePanel({
   const [showContact, setShowContact] = useState(false);
   const [form, setForm] = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
+  const [sellerInterval, setSellerInterval] = useState<SellerBillingInterval>('monthly');
 
   const refresh = useCallback(() => {
     setListings(loadAllListings());
@@ -248,13 +255,24 @@ export default function RvMarketplacePanel({
 
   const handleSubscribe = () => {
     if (!user) {
-      toast.info('Sign in to subscribe to RVCHAIN seller services.');
+      toast.info('Sign in to subscribe to Seller Pro.');
       onRequestSignIn();
       return;
     }
-    subscribeToRvchainServices(user.id);
+    subscribeToRvchainServices(user.id, sellerInterval);
     setSubscribed(true);
-    toast.success('Subscribed (demo)! You can now certify your listings.');
+    toast.success(
+      `Seller Pro activated (demo, ${formatSellerProPrice(sellerInterval)})! You can publish listings.`
+    );
+  };
+
+  const handleFeaturedBoost = () => {
+    if (!user) return onRequestSignIn();
+    if (!isRvchainSubscriber(user.id)) {
+      return toast.info('Seller Pro required before featured boost.');
+    }
+    purchaseFeaturedBoost(user.id);
+    toast.success(`Featured boost started (demo, $${SELLER_FEATURED_BOOST_PRICE} / 7 days).`);
   };
 
   const handleCertifyListing = async (listing: RvListing) => {
@@ -263,7 +281,7 @@ export default function RvMarketplacePanel({
       return;
     }
     if (!isRvchainSubscriber(user.id)) {
-      toast.info('Subscribe to RVCHAIN seller services to certify listings.');
+      toast.info('Seller Pro is required to certify listings.');
       return;
     }
     if (listing.rvchainCertified) {
@@ -331,6 +349,14 @@ export default function RvMarketplacePanel({
       toast.info('Sign in to list your RV for sale.');
       onRequestSignIn();
       return;
+    }
+    if (!isRvchainSubscriber(user.id)) {
+      toast.info('Seller Pro is required to publish listings — no free listings.');
+      setView('sell');
+      return;
+    }
+    if (myListings.length >= SELLER_MAX_ACTIVE_LISTINGS) {
+      return toast.error(`Seller Pro allows up to ${SELLER_MAX_ACTIVE_LISTINGS} active listings.`);
     }
     const year = Number(form.year);
     const price = Number(form.price);
@@ -494,25 +520,25 @@ export default function RvMarketplacePanel({
                 <BadgeCheck className="w-5 h-5 text-emerald-400" />
               </div>
               <div>
-                <h3 className="font-semibold text-emerald-200">RVCHAIN Certified Sellers</h3>
+                <h3 className="font-semibold text-emerald-200">Seller Pro — required to list</h3>
                 <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed max-w-2xl">
-                  Subscribe to RVCHAIN seller services and receive an official certification badge on your listings
-                  after moderator review.
+                  No free listings. Seller Pro ({formatSellerProPrice('monthly')} or {formatSellerProPrice('annual')})
+                  unlocks publishing, certification badges, and optional featured boosts. Browse stays free.
                 </p>
               </div>
             </div>
             {subscribed ? (
               <div className="flex items-center gap-2 text-sm text-emerald-300 font-semibold shrink-0 bg-emerald-950/50 border border-emerald-700/40 px-4 py-2.5 rounded-2xl">
                 <ShieldCheck className="w-4 h-4" />
-                Subscribed — certify in My Listings
+                Seller Pro active
               </div>
             ) : (
               <button
                 type="button"
-                onClick={handleSubscribe}
-                className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-5 h-11 rounded-2xl font-semibold text-sm transition"
+                onClick={() => setView('sell')}
+                className="shrink-0 bg-amber-600 hover:bg-amber-500 px-5 h-11 rounded-2xl font-semibold text-sm transition"
               >
-                Subscribe (demo)
+                Get Seller Pro
               </button>
             )}
           </div>
@@ -742,7 +768,7 @@ export default function RvMarketplacePanel({
         <div className="max-w-2xl bg-slate-900 border border-slate-700 rounded-3xl p-5 sm:p-6">
           {!user && (
             <div className="mb-5 p-4 rounded-2xl border border-slate-700 bg-slate-950/80 text-sm text-slate-300">
-              Sign in to list your RV. Listings are saved locally for demo purposes.
+              Sign in, then subscribe to Seller Pro to publish listings. There is no free listing tier.
               <button
                 type="button"
                 onClick={onRequestSignIn}
@@ -753,8 +779,48 @@ export default function RvMarketplacePanel({
             </div>
           )}
 
+          {user && !subscribed && (
+            <div className="mb-5 p-5 rounded-2xl border border-amber-700/40 bg-amber-950/20 space-y-4">
+              <div>
+                <h3 className="font-semibold text-amber-100">Seller Pro required</h3>
+                <p className="text-xs text-slate-400 mt-1 leading-relaxed">
+                  Publish up to {SELLER_MAX_ACTIVE_LISTINGS} listings, certify for trust badges, and buy
+                  optional featured boosts. No free single listing — keeps the market for serious sellers.
+                </p>
+              </div>
+              <div className="flex gap-2 p-1 rounded-xl bg-slate-950 border border-slate-800 w-fit">
+                <button
+                  type="button"
+                  onClick={() => setSellerInterval('monthly')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    sellerInterval === 'monthly' ? 'bg-amber-700 text-white' : 'text-slate-400'
+                  }`}
+                >
+                  {formatSellerProPrice('monthly')}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setSellerInterval('annual')}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-semibold ${
+                    sellerInterval === 'annual' ? 'bg-amber-700 text-white' : 'text-slate-400'
+                  }`}
+                >
+                  {formatSellerProPrice('annual')}
+                </button>
+              </div>
+              <button
+                type="button"
+                onClick={handleSubscribe}
+                className="w-full h-11 rounded-2xl bg-amber-600 hover:bg-amber-500 font-semibold text-sm"
+              >
+                Activate Seller Pro (demo) — {formatSellerProPrice(sellerInterval)}
+              </button>
+              <p className="text-[10px] text-slate-500">{DEMO_NOTICE_SHORT}</p>
+            </div>
+          )}
+
           <h3 className="font-semibold text-lg mb-4">List your RV for sale</h3>
-          <div className="space-y-4">
+          <div className={`space-y-4 ${user && !subscribed ? 'opacity-40 pointer-events-none select-none' : ''}`}>
             <input
               type="text"
               placeholder="Listing title (e.g. 2020 Winnebago View 24D)"
@@ -890,10 +956,14 @@ export default function RvMarketplacePanel({
             <button
               type="button"
               onClick={handleSubmitListing}
-              disabled={submitting}
+              disabled={submitting || !user || !subscribed}
               className="w-full bg-amber-600 hover:bg-amber-500 disabled:opacity-50 h-12 rounded-2xl font-semibold text-sm transition"
             >
-              {submitting ? 'Saving...' : 'Publish listing (demo)'}
+              {submitting
+                ? 'Saving...'
+                : !subscribed
+                  ? 'Seller Pro required to publish'
+                  : 'Publish listing (demo)'}
             </button>
           </div>
         </div>
@@ -902,32 +972,43 @@ export default function RvMarketplacePanel({
       {view === 'mine' && (
         <div className="space-y-4">
           {user && !subscribed && (
-            <div className="p-4 rounded-3xl border border-emerald-800/40 bg-emerald-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="p-4 rounded-3xl border border-amber-800/40 bg-amber-950/20 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div>
-                <p className="font-semibold text-emerald-200 text-sm">Get RVCHAIN Certified</p>
+                <p className="font-semibold text-amber-200 text-sm">Seller Pro required to list</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  Subscribe to certify your listings and earn the official badge.
+                  {formatSellerProPrice('monthly')} · no free listings · certify &amp; feature when active
                 </p>
               </div>
               <button
                 type="button"
-                onClick={handleSubscribe}
-                className="shrink-0 bg-emerald-600 hover:bg-emerald-500 px-5 h-10 rounded-2xl font-semibold text-sm"
+                onClick={() => setView('sell')}
+                className="shrink-0 bg-amber-600 hover:bg-amber-500 px-5 h-10 rounded-2xl font-semibold text-sm"
               >
-                Subscribe (demo)
+                Get Seller Pro
               </button>
             </div>
           )}
           {user && subscribed && (
-            <div className="p-3 rounded-2xl border border-emerald-700/40 bg-emerald-950/30 text-sm text-emerald-300 flex items-center gap-2">
-              <ShieldCheck className="w-4 h-4 shrink-0" />
-              <span>
-                Seller subscription active since{' '}
-                {getRvchainSubscription(user.id)?.subscribedAt
-                  ? formatListedDate(getRvchainSubscription(user.id)!.subscribedAt)
-                  : 'today'}
-                {' — '}certify each listing below.
-              </span>
+            <div className="p-3 rounded-2xl border border-emerald-700/40 bg-emerald-950/30 text-sm text-emerald-300 flex flex-col sm:flex-row sm:items-center gap-2 sm:justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="w-4 h-4 shrink-0" />
+                <span>
+                  Seller Pro since{' '}
+                  {getRvchainSubscription(user.id)?.subscribedAt
+                    ? formatListedDate(getRvchainSubscription(user.id)!.subscribedAt)
+                    : 'today'}
+                  {isSellerFeaturedActive(user.id) ? ' · Featured boost active' : ''}
+                </span>
+              </div>
+              {!isSellerFeaturedActive(user.id) && (
+                <button
+                  type="button"
+                  onClick={handleFeaturedBoost}
+                  className="shrink-0 text-xs px-3 py-1.5 rounded-xl border border-amber-600/50 text-amber-200 hover:bg-amber-950/40 font-semibold"
+                >
+                  Featured boost ${SELLER_FEATURED_BOOST_PRICE}/7 days (demo)
+                </button>
+              )}
             </div>
           )}
           {!user ? (
