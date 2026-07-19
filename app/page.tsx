@@ -38,7 +38,7 @@ import { enrichParks } from '@/lib/localVerification';
 import ForumPanel from '@/components/ForumPanel';
 import KidsAdventurePanel from '@/components/KidsAdventurePanel';
 import ExplorerSignInModal from '@/components/ExplorerSignInModal';
-import RvMarketplacePanel from '@/components/RvMarketplacePanel';
+import MarketplaceHub from '@/components/MarketplaceHub';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import {
@@ -94,7 +94,7 @@ const STATES = CATALOG_STATES;
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'discover', label: 'Discover', icon: Search },
   { id: 'kids', label: 'Kids', icon: Sparkles },
-  { id: 'marketplace', label: 'RVs', icon: Caravan },
+  { id: 'marketplace', label: 'Market', icon: Caravan },
   { id: 'map', label: 'Map', icon: MapPin },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
   { id: 'trips', label: 'Trips', icon: Calendar },
@@ -1004,9 +1004,9 @@ export default function RVChainApp() {
         </div>
       )}
 
-      {/* RV MARKETPLACE */}
+      {/* MARKETPLACE: RVs · Gear · Parts */}
       {activeTab === 'marketplace' && (
-        <RvMarketplacePanel
+        <MarketplaceHub
           user={user}
           displayHandle={profileHandle}
           onRequestSignIn={() => setShowAuthModal(true)}

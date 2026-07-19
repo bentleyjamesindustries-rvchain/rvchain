@@ -58,7 +58,7 @@ import {
   listingExpiresAt,
   purchaseSingleListingCredit,
   SINGLE_LISTING_DAYS,
-  SINGLE_LISTING_PRICE,
+  singleListingPrice,
 } from '@/lib/sellerListingAccess';
 import {
   formatFeePercent,
@@ -203,7 +203,7 @@ export default function RvMarketplacePanel({
     setListings(loadAllListings());
     if (user) {
       setSubscribed(isRvchainSubscriber(user.id));
-      setCreditCount(countUnusedListingCredits(user.id));
+      setCreditCount(countUnusedListingCredits(user.id, 'rv'));
     } else {
       setSubscribed(false);
       setCreditCount(0);
@@ -214,7 +214,7 @@ export default function RvMarketplacePanel({
     refresh();
   }, [refresh]);
 
-  const canPublish = user ? canPublishListing(user.id) : false;
+  const canPublish = user ? canPublishListing(user.id, 'rv') : false;
 
   const myListings = useMemo(
     () => (user ? loadUserListingsOnly(user.id) : []),
@@ -303,10 +303,10 @@ export default function RvMarketplacePanel({
       onRequestSignIn();
       return;
     }
-    purchaseSingleListingCredit(user.id);
+    purchaseSingleListingCredit(user.id, 'rv');
     refresh();
     toast.success(
-      `Single listing purchased (demo, $${SINGLE_LISTING_PRICE}) — ${SINGLE_LISTING_DAYS} days when published.`
+      `Single listing purchased (demo, $${singleListingPrice('rv')}) — ${SINGLE_LISTING_DAYS} days when published.`
     );
   };
 
@@ -334,6 +334,7 @@ export default function RvMarketplacePanel({
     const sale = createDemoMarketplaceSale({
       listingId: checkoutListing.id,
       listingTitle: checkoutListing.title,
+      itemType: 'rv',
       buyerUserId: user.id,
       sellerUserId: sellerId,
       grossPrice: checkoutListing.price,
@@ -422,7 +423,7 @@ export default function RvMarketplacePanel({
       onRequestSignIn();
       return;
     }
-    const gate = canPublishAnotherListing(user.id);
+    const gate = canPublishAnotherListing(user.id, 'rv');
     if (!gate.ok) {
       toast.info(gate.error || 'Purchase a listing or Seller Pro first.');
       return;
@@ -453,13 +454,13 @@ export default function RvMarketplacePanel({
     }
 
     setSubmitting(true);
-    const access = getPublishAccess(user.id);
+    const access = getPublishAccess(user.id, 'rv');
     const listingId = `rv-user-${Date.now()}`;
     let expiresAt: string | null = null;
     let listingAccess: 'single' | 'seller-pro' = 'seller-pro';
 
     if (access === 'single-credit') {
-      const credit = consumeListingCredit(user.id, listingId);
+      const credit = consumeListingCredit(user.id, listingId, 'rv');
       if (!credit) {
         setSubmitting(false);
         return toast.error('No listing credit available.');
@@ -507,7 +508,7 @@ export default function RvMarketplacePanel({
     setSellerAgreeOwn(false);
     setView('mine');
     setSubmitting(false);
-    const quote = quoteMarketplaceFee(price);
+    const quote = quoteMarketplaceFee(price, 'rv');
     toast.success(
       `Listing live (demo). If sold through rvchain at list price, you receive ${formatSellerPayout(quote.sellerNet)} (${formatFeePercent(quote.feePercent)} fee).`
     );
@@ -620,7 +621,7 @@ export default function RvMarketplacePanel({
               <div>
                 <h3 className="font-semibold text-emerald-200">Sell an RV — low list fee, fee % on sale</h3>
                 <p className="text-xs sm:text-sm text-slate-400 mt-1 leading-relaxed max-w-2xl">
-                  Single listing from ${SINGLE_LISTING_PRICE} or Seller Pro ({formatSellerProPrice('monthly')}).
+                  Single listing from ${singleListingPrice('rv')} or Seller Pro ({formatSellerProPrice('monthly')}).
                   When sold through rvchain, marketplace fee is a % of price — sellers see what they&apos;ll receive.
                   Browse free.
                 </p>
@@ -894,7 +895,7 @@ export default function RvMarketplacePanel({
               <div className="grid sm:grid-cols-2 gap-3">
                 <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-2">
                   <div className="text-sm font-semibold text-slate-100">Single listing</div>
-                  <div className="text-xl font-bold text-amber-300">${SINGLE_LISTING_PRICE}</div>
+                  <div className="text-xl font-bold text-amber-300">${singleListingPrice('rv')}</div>
                   <p className="text-[11px] text-slate-500">{SINGLE_LISTING_DAYS} days · one RV ad</p>
                   <button
                     type="button"
@@ -1090,12 +1091,12 @@ export default function RvMarketplacePanel({
                 <div className="text-slate-400 text-xs">
                   If sold through rvchain at this price — marketplace fee{' '}
                   <strong className="text-slate-200">
-                    {formatFeePercent(quoteMarketplaceFee(Number(form.price)).feePercent)}
+                    {formatFeePercent(quoteMarketplaceFee(Number(form.price), 'rv').feePercent)}
                   </strong>
                 </div>
                 <div className="text-emerald-300 font-bold text-lg mt-1">
                   You&apos;ll receive:{' '}
-                  {formatSellerPayout(quoteMarketplaceFee(Number(form.price)).sellerNet)}
+                  {formatSellerPayout(quoteMarketplaceFee(Number(form.price), 'rv').sellerNet)}
                 </div>
               </div>
             )}
@@ -1149,7 +1150,7 @@ export default function RvMarketplacePanel({
               <div>
                 <p className="font-semibold text-amber-200 text-sm">List a single RV or go Pro</p>
                 <p className="text-xs text-slate-400 mt-1">
-                  From ${SINGLE_LISTING_PRICE} one ad · Pro {formatSellerProPrice('monthly')} · sale %
+                  From ${singleListingPrice('rv')} one ad · Pro {formatSellerProPrice('monthly')} · sale %
                   when you sell through rvchain
                 </p>
               </div>
@@ -1361,12 +1362,12 @@ export default function RvMarketplacePanel({
                   <div className="text-xs text-slate-400">
                     Marketplace fee{' '}
                     <strong className="text-slate-200">
-                      {formatFeePercent(quoteMarketplaceFee(selected.price).feePercent)}
+                      {formatFeePercent(quoteMarketplaceFee(selected.price, 'rv').feePercent)}
                     </strong>{' '}
                     · seller receives at list price
                   </div>
                   <div className="text-emerald-300 font-bold text-lg">
-                    {formatSellerPayout(quoteMarketplaceFee(selected.price).sellerNet)}
+                    {formatSellerPayout(quoteMarketplaceFee(selected.price, 'rv').sellerNet)}
                   </div>
                 </div>
               )}
@@ -1460,7 +1461,9 @@ export default function RvMarketplacePanel({
 
       {checkoutListing && (
         <MarketplaceCheckoutModal
-          listing={checkoutListing}
+          title={checkoutListing.title}
+          price={checkoutListing.price}
+          itemType="rv"
           onClose={() => setCheckoutListing(null)}
           onConfirm={handleDemoCheckout}
         />

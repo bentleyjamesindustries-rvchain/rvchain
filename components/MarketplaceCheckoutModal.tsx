@@ -2,32 +2,41 @@
 
 import { useState } from 'react';
 import { X, ShoppingBag } from 'lucide-react';
-import type { RvListing } from '@/lib/rvListings';
-import { formatRvPrice } from '@/lib/rvListings';
 import {
   formatFeePercent,
   formatSellerPayout,
+  itemTypeLabel,
   quoteMarketplaceFee,
+  type MarketplaceItemType,
 } from '@/lib/marketplaceFees';
 import { MARKETPLACE_DISCLOSURE } from '@/lib/marketplaceDisclosure';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
 
 interface MarketplaceCheckoutModalProps {
-  listing: RvListing;
+  title: string;
+  price: number;
+  itemType: MarketplaceItemType;
   onClose: () => void;
   onConfirm: () => void;
 }
 
 export default function MarketplaceCheckoutModal({
-  listing,
+  title,
+  price,
+  itemType,
   onClose,
   onConfirm,
 }: MarketplaceCheckoutModalProps) {
-  const quote = quoteMarketplaceFee(listing.price);
+  const quote = quoteMarketplaceFee(price, itemType);
   const [agreePrivate, setAgreePrivate] = useState(false);
   const [agreeFee, setAgreeFee] = useState(false);
-
   const canSubmit = agreePrivate && agreeFee;
+
+  const priceLabel = new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: price % 1 === 0 ? 0 : 2,
+  }).format(price);
 
   return (
     <div
@@ -50,15 +59,18 @@ export default function MarketplaceCheckoutModal({
 
         <div className="p-5 space-y-4">
           <div>
-            <div className="font-semibold text-slate-100">{listing.title}</div>
-            <div className="text-2xl font-bold text-amber-300 mt-1">{formatRvPrice(listing.price)}</div>
+            <div className="text-[10px] uppercase tracking-wide text-slate-500 font-semibold">
+              {itemTypeLabel(itemType)}
+            </div>
+            <div className="font-semibold text-slate-100">{title}</div>
+            <div className="text-2xl font-bold text-amber-300 mt-1">{priceLabel}</div>
             <p className="text-[10px] text-slate-500 mt-1">{DEMO_NOTICE_SHORT}</p>
           </div>
 
           <div className="rounded-2xl border border-slate-700 bg-slate-950 p-4 space-y-2 text-sm">
             <div className="flex justify-between">
               <span className="text-slate-400">Sale price</span>
-              <span className="font-semibold">{formatRvPrice(quote.grossPrice)}</span>
+              <span className="font-semibold">{priceLabel}</span>
             </div>
             <div className="flex justify-between">
               <span className="text-slate-400">Marketplace fee</span>
@@ -72,14 +84,9 @@ export default function MarketplaceCheckoutModal({
             </div>
           </div>
 
-          <div className="max-h-36 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-[11px] text-slate-500 leading-relaxed space-y-2">
-            <p className="font-semibold text-slate-400">{MARKETPLACE_DISCLOSURE.title}</p>
+          <div className="max-h-32 overflow-y-auto rounded-xl border border-slate-800 bg-slate-950/80 p-3 text-[11px] text-slate-500 leading-relaxed">
+            <p className="font-semibold text-slate-400 mb-1">{MARKETPLACE_DISCLOSURE.title}</p>
             <p>{MARKETPLACE_DISCLOSURE.summary}</p>
-            <ul className="list-disc pl-4 space-y-1">
-              {MARKETPLACE_DISCLOSURE.bullets.slice(0, 5).map((b) => (
-                <li key={b}>{b}</li>
-              ))}
-            </ul>
           </div>
 
           <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
@@ -90,8 +97,8 @@ export default function MarketplaceCheckoutModal({
               className="mt-0.5 rounded border-slate-600"
             />
             <span>
-              I understand this is a private-party vehicle sale; rvchain does not transfer title or
-              guarantee the vehicle.
+              I understand this is a private-party sale; rvchain does not transfer title or guarantee
+              the item.
             </span>
           </label>
           <label className="flex items-start gap-2 text-xs text-slate-300 cursor-pointer">
@@ -102,9 +109,8 @@ export default function MarketplaceCheckoutModal({
               className="mt-0.5 rounded border-slate-600"
             />
             <span>
-              I agree to the marketplace fee of {formatFeePercent(quote.feePercent)} and the
-              Marketplace Terms. Seller proceeds at this price:{' '}
-              <strong className="text-emerald-300">{formatSellerPayout(quote.sellerNet)}</strong>.
+              I agree to the marketplace fee of {formatFeePercent(quote.feePercent)} and Terms. Seller
+              proceeds: <strong className="text-emerald-300">{formatSellerPayout(quote.sellerNet)}</strong>.
             </span>
           </label>
 

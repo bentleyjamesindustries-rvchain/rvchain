@@ -1,4 +1,4 @@
-import { quoteMarketplaceFee } from './marketplaceFees';
+import { quoteMarketplaceFee, type MarketplaceItemType } from './marketplaceFees';
 
 export type MarketplaceSaleStatus = 'demo_completed' | 'pending' | 'paid' | 'payout_sent';
 
@@ -6,6 +6,7 @@ export interface MarketplaceSale {
   id: string;
   listingId: string;
   listingTitle: string;
+  itemType: MarketplaceItemType;
   buyerUserId: string;
   sellerUserId: string;
   grossPrice: number;
@@ -36,15 +37,17 @@ function saveAll(sales: MarketplaceSale[]) {
 export function createDemoMarketplaceSale(input: {
   listingId: string;
   listingTitle: string;
+  itemType: MarketplaceItemType;
   buyerUserId: string;
   sellerUserId: string;
   grossPrice: number;
 }): MarketplaceSale {
-  const quote = quoteMarketplaceFee(input.grossPrice);
+  const quote = quoteMarketplaceFee(input.grossPrice, input.itemType);
   const sale: MarketplaceSale = {
     id: `sale-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
     listingId: input.listingId,
     listingTitle: input.listingTitle,
+    itemType: input.itemType,
     buyerUserId: input.buyerUserId,
     sellerUserId: input.sellerUserId,
     grossPrice: quote.grossPrice,

@@ -1,14 +1,25 @@
+import type { MarketplaceItemType } from './marketplaceFees';
 import { isRvchainSubscriber, SELLER_MAX_ACTIVE_LISTINGS } from './rvSubscriptionStorage';
 import { loadUserListingsOnly } from './rvMarketplaceStorage';
+import { loadUserGearListingsOnly } from './gearMarketplaceStorage';
+import { loadUserPartsListingsOnly } from './partsMarketplaceStorage';
 
-/** Low list fees — primary revenue is sale commission */
-export const SINGLE_LISTING_PRICE = 14.99;
-export const SINGLE_LISTING_RENEW_PRICE = 9.99;
+/** RV list fee */
+export const RV_SINGLE_LISTING_PRICE = 14.99;
+/** Gear (primary non-vehicle) — cheapest */
+export const GEAR_SINGLE_LISTING_PRICE = 1.99;
+/** Parts secondary */
+export const PARTS_SINGLE_LISTING_PRICE = 2.99;
+
 export const SINGLE_LISTING_DAYS = 30;
+
+/** @deprecated use type-specific prices */
+export const SINGLE_LISTING_PRICE = RV_SINGLE_LISTING_PRICE;
 
 export interface SellerListingCredit {
   id: string;
   userId: string;
+  itemType: MarketplaceItemType;
   purchasedAt: string;
   durationDays: number;
   usedListingId: string | null;
@@ -21,7 +32,17 @@ function loadCredits(): SellerListingCredit[] {
   if (typeof window === 'undefined') return [];
   try {
     const raw = localStorage.getItem(CREDIT_KEY);
-    return raw ? (JSON.parse(raw) as SellerListingCredit[]) : [];
+    if (!raw) return [];
+    const parsed = JSON.parse(raw) as Array<Partial<SellerListingCredit>>;
+    return parsed.map((c) => ({
+      id: c.id ?? `credit-${Math.random()}`,
+      userId: c.userId ?? '',
+      itemType: (c.itemType as MarketplaceItemType) ?? 'rv',
+      purchasedAt: c.purchasedAt ?? new Date().toISOString(),
+      durationDays: c.durationDays ?? SINGLE_LISTING_DAYS,
+      usedListingId: c.usedListingId ?? null,
+      usedAt: c.usedAt ?? null,
+    }));
   } catch {
     return [];
   }
@@ -31,19 +52,39 @@ function saveCredits(credits: SellerListingCredit[]) {
   localStorage.setItem(CREDIT_KEY, JSON.stringify(credits));
 }
 
-export function getUnusedListingCredits(userId: string): SellerListingCredit[] {
-  return loadCredits().filter((c) => c.userId === userId && !c.usedListingId);
+export function singleListingPrice(itemType: MarketplaceItemType): number {
+  if (itemType === 'gear') return GEAR_SINGLE_LISTING_PRICE;
+  if (itemType === 'parts') return PARTS_SINGLE_LISTING_PRICE;
+  return RV_SINGLE_LISTING_PRICE;
 }
 
-export function countUnusedListingCredits(userId: string): number {
-  return getUnusedListingCredits(userId).length;
+export function getUnusedListingCredits(
+  userId: string,
+  itemType?: MarketplaceItemType
+): SellerListingCredit[] {
+  return loadCredits().filter(
+    (c) =>
+      c.userId === userId &&
+      !c.usedListingId &&
+      (itemType ? c.itemType === itemType : true)
+  );
 }
 
-/** Demo purchase — no real charge */
-export function purchaseSingleListingCredit(userId: string): SellerListingCredit {
+export function countUnusedListingCredits(
+  userId: string,
+  itemType?: MarketplaceItemType
+): number {
+  return getUnusedListingCredits(userId, itemType).length;
+}
+
+export function purchaseSingleListingCredit(
+  userId: string,
+  itemType: MarketplaceItemType
+): SellerListingCredit {
   const credit: SellerListingCredit = {
     id: `credit-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
     userId,
+    itemType,
     purchasedAt: new Date().toISOString(),
     durationDays: SINGLE_LISTING_DAYS,
     usedListingId: null,
@@ -55,10 +96,13 @@ export function purchaseSingleListingCredit(userId: string): SellerListingCredit
 
 export function consumeListingCredit(
   userId: string,
-  listingId: string
+  listingId: string,
+  itemType: MarketplaceItemType
 ): SellerListingCredit | null {
   const credits = loadCredits();
-  const idx = credits.findIndex((c) => c.userId === userId && !c.usedListingId);
+  const idx = credits.findIndex(
+    (c) => c.userId === userId && !c.usedListingId && c.itemType === itemType
+  );
   if (idx < 0) return null;
   credits[idx] = {
     ...credits[idx],
@@ -71,32 +115,52 @@ export function consumeListingCredit(
 
 export type PublishAccess = 'seller-pro' | 'single-credit' | 'none';
 
-export function getPublishAccess(userId?: string | null): PublishAccess {
+export function getPublishAccess(
+  userId?: string | null,
+  itemType: MarketplaceItemType = 'rv'
+): PublishAccess {
   if (!userId) return 'none';
   if (isRvchainSubscriber(userId)) return 'seller-pro';
-  if (countUnusedListingCredits(userId) > 0) return 'single-credit';
+  if (countUnusedListingCredits(userId, itemType) > 0) return 'single-credit';
   return 'none';
 }
 
-export function canPublishListing(userId?: string | null): boolean {
-  return getPublishAccess(userId) !== 'none';
+export function canPublishListing(
+  userId?: string | null,
+  itemType: MarketplaceItemType = 'rv'
+): boolean {
+  return getPublishAccess(userId, itemType) !== 'none';
 }
 
-export function canPublishAnotherListing(userId: string): { ok: boolean; error?: string } {
-  const access = getPublishAccess(userId);
+function activeCountAll(userId: string): number {
+  const rvs = loadUserListingsOnly(userId).filter(
+    (l) => (l.status ?? 'active') !== 'sold' && (l.status ?? 'active') !== 'expired'
+  ).length;
+  const gear = loadUserGearListingsOnly(userId).filter(
+    (l) => (l.status ?? 'active') !== 'sold' && (l.status ?? 'active') !== 'expired'
+  ).length;
+  const parts = loadUserPartsListingsOnly(userId).filter(
+    (l) => (l.status ?? 'active') !== 'sold' && (l.status ?? 'active') !== 'expired'
+  ).length;
+  return rvs + gear + parts;
+}
+
+export function canPublishAnotherListing(
+  userId: string,
+  itemType: MarketplaceItemType
+): { ok: boolean; error?: string } {
+  const access = getPublishAccess(userId, itemType);
   if (access === 'none') {
-    return { ok: false, error: 'Buy a single listing or activate Seller Pro to publish.' };
+    return {
+      ok: false,
+      error: `Buy a ${itemType === 'rv' ? 'RV' : itemType} listing or activate Seller Pro.`,
+    };
   }
-  if (access === 'seller-pro') {
-    const active = loadUserListingsOnly(userId).filter(
-      (l) => (l.status ?? 'active') !== 'sold' && (l.status ?? 'active') !== 'expired'
-    );
-    if (active.length >= SELLER_MAX_ACTIVE_LISTINGS) {
-      return {
-        ok: false,
-        error: `Seller Pro allows up to ${SELLER_MAX_ACTIVE_LISTINGS} active listings.`,
-      };
-    }
+  if (access === 'seller-pro' && activeCountAll(userId) >= SELLER_MAX_ACTIVE_LISTINGS) {
+    return {
+      ok: false,
+      error: `Seller Pro allows up to ${SELLER_MAX_ACTIVE_LISTINGS} active listings total.`,
+    };
   }
   return { ok: true };
 }
