@@ -28,11 +28,12 @@ const W = 480;
 const H = 560;
 const PW = 36;
 const PH = 40;
-const GRAVITY = 0.48;
-const JUMP_V = -11.2;
-const MOVE_ACCEL = 0.55;
-const MOVE_MAX = 6.2;
-const FRICTION = 0.82;
+const GRAVITY = 0.42;
+const JUMP_V = -10.2;
+/** Softer horizontal control so kids can aim jumps */
+const MOVE_ACCEL = 0.28;
+const MOVE_MAX = 3.4;
+const FRICTION = 0.78;
 
 export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -120,13 +121,13 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
         y -= 48 + Math.random() * 28;
         const w = 70 + Math.random() * 50;
         const x = 24 + Math.random() * (W - w - 48);
-        const moving = i > 6 && Math.random() < 0.22;
+        const moving = i > 8 && Math.random() < 0.15;
         platforms.push({
           x,
           y,
           w,
           kind: Math.random() > 0.7 ? 'leaf' : 'branch',
-          vx: moving ? (Math.random() > 0.5 ? 1.2 : -1.2) : 0,
+          vx: moving ? (Math.random() > 0.5 ? 0.65 : -0.65) : 0,
         });
         highestPlatY = y;
       }
@@ -146,17 +147,18 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
 
     const spawnAbove = () => {
       while (highestPlatY > cameraY - 80) {
-        const gap = 44 + Math.random() * 32 + Math.min(24, maxHeight / 400);
+        // Slightly closer branches, wider pads early on
+        const gap = 40 + Math.random() * 26 + Math.min(18, maxHeight / 500);
         const y = highestPlatY - gap;
-        const w = Math.max(52, 90 - maxHeight / 120 + Math.random() * 40);
+        const w = Math.max(64, 100 - maxHeight / 150 + Math.random() * 36);
         const x = 20 + Math.random() * (W - w - 40);
-        const moving = maxHeight > 200 && Math.random() < 0.28;
+        const moving = maxHeight > 350 && Math.random() < 0.18;
         platforms.push({
           x,
           y,
           w,
           kind: Math.random() > 0.65 ? 'leaf' : 'branch',
-          vx: moving ? (1.1 + Math.random() * 1.4) * (Math.random() > 0.5 ? 1 : -1) : 0,
+          vx: moving ? (0.55 + Math.random() * 0.7) * (Math.random() > 0.5 ? 1 : -1) : 0,
         });
         highestPlatY = y;
       }
@@ -315,9 +317,9 @@ export default function TreeClimbGame({ userId, onBack }: TreeClimbGameProps) {
           const follow = 0.12 + Math.min(0.2, maxHeight / 5000);
           cameraY += (targetCam - cameraY) * follow * dt * 3;
         }
-        // also slowly scroll up after first climb (Icy Tower feel)
-        if (maxHeight > 80) {
-          const autoScroll = 0.35 + Math.min(2.8, maxHeight / 900);
+        // Gentle auto-scroll after first climb (slower so players can think)
+        if (maxHeight > 120) {
+          const autoScroll = 0.18 + Math.min(1.4, maxHeight / 1400);
           cameraY -= autoScroll * dt;
         }
 
