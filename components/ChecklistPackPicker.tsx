@@ -36,8 +36,8 @@ export default function ChecklistPackPicker({
             {previewAllLocked
               ? 'Upgrade to unlock these packing lists for your trip.'
               : maxSelectable === 1
-                ? 'Pick one style for this trip (your plan allows 1).'
-                : `Select up to ${maxSelectable} packs for this trip.`}
+                ? 'Tap one card to add that packing list, then check items off below.'
+                : `Tap cards to add packing lists (up to ${maxSelectable === 6 ? 'all' : maxSelectable}). Check items off below.`}
           </p>
         </div>
         {!previewAllLocked && (

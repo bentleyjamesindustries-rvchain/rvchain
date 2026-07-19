@@ -100,6 +100,20 @@ export function updateLocalTrip(
   return trips[idx];
 }
 
+/** Insert or update a trip in local cache (works for Supabase trip IDs too). */
+export function upsertLocalTrip(userId: string, trip: StoredTrip): StoredTrip {
+  const trips = readTrips(userId);
+  const idx = trips.findIndex((t) => t.id === trip.id);
+  if (idx < 0) {
+    const next = { ...trip, camper_packs: trip.camper_packs ?? [] };
+    writeTrips(userId, [next, ...trips]);
+    return next;
+  }
+  trips[idx] = { ...trips[idx], ...trip };
+  writeTrips(userId, trips);
+  return trips[idx];
+}
+
 export function listLocalTripParks(
   userId: string,
   tripId: string,

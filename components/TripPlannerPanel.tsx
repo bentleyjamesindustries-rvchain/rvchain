@@ -11,7 +11,7 @@ import { isMissingTableError } from '@/lib/supabaseSetup';
 import {
   listLocalTrips,
   createLocalTrip,
-  updateLocalTrip,
+  upsertLocalTrip,
   listLocalTripParks,
   addLocalTripPark,
   getTripChecklistProgress,
@@ -189,13 +189,26 @@ export default function TripPlannerPanel({
     patch: Partial<Pick<StoredTrip, 'start_date' | 'end_date' | 'notes' | 'camper_packs'>>
   ) => {
     if (!user || !selectedTrip) return;
-    const updated = updateLocalTrip(user.id, selectedTrip.id, patch);
-    if (updated) {
-      setSelectedTrip(updated);
-      setUserTrips((prev) => prev.map((t) => (t.id === updated.id ? updated : t)));
-    }
-    if (supabaseReady && !selectedTrip.id.startsWith('local-')) {
-      await supabase.from('trips').update(patch).eq('id', selectedTrip.id);
+    // Always merge into React state so pack selection works even when trip
+    // was loaded from Supabase and is missing from localStorage.
+    const next: StoredTrip = {
+      ...selectedTrip,
+      ...patch,
+      camper_packs: patch.camper_packs ?? selectedTrip.camper_packs ?? [],
+    };
+    setSelectedTrip(next);
+    setUserTrips((prev) => {
+      const exists = prev.some((t) => t.id === next.id);
+      if (!exists) return [next, ...prev];
+      return prev.map((t) => (t.id === next.id ? next : t));
+    });
+    upsertLocalTrip(user.id, next);
+    if (supabaseReady && !next.id.startsWith('local-')) {
+      try {
+        await supabase.from('trips').update(patch).eq('id', next.id);
+      } catch {
+        // Demo / missing column: local state is source of truth
+      }
     }
   };
 
@@ -248,24 +261,39 @@ export default function TripPlannerPanel({
   };
 
   const toggleCamperPack = (packId: ChecklistPackId) => {
-    if (!selectedTrip || planId === 'campfire') return;
+    if (!selectedTrip || planId === 'campfire') {
+      if (planId === 'campfire') toast.info('Upgrade to Weekender to use checklists.');
+      return;
+    }
     const current = selectedTrip.camper_packs ?? [];
     const has = current.includes(packId);
     let next: ChecklistPackId[];
     if (has) {
+      // Keep at least one pack selected if it's the only way to see the list —
+      // allow deselect for multi-pack; for single-pack, re-tap keeps it selected
+      if (maxPacks === 1) {
+        next = [packId];
+        setActivePackTab(packId);
+        setWorkspaceTab('checklists');
+        return;
+      }
       next = current.filter((p) => p !== packId);
     } else if (maxPacks === 1) {
       next = [packId];
-    } else if (current.length >= maxPacks) {
+    } else if (maxPacks < 6 && current.length >= maxPacks) {
       toast.info(`Your plan allows up to ${maxPacks} checklist packs.`);
       return;
     } else {
       next = [...current, packId];
     }
-    saveTripMeta({ camper_packs: next });
-    setActivePackTab(next.includes(packId) ? packId : next[0] ?? null);
+    void saveTripMeta({ camper_packs: next });
+    const openId = next.includes(packId) ? packId : next[0] ?? null;
+    setActivePackTab(openId);
+    setWorkspaceTab('checklists');
     if (!has) {
-      toast.success(`${getChecklistPack(packId)?.title ?? 'Pack'} added to this trip`);
+      toast.success(
+        `${getChecklistPack(packId)?.title ?? 'Pack'} added — check items off below.`
+      );
     }
   };
 
@@ -278,7 +306,14 @@ export default function TripPlannerPanel({
   };
 
   const selectedPacks = selectedTrip?.camper_packs ?? [];
-  const activeChecklistPack = activePackTab ? getChecklistPack(activePackTab) : undefined;
+  // If packs exist but tab is null (e.g. after reload), open the first pack
+  const effectivePackTab =
+    activePackTab && selectedPacks.includes(activePackTab)
+      ? activePackTab
+      : selectedPacks[0] ?? null;
+  const activeChecklistPack = effectivePackTab
+    ? getChecklistPack(effectivePackTab)
+    : undefined;
 
   void checklistRefresh;
 
@@ -588,6 +623,11 @@ export default function TripPlannerPanel({
                       )}
                     </div>
 
+                    <p className="text-xs text-slate-400 -mt-2">
+                      Tap a card to add that packing list to this trip. Then check items off as you
+                      pack.
+                    </p>
+
                     <ChecklistPackPicker
                       availablePackIds={availablePacks}
                       selectedPackIds={selectedPacks}
@@ -597,42 +637,44 @@ export default function TripPlannerPanel({
 
                     {selectedPacks.length > 0 && (
                       <>
-                        <div className="flex flex-wrap gap-1 border-b border-slate-800 pb-2">
-                          {selectedPacks.map((packId) => {
-                            const pack = getChecklistPack(packId);
-                            if (!pack) return null;
-                            return (
-                              <button
-                                key={packId}
-                                type="button"
-                                onClick={() => setActivePackTab(packId)}
-                                className={`text-xs px-3 py-1.5 rounded-xl ${
-                                  activePackTab === packId
-                                    ? 'bg-slate-800 text-white'
-                                    : 'text-slate-400 hover:text-slate-200'
-                                }`}
-                              >
-                                {pack.icon} {pack.title}
-                              </button>
-                            );
-                          })}
-                        </div>
+                        {selectedPacks.length > 1 && (
+                          <div className="flex flex-wrap gap-1 border-b border-slate-800 pb-2">
+                            {selectedPacks.map((packId) => {
+                              const pack = getChecklistPack(packId);
+                              if (!pack) return null;
+                              return (
+                                <button
+                                  key={packId}
+                                  type="button"
+                                  onClick={() => setActivePackTab(packId)}
+                                  className={`text-xs px-3 py-1.5 rounded-xl ${
+                                    effectivePackTab === packId
+                                      ? 'bg-slate-800 text-white'
+                                      : 'text-slate-400 hover:text-slate-200'
+                                  }`}
+                                >
+                                  {pack.icon} {pack.title}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
 
                         {activeChecklistPack &&
-                        activePackTab &&
-                        canAccessChecklist(planId, activePackTab, selectedPacks) ? (
+                        effectivePackTab &&
+                        canAccessChecklist(planId, effectivePackTab, selectedPacks) ? (
                           <CampingChecklist
                             pack={activeChecklistPack}
                             checkedIds={getTripChecklistProgress(
                               user.id,
                               selectedTrip.id,
-                              activePackTab
+                              effectivePackTab
                             )}
                             onToggle={(itemId) => {
                               toggleChecklistItem(
                                 user.id,
                                 selectedTrip.id,
-                                activePackTab,
+                                effectivePackTab,
                                 itemId
                               );
                               setChecklistRefresh((n) => n + 1);
@@ -640,7 +682,7 @@ export default function TripPlannerPanel({
                           />
                         ) : (
                           <p className="text-sm text-slate-500 text-center py-4">
-                            Select a pack tab above to open the checklist.
+                            Tap a checklist card above to open its items.
                           </p>
                         )}
                       </>
