@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, Navigation, Heart, User, Search, X, Star, 
-  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles, Baby
+  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles, Baby, Leaf
 } from 'lucide-react';
 import { Park, calculateDistance } from '@/lib/parks';
 import { LOCAL_PARK_CATALOG, CATALOG_STATES } from '@/lib/parkCatalog';
@@ -36,6 +36,7 @@ import { isModerator } from '@/lib/moderator';
 import { enrichParks } from '@/lib/localVerification';
 import ForumPanel from '@/components/ForumPanel';
 import KidsAdventurePanel from '@/components/KidsAdventurePanel';
+import AdultExplorerPanel from '@/components/AdultExplorerPanel';
 import ExplorerSignInModal from '@/components/ExplorerSignInModal';
 import MarketplaceHub from '@/components/MarketplaceHub';
 import ProfileEditor from '@/components/ProfileEditor';
@@ -69,7 +70,15 @@ const MapView = dynamic(() => import('@/components/MapView'), {
   ),
 });
 
-type Tab = 'discover' | 'kids' | 'marketplace' | 'map' | 'community' | 'trips' | 'rewards';
+type Tab =
+  | 'discover'
+  | 'kids'
+  | 'field'
+  | 'marketplace'
+  | 'map'
+  | 'community'
+  | 'trips'
+  | 'rewards';
 
 // Auth + Supabase state types
 interface User {
@@ -82,7 +91,8 @@ const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'marketplace', label: 'Market', icon: Caravan },
-  { id: 'kids', label: 'Little Explorers', icon: Sparkles },
+  { id: 'kids', label: 'Kids Zone', icon: Sparkles },
+  { id: 'field', label: 'Field', icon: Leaf },
   { id: 'discover', label: 'Spots', icon: MapPin },
   { id: 'map', label: 'Map', icon: Search },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
@@ -741,21 +751,17 @@ export default function RVChainApp() {
         </div>
       </div>
 
-      {/* KIDS ADVENTURE */}
+      {/* KIDS ZONE — no GPS / photos / child data collection */}
       {activeTab === 'kids' && (
-        <KidsAdventurePanel
-          userId={kidsProgressUserId}
+        <KidsAdventurePanel stateCode={selectedState || null} />
+      )}
+
+      {/* ADULT FIELD EXPLORER — geo-catch + collection */}
+      {activeTab === 'field' && (
+        <AdultExplorerPanel
+          userId={user?.id || kidsProgressUserId}
           stateCode={selectedState || null}
-          displayHandle={kidsDisplayHandle}
-          isExplorer={Boolean(explorerSession)}
-          onRequestExplorerSignIn={() => setShowExplorerSignIn(true)}
-          onRequestParentExplorers={
-            user
-              ? () => {
-                  openProfile('explorers');
-                }
-              : undefined
-          }
+          displayHandle={user ? kidsDisplayHandle : null}
         />
       )}
 

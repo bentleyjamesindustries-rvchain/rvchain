@@ -164,11 +164,11 @@ export default function KidsScavengerHunt({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-amber-50">
-              Plant scavenger hunt
+              Adult geo-catch
             </h2>
             <p className="text-sm text-amber-100/80 mt-1 leading-relaxed">
-              Search nearby trails and campgrounds for these plants. Snap a field photo to log your
-              find and unlock a Trail Card!
+              Field Explorer (18+): snap a field photo and optionally tag GPS to unlock stickers.
+              Kids use Kids Zone — no location or photo logging there.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">
               <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-emerald-900/50 border border-emerald-700/50 text-emerald-200">
