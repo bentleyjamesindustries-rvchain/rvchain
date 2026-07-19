@@ -37,6 +37,8 @@ import { enrichParks } from '@/lib/localVerification';
 import ForumPanel from '@/components/ForumPanel';
 import KidsAdventurePanel from '@/components/KidsAdventurePanel';
 import AdultExplorerPanel from '@/components/AdultExplorerPanel';
+import HomeHub from '@/components/HomeHub';
+import { loadKidsProgress } from '@/lib/kidsProgress';
 import ExplorerSignInModal from '@/components/ExplorerSignInModal';
 import MarketplaceHub from '@/components/MarketplaceHub';
 import ProfileEditor from '@/components/ProfileEditor';
@@ -71,6 +73,7 @@ const MapView = dynamic(() => import('@/components/MapView'), {
 });
 
 type Tab =
+  | 'home'
   | 'discover'
   | 'kids'
   | 'field'
@@ -90,6 +93,7 @@ interface User {
 const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
+  { id: 'home', label: 'Home', icon: Compass },
   { id: 'marketplace', label: 'Market', icon: Caravan },
   { id: 'kids', label: 'Little Explorer', icon: Sparkles },
   { id: 'field', label: 'Big Explorer', icon: Leaf },
@@ -103,7 +107,7 @@ const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
 export default function RVChainApp() {
   const isMobile = useIsMobile();
   // Tab state
-  const [activeTab, setActiveTab] = useState<Tab>('marketplace');
+  const [activeTab, setActiveTab] = useState<Tab>('home');
 
   // Spot filters (community spots — search + state only)
   const [searchTerm, setSearchTerm] = useState('');
@@ -622,7 +626,7 @@ export default function RVChainApp() {
               </div>
               <div className="min-w-0">
                 <div className="rv-logo-text font-semibold text-xl sm:text-3xl tracking-tighter text-white truncate">rvchain</div>
-                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">RV PARKS &amp; COMMUNITY</div>
+                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">FAMILY ROAD LIFE</div>
               </div>
             </div>
 
@@ -750,6 +754,18 @@ export default function RVChainApp() {
           })}
         </div>
       </div>
+
+
+      {/* HOME HUB */}
+      {activeTab === 'home' && (
+        <HomeHub
+          displayName={explorerSession?.nickname ?? (user ? profileHandle : null)}
+          onGo={(tab) => setActiveTab(tab)}
+          tripCount={user ? listLocalTrips(user.id).length : 0}
+          plantCount={Object.keys(loadKidsProgress(user?.id || kidsProgressUserId).finds || {}).length}
+          rewardPoints={rewardPoints}
+        />
+      )}
 
       {/* KIDS ZONE — no GPS / photos / child data collection */}
       {activeTab === 'kids' && (

@@ -4,10 +4,12 @@ import { useState } from 'react';
 import { BookOpen, Leaf, MapPin, Sparkles } from 'lucide-react';
 import KidsScavengerHunt from './KidsScavengerHunt';
 import KidsCardAlbum from './KidsCardAlbum';
+import BigExplorerPassport from './BigExplorerPassport';
 import { loadKidsProgress } from '@/lib/kidsProgress';
+import { passportSummary } from '@/lib/explorerPassport';
 import { TRAIL_BADGES } from '@/lib/trailBadges';
 
-type View = 'hub' | 'hunt' | 'cards' | 'howto';
+type View = 'hub' | 'hunt' | 'cards' | 'passport' | 'howto';
 
 interface AdultExplorerPanelProps {
   userId: string;
@@ -101,6 +103,18 @@ export default function AdultExplorerPanel({
     );
   }
 
+  if (view === 'passport') {
+    return (
+      <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6">
+        <BigExplorerPassport
+          progress={progress}
+          onBack={() => setView('hub')}
+          onGoCatch={() => setView('hunt')}
+        />
+      </div>
+    );
+  }
+
   if (view === 'howto') {
     return (
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
@@ -150,11 +164,11 @@ export default function AdultExplorerPanel({
         </p>
         <p className="mt-3 text-sm font-semibold text-sky-200/90">
           {plantsFound} plant{plantsFound === 1 ? '' : 's'} logged · {badges}/{TRAIL_BADGES.length}{' '}
-          badges
+          badges · {passportSummary(progress).stamped} states stamped
         </p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-3 gap-3">
         <button
           type="button"
           onClick={() => setView('hunt')}
@@ -173,6 +187,16 @@ export default function AdultExplorerPanel({
           <Sparkles className="w-8 h-8 text-violet-300 mb-3" />
           <div className="text-lg font-bold text-white">Collection</div>
           <p className="text-sm text-slate-400 mt-1">Stickers, badges, free packs (2)</p>
+        </button>
+
+        <button
+          type="button"
+          onClick={() => setView('passport')}
+          className="text-left rounded-3xl border border-amber-700/40 bg-amber-950/30 hover:border-amber-500/50 p-5 sm:p-6 transition"
+        >
+          <MapPin className="w-8 h-8 text-amber-300 mb-3" />
+          <div className="text-lg font-bold text-white">Road passport</div>
+          <p className="text-sm text-slate-400 mt-1">Stamp states with GPS geo-catches</p>
         </button>
       </div>
 
