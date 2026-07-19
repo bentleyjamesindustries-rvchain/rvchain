@@ -72,3 +72,5 @@ Phone and PC must be on the same Wi‑Fi.
 | Blank white screen | Check `server.url` is reachable from the phone browser |
 | Gradle errors | Android Studio → SDK Manager → install latest SDK + Build-Tools |
 | `cap` not found | `cd mobile` then `npx cap ...` |
+| `prepareKotlinBuildScriptModel` not found | Already fixed in `android/app/build.gradle`. In Studio: **File → Sync Project with Gradle Files** |
+
