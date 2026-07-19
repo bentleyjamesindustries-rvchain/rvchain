@@ -18,6 +18,7 @@ import {
 } from '@/lib/trailBadges';
 import {
   loadKidsProgress,
+  FREE_TRAIL_PACKS_MAX,
   openTrailPack,
   ownsBadge,
   ownsCard,
@@ -50,7 +51,7 @@ export default function KidsCardAlbum({
   ).length;
   const badgeOwned = progress.ownedBadgeIds.length;
   const finds = Object.keys(progress.finds).length;
-  const packsLeft = Math.max(0, 8 - (progress.trailPacksOpened || 0));
+  const packsLeft = Math.max(0, FREE_TRAIL_PACKS_MAX - (progress.trailPacksOpened || 0));
 
   const persist = (next: KidsProgress) => {
     const saved = saveKidsProgress(userId, next);
@@ -99,7 +100,7 @@ export default function KidsCardAlbum({
               : `Open free pack (${packsLeft} left)`}
         </button>
         <p className="mt-2 text-xs text-slate-500">
-          Free packs give random camping badges. No real money.
+          {FREE_TRAIL_PACKS_MAX} free packs give random camping badges. No real money.
         </p>
       </div>
 

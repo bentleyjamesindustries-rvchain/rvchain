@@ -299,11 +299,14 @@ export function recordPlantFind(
 }
 
 export const PACK_ODDS_LABEL =
-  'Drop odds (approx): Common ~55% Â· Uncommon ~28% Â· Rare ~14% Â· Legendary ~3% Â· 1â€“3 badges per Drop';
+  'Drop odds (approx): Common ~55% · Uncommon ~28% · Rare ~14% · Legendary ~3% · 1–3 badges per Drop';
+
+/** Max free trail packs (badge opens) per device save */
+export const FREE_TRAIL_PACKS_MAX = 2;
 
 /**
- * Trail Drop: awards 1â€“3 Trail Badges.
- * Requires at least one plant find; max 8 free packs.
+ * Trail Drop: awards 1–3 Trail Badges.
+ * Requires at least one plant find; max FREE_TRAIL_PACKS_MAX free packs.
  */
 export function openTrailPack(progress: KidsProgress): {
   progress: KidsProgress;
@@ -318,11 +321,11 @@ export function openTrailPack(progress: KidsProgress): {
       error: 'Find at least one plant on the scavenger hunt first!',
     };
   }
-  if (progress.trailPacksOpened >= 8) {
+  if (progress.trailPacksOpened >= FREE_TRAIL_PACKS_MAX) {
     return {
       progress,
       awarded: [],
-      error: 'You opened all free packs for now. Keep collecting!',
+      error: 'You opened both free packs. Keep finding plants for bonus badges!',
     };
   }
 
