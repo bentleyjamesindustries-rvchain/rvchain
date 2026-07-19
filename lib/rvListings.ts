@@ -1,3 +1,5 @@
+import { marketplaceRvImageForClass } from './marketplaceImages';
+
 export type RvClass =
   | 'class-a'
   | 'class-b'
@@ -173,7 +175,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'One-owner Class C on the Sprinter chassis. Diesel, 4x4 capable, solar + lithium. Perfect for national park loops and desert boondocking.',
     features: ['Solar', 'Diesel', 'Slide-outs', 'King Bed'],
-    image: 'https://picsum.photos/id/111/800/500',
+    image: marketplaceRvImageForClass('class-c'),
     sellerName: 'SouthwestRigs',
     listedAt: '2026-06-10T12:00:00.000Z',
     rating: 4.9,
@@ -198,7 +200,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Iconic aluminum travel trailer with front bedroom layout. Stored indoors, never smoked in. Includes weight distribution hitch.',
     features: ['Solar', 'Outdoor Kitchen', 'King Bed', 'Pet Friendly'],
-    image: 'https://picsum.photos/id/1048/800/500',
+    image: marketplaceRvImageForClass('travel-trailer'),
     sellerName: 'LoneStarAirstream',
     listedAt: '2026-06-08T09:00:00.000Z',
     rating: 4.7,
@@ -223,7 +225,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Brand-new fifth wheel with rear living, residential fridge, and auto-leveling. Dealer demo with full factory warranty remaining.',
     features: ['Generator', 'Slide-outs', 'Washer/Dryer', 'King Bed', 'Outdoor Kitchen'],
-    image: 'https://picsum.photos/id/1041/800/500',
+    image: marketplaceRvImageForClass('fifth-wheel'),
     sellerName: 'TreasureValleyRV',
     listedAt: '2026-06-12T16:00:00.000Z',
     rating: 5.0,
@@ -249,7 +251,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Spacious Class A with bunk-over-cab and residential feel. Recent tires, roof reseal, and full-service records. Ready for snowbird season.',
     features: ['Gas', 'Generator', 'Slide-outs', 'Bunk Beds', 'Tow Package'],
-    image: 'https://picsum.photos/id/1043/800/500',
+    image: marketplaceRvImageForClass('class-a'),
     sellerName: 'FloridaFullTimer',
     listedAt: '2026-06-05T11:00:00.000Z',
     rating: 4.5,
@@ -275,7 +277,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Compact Class B on RAM ProMaster. Wet bath, induction cooktop, Truma heat. Easy to park in town and stealth camp between trailheads.',
     features: ['Solar', 'Diesel', 'All-Electric', 'Pet Friendly'],
-    image: 'https://picsum.photos/id/1044/800/500',
+    image: marketplaceRvImageForClass('class-b'),
     sellerName: 'MountainVanLife',
     listedAt: '2026-06-14T08:00:00.000Z',
     rating: 4.8,
@@ -300,7 +302,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Affordable family starter trailer with double bunks and outdoor kitchen. Clean title, new brakes, and fresh bearings. Towable with half-ton.',
     features: ['Outdoor Kitchen', 'Bunk Beds', 'Tow Package'],
-    image: 'https://picsum.photos/id/1047/800/500',
+    image: marketplaceRvImageForClass('travel-trailer'),
     sellerName: 'MusicCityCampers',
     listedAt: '2026-06-11T14:00:00.000Z',
     rating: 4.4,
@@ -325,7 +327,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Lightweight truck camper for full-size short-bed trucks. Side entry, wet bath, and fantastic insulation for shoulder-season camping.',
     features: ['Solar', 'Diesel', 'King Bed'],
-    image: 'https://picsum.photos/id/1050/800/500',
+    image: marketplaceRvImageForClass('truck-camper'),
     sellerName: 'PNWOverlander',
     listedAt: '2026-06-09T10:00:00.000Z',
     rating: 4.6,
@@ -350,7 +352,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Hybrid pop-up with hard sides and expandable canvas bunks. Lightweight and easy to store. Great first rig for lake weekends.',
     features: ['Bunk Beds', 'Tow Package', 'Pet Friendly'],
-    image: 'https://picsum.photos/id/1051/800/500',
+    image: marketplaceRvImageForClass('popup'),
     sellerName: 'GreatLakesWeekender',
     listedAt: '2026-06-13T17:00:00.000Z',
     rating: 4.3,
@@ -376,7 +378,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Family-friendly Class C with walk-through to cab, outdoor TV prep, and huge wardrobe. One owner, garage-kept, smoke-free.',
     features: ['Gas', 'Generator', 'Slide-outs', 'Bunk Beds', 'Outdoor Kitchen'],
-    image: 'https://picsum.photos/id/1052/800/500',
+    image: marketplaceRvImageForClass('class-c'),
     sellerName: 'GoldenStateRVs',
     listedAt: '2026-06-15T10:00:00.000Z',
     rating: 4.8,
@@ -401,7 +403,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Mountain-ready fifth wheel with rear living, fireplace, and central vacuum. Well maintained with new tires and bearings.',
     features: ['Generator', 'Slide-outs', 'Washer/Dryer', 'King Bed'],
-    image: 'https://picsum.photos/id/1053/800/500',
+    image: marketplaceRvImageForClass('fifth-wheel'),
     sellerName: 'BlueRidgeRigs',
     listedAt: '2026-06-07T13:00:00.000Z',
     rating: 4.6,
@@ -427,7 +429,7 @@ const FEATURED_RV_LISTINGS: RvListing[] = [
     description:
       'Go-anywhere 4x4 adventure van with lithium, air conditioning, and modular garage. Built for off-grid national forest camping.',
     features: ['Solar', 'Diesel', 'All-Electric', 'Pet Friendly'],
-    image: 'https://picsum.photos/id/1054/800/500',
+    image: marketplaceRvImageForClass('class-b'),
     sellerName: 'CascadeVanCo',
     listedAt: '2026-06-16T09:00:00.000Z',
     rating: 4.9,
@@ -466,7 +468,7 @@ function buildStateCoverageListings(featured: RvListing[]): RvListing[] {
     state: s.code,
     description: `Demo RV listing in ${s.name}. Part of rvchain's nationwide marketplace preview — one sample rig per state.`,
     features: ['Tow Package', 'Pet Friendly'],
-    image: `https://picsum.photos/seed/rvchain-${s.code}/800/500`,
+    image: marketplaceRvImageForClass(STATE_COVERAGE_CLASSES[i % STATE_COVERAGE_CLASSES.length], i),
     sellerName: `${s.code}RVSeller`,
     listedAt: `2026-05-${String(1 + (i % 28)).padStart(2, '0')}T12:00:00.000Z`,
     rating: Math.round((4.1 + (i % 9) * 0.1) * 10) / 10,

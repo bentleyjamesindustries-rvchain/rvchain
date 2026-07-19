@@ -1,3 +1,5 @@
+import { marketplacePartsImage } from './marketplaceImages';
+
 export type PartsCategoryId =
   | 'tires-wheels'
   | 'towing-hitch'
@@ -70,7 +72,7 @@ export const SEED_PARTS_LISTINGS: PartsListing[] = [
     city: 'Dallas',
     state: 'TX',
     description: 'Complete set with bars. Fitment is buyer responsibility.',
-    image: 'https://picsum.photos/id/133/800/500',
+    image: marketplacePartsImage(0),
     sellerName: 'TowPro',
     sellerUserId: 'demo-seller-parts-1',
     listedAt: new Date(Date.now() - 86400000 * 6).toISOString(),
@@ -87,7 +89,7 @@ export const SEED_PARTS_LISTINGS: PartsListing[] = [
     city: 'Salt Lake City',
     state: 'UT',
     description: 'About half tread. Good spares or short season use.',
-    image: 'https://picsum.photos/id/1071/800/500',
+    image: marketplacePartsImage(1),
     sellerName: 'RubberRoad',
     sellerUserId: 'demo-seller-parts-2',
     listedAt: new Date(Date.now() - 86400000 * 9).toISOString(),
@@ -104,7 +106,7 @@ export const SEED_PARTS_LISTINGS: PartsListing[] = [
     city: 'Reno',
     state: 'NV',
     description: 'Load tested. Local pickup — heavy.',
-    image: 'https://picsum.photos/id/250/800/500',
+    image: marketplacePartsImage(2),
     sellerName: 'VoltCamp',
     sellerUserId: 'demo-seller-parts-3',
     listedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -121,7 +123,7 @@ export const SEED_PARTS_LISTINGS: PartsListing[] = [
     city: 'Charlotte',
     state: 'NC',
     description: 'Used one winter. Straps included. Confirm your length.',
-    image: 'https://picsum.photos/id/122/800/500',
+    image: marketplacePartsImage(3),
     sellerName: 'CoverUp',
     sellerUserId: 'demo-seller-parts-4',
     listedAt: new Date(Date.now() - 86400000 * 7).toISOString(),

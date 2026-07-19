@@ -14,7 +14,7 @@ function normalize(raw: Partial<PartsListing> & Pick<PartsListing, 'id' | 'title
     city: raw.city ?? '',
     state: raw.state ?? 'TX',
     description: raw.description ?? '',
-    image: raw.image ?? 'https://picsum.photos/id/133/800/500',
+    image: raw.image ?? '/marketplace/parts-hitch.jpg',
     sellerName: raw.sellerName ?? 'Seller',
     sellerUserId: raw.sellerUserId,
     listedAt: raw.listedAt ?? new Date().toISOString(),

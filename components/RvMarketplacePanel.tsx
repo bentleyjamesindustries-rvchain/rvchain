@@ -488,7 +488,7 @@ export default function RvMarketplacePanel({
       state: form.state,
       description: form.description.trim() || 'No additional description provided.',
       features: form.features,
-      image: form.image.trim() || 'https://picsum.photos/id/1048/800/500',
+      image: form.image.trim() || '/marketplace/rv-travel-trailer.jpg',
       sellerName: displayHandle,
       sellerUserId: user.id,
       listedAt: new Date().toISOString(),

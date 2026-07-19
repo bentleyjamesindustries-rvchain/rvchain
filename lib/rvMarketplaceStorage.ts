@@ -20,7 +20,7 @@ function normalizeListing(raw: Partial<RvListing> & Pick<RvListing, 'id' | 'titl
     state: raw.state ?? 'TX',
     description: raw.description ?? '',
     features: raw.features ?? [],
-    image: raw.image ?? 'https://picsum.photos/id/1048/800/500',
+    image: raw.image ?? '/marketplace/rv-travel-trailer.jpg',
     sellerName: raw.sellerName ?? 'Seller',
     sellerUserId: raw.sellerUserId,
     listedAt: raw.listedAt ?? new Date().toISOString(),

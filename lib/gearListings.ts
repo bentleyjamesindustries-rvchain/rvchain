@@ -1,3 +1,5 @@
+import { marketplaceGearImage } from './marketplaceImages';
+
 export type GearCategoryId =
   | 'shelter'
   | 'comfort'
@@ -70,7 +72,7 @@ export const SEED_GEAR_LISTINGS: GearListing[] = [
     city: 'Denver',
     state: 'CO',
     description: 'Holds ice 2–3 days. Minor scuffs. Local pickup preferred.',
-    image: 'https://picsum.photos/id/201/800/500',
+    image: marketplaceGearImage(0),
     sellerName: 'TrailCook',
     sellerUserId: 'demo-seller-gear-1',
     listedAt: new Date(Date.now() - 86400000 * 2).toISOString(),
@@ -87,7 +89,7 @@ export const SEED_GEAR_LISTINGS: GearListing[] = [
     city: 'Austin',
     state: 'TX',
     description: 'Used one season. Fold flat for storage.',
-    image: 'https://picsum.photos/id/175/800/500',
+    image: marketplaceGearImage(1),
     sellerName: 'CampMom',
     sellerUserId: 'demo-seller-gear-2',
     listedAt: new Date(Date.now() - 86400000 * 5).toISOString(),
@@ -105,7 +107,7 @@ export const SEED_GEAR_LISTINGS: GearListing[] = [
     city: 'Phoenix',
     state: 'AZ',
     description: 'MC4 connectors. Good for topping house batteries on sunny days.',
-    image: 'https://picsum.photos/id/160/800/500',
+    image: marketplaceGearImage(2),
     sellerName: 'SunNomad',
     sellerUserId: 'demo-seller-gear-3',
     listedAt: new Date(Date.now() - 86400000).toISOString(),
@@ -122,7 +124,7 @@ export const SEED_GEAR_LISTINGS: GearListing[] = [
     city: 'Portland',
     state: 'OR',
     description: 'Rainfly included. One pole slightly bent but pitches fine.',
-    image: 'https://picsum.photos/id/1015/800/500',
+    image: marketplaceGearImage(3),
     sellerName: 'PNWCamp',
     sellerUserId: 'demo-seller-gear-4',
     listedAt: new Date(Date.now() - 86400000 * 8).toISOString(),
@@ -139,7 +141,7 @@ export const SEED_GEAR_LISTINGS: GearListing[] = [
     city: 'Boise',
     state: 'ID',
     description: 'Tabletop size. Great for no-burn-ban evenings.',
-    image: 'https://picsum.photos/id/111/800/500',
+    image: marketplaceGearImage(4),
     sellerName: 'FireRing',
     sellerUserId: 'demo-seller-gear-5',
     listedAt: new Date(Date.now() - 86400000 * 3).toISOString(),
@@ -156,7 +158,7 @@ export const SEED_GEAR_LISTINGS: GearListing[] = [
     city: 'Tampa',
     state: 'FL',
     description: 'Drinking-water rated. Still in packaging.',
-    image: 'https://picsum.photos/id/211/800/500',
+    image: marketplaceGearImage(5),
     sellerName: 'HoseGuy',
     sellerUserId: 'demo-seller-gear-6',
     listedAt: new Date(Date.now() - 86400000 * 4).toISOString(),
