@@ -16,10 +16,13 @@ import {
   removeProfilePhoto,
   MAX_PHOTOS_PER_TYPE,
 } from '@/lib/userProfile';
+import { getOwnedCards, loadKidsProgress } from '@/lib/kidsProgress';
+import { getRarityColor, getRarityLabel } from '@/lib/kidsCards';
 import ProfileAvatar from './ProfileAvatar';
 
 interface ProfileEditorProps {
   profile: UserProfile;
+  profileUserId: string;
   userEmail?: string;
   favoritesCount: number;
   favoritedParks: Park[];
@@ -95,6 +98,7 @@ function PhotoSection({
 
 export default function ProfileEditor({
   profile,
+  profileUserId,
   userEmail,
   favoritesCount,
   favoritedParks,
@@ -105,6 +109,7 @@ export default function ProfileEditor({
   onGoToForum,
 }: ProfileEditorProps) {
   const [draft, setDraft] = useState<UserProfile>(profile);
+  const trailCards = getOwnedCards(loadKidsProgress(profileUserId)).slice(0, 6);
   const [captionPrompt, setCaptionPrompt] = useState<ProfilePhotoType | null>(null);
   const [pendingCaption, setPendingCaption] = useState('');
   const avatarInputRef = useRef<HTMLInputElement>(null);
@@ -285,6 +290,44 @@ export default function ProfileEditor({
             </div>
           </div>
         )}
+
+        {/* Kids trail cards showcase */}
+        <div>
+          <div className="text-sm font-medium mb-1">Trail Card showcase</div>
+          <p className="text-xs text-slate-400 mb-3">
+            Cards earned in the Kids adventure tab. Collect more on scavenger hunts!
+          </p>
+          {trailCards.length === 0 ? (
+            <p className="text-xs text-slate-500 py-2 border border-dashed border-slate-700 rounded-xl px-3">
+              No Trail Cards yet — open the Kids tab to start hunting.
+            </p>
+          ) : (
+            <div className="grid grid-cols-3 gap-2">
+              {trailCards.map((card) => (
+                <div
+                  key={card.id}
+                  className="rounded-xl p-[1.5px]"
+                  style={{
+                    background: `linear-gradient(145deg, ${getRarityColor(card.rarity)}, #1e293b)`,
+                  }}
+                >
+                  <div className="bg-slate-950 rounded-[10px] p-2 text-center">
+                    <div className="text-2xl">{card.emoji}</div>
+                    <div className="text-[10px] font-semibold text-slate-200 truncate mt-0.5">
+                      {card.name}
+                    </div>
+                    <div
+                      className="text-[9px] font-medium"
+                      style={{ color: getRarityColor(card.rarity) }}
+                    >
+                      {getRarityLabel(card.rarity)}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
 
         {/* Saved stops */}
         <div>

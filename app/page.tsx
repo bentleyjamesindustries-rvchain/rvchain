@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, Navigation, Heart, User, Search, X, Star, 
-  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan
+  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles
 } from 'lucide-react';
 import { Park, calculateDistance } from '@/lib/parks';
 import { LOCAL_PARK_CATALOG, CATALOG_STATES } from '@/lib/parkCatalog';
@@ -43,6 +43,7 @@ import { createModeratorVerification, getParkVerificationInfo } from '@/lib/spot
 import { isModerator } from '@/lib/moderator';
 import { enrichParks } from '@/lib/localVerification';
 import ForumPanel from '@/components/ForumPanel';
+import KidsAdventurePanel from '@/components/KidsAdventurePanel';
 import RvMarketplacePanel from '@/components/RvMarketplacePanel';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileAvatar from '@/components/ProfileAvatar';
@@ -69,7 +70,7 @@ const MapView = dynamic(() => import('@/components/MapView'), {
   ),
 });
 
-type Tab = 'discover' | 'marketplace' | 'map' | 'community' | 'trips' | 'rewards';
+type Tab = 'discover' | 'kids' | 'marketplace' | 'map' | 'community' | 'trips' | 'rewards';
 type PriceTier = 'all' | 'budget' | 'mid' | 'premium';
 
 // Auth + Supabase state types
@@ -92,6 +93,7 @@ const STATES = CATALOG_STATES;
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'discover', label: 'Discover', icon: Search },
+  { id: 'kids', label: 'Kids', icon: Sparkles },
   { id: 'marketplace', label: 'RVs', icon: Caravan },
   { id: 'map', label: 'Map', icon: MapPin },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
@@ -807,6 +809,15 @@ export default function RVChainApp() {
         </div>
       </div>
 
+      {/* KIDS ADVENTURE */}
+      {activeTab === 'kids' && (
+        <KidsAdventurePanel
+          userId={getProfileUserId(user?.id)}
+          stateCode={selectedState || null}
+          displayHandle={profileHandle}
+        />
+      )}
+
       {/* DISCOVER */}
       {activeTab === 'discover' && (
         <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6">
@@ -1207,6 +1218,7 @@ export default function RVChainApp() {
         >
           <ProfileEditor
             profile={userProfile}
+            profileUserId={getProfileUserId(user?.id)}
             userEmail={user.email}
             favoritesCount={favorites.length}
             favoritedParks={favoritedParks}
