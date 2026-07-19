@@ -11,9 +11,10 @@ interface BootMark {
 }
 
 const PRINT_LIFE_MS = 850;
-const MIN_DISTANCE = 6;
+/** Pixels of mouse travel between prints — higher = fewer footprints */
+const MIN_DISTANCE = 12;
 const STRIDE_OFFSET = 3;
-const MAX_MARKS = 220;
+const MAX_MARKS = 120;
 
 function drawBootPrint(
   ctx: CanvasRenderingContext2D,
