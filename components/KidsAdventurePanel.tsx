@@ -13,12 +13,18 @@ interface KidsAdventurePanelProps {
   userId: string;
   stateCode?: string | null;
   displayHandle?: string;
+  isExplorer?: boolean;
+  onRequestExplorerSignIn?: () => void;
+  onRequestParentExplorers?: () => void;
 }
 
 export default function KidsAdventurePanel({
   userId,
   stateCode,
   displayHandle,
+  isExplorer,
+  onRequestExplorerSignIn,
+  onRequestParentExplorers,
 }: KidsAdventurePanelProps) {
   const [view, setView] = useState<KidsView>('hub');
   const [progressTick, setProgressTick] = useState(0);
@@ -126,9 +132,43 @@ export default function KidsAdventurePanel({
             <span className="px-3 py-1.5 rounded-full bg-sky-900/50 border border-sky-700/50 text-sky-200">
               🃏 {cardCount} / {KIDS_CARDS.length} cards
             </span>
+            {isExplorer && (
+              <span className="px-3 py-1.5 rounded-full bg-amber-900/50 border border-amber-700/50 text-amber-200">
+                Explorer signed in
+              </span>
+            )}
           </div>
         </div>
       </div>
+
+      {!isExplorer && (
+        <div className="rounded-2xl border border-amber-800/40 bg-amber-950/20 px-4 py-3 text-sm text-amber-100/90 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-xs sm:text-sm leading-relaxed">
+            For their own plants &amp; cards, kids sign in with a family code. Parents set this up under
+            Profile → My Little Explorers.
+          </p>
+          <div className="flex flex-wrap gap-2 shrink-0">
+            {onRequestExplorerSignIn && (
+              <button
+                type="button"
+                onClick={onRequestExplorerSignIn}
+                className="px-3 h-9 rounded-xl bg-amber-700 hover:bg-amber-600 text-xs font-semibold"
+              >
+                Explorer sign-in
+              </button>
+            )}
+            {onRequestParentExplorers && (
+              <button
+                type="button"
+                onClick={onRequestParentExplorers}
+                className="px-3 h-9 rounded-xl border border-amber-700/50 hover:bg-amber-900/40 text-xs font-semibold"
+              >
+                Parent setup
+              </button>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Mission tiles */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

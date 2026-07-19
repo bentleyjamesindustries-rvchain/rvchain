@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { 
   MapPin, Navigation, Heart, User, Search, X, Star, 
-  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles
+  MessagesSquare, Compass, LogIn, Plus, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles, Baby
 } from 'lucide-react';
 import { Park, calculateDistance } from '@/lib/parks';
 import { LOCAL_PARK_CATALOG, CATALOG_STATES } from '@/lib/parkCatalog';
@@ -44,6 +44,7 @@ import { isModerator } from '@/lib/moderator';
 import { enrichParks } from '@/lib/localVerification';
 import ForumPanel from '@/components/ForumPanel';
 import KidsAdventurePanel from '@/components/KidsAdventurePanel';
+import ExplorerSignInModal from '@/components/ExplorerSignInModal';
 import RvMarketplacePanel from '@/components/RvMarketplacePanel';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileAvatar from '@/components/ProfileAvatar';
@@ -54,6 +55,12 @@ import {
   getProfileUserId,
   getDisplayHandle,
 } from '@/lib/userProfile';
+import {
+  clearExplorerSession,
+  getActiveExplorerSession,
+  getKidsProgressUserId,
+  type ActiveExplorerSession,
+} from '@/lib/familyExplorers';
 import { useIsMobile } from '@/lib/useDeviceType';
 import { purgeLegacyWalletStorage } from '@/lib/legacyWalletCleanup';
 import { getMembershipPlanId } from '@/lib/membershipSubscription';
@@ -152,9 +159,14 @@ export default function RVChainApp() {
   // Modals
   const [selectedPark, setSelectedPark] = useState<Park | null>(null);
   const [showProfile, setShowProfile] = useState(false);
+  const [profileInitialTab, setProfileInitialTab] = useState<'profile' | 'explorers'>('profile');
   const [showSubmitPark, setShowSubmitPark] = useState(false);
   const [bookParkTarget, setBookParkTarget] = useState<Park | null>(null);
   const [verifyingParkId, setVerifyingParkId] = useState<string | null>(null);
+  const [showExplorerSignIn, setShowExplorerSignIn] = useState(false);
+  const [explorerSession, setExplorerSession] = useState<ActiveExplorerSession | null>(() =>
+    typeof window !== 'undefined' ? getActiveExplorerSession() : null
+  );
 
   // Submit park form
   const [newPark, setNewPark] = useState({
@@ -163,6 +175,10 @@ export default function RVChainApp() {
 
   // Chat
 
+
+  useEffect(() => {
+    setExplorerSession(getActiveExplorerSession());
+  }, []);
 
   // Load persisted data (local fallback)
   useEffect(() => {
@@ -668,10 +684,13 @@ export default function RVChainApp() {
   };
 
   // Profile / favorites
-  const openProfile = () => {
+  const openProfile = (tab: 'profile' | 'explorers' = 'profile') => {
+    setProfileInitialTab(tab);
     setShowProfile(true);
-    setActiveTab('discover'); // just in case
   };
+
+  const kidsProgressUserId = getKidsProgressUserId(explorerSession, user?.id);
+  const kidsDisplayHandle = explorerSession?.nickname ?? profileHandle;
 
   const removeFavorite = (parkId: string) => {
     setFavorites((prev) => prev.filter((id) => id !== parkId));
@@ -734,10 +753,33 @@ export default function RVChainApp() {
                 <span><span className="font-semibold text-white">{connectedRVers}</span> RVers connected</span>
               </div>
 
-              {user ? (
+              {explorerSession ? (
+                <div className="flex items-center gap-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab('kids')}
+                    className="flex items-center gap-x-1.5 bg-amber-500/20 hover:bg-amber-500/30 transition px-2 sm:px-3 py-1.5 rounded-2xl text-xs sm:text-sm font-medium text-amber-100"
+                    title="Explorer mode"
+                  >
+                    <Baby className="w-4 h-4 shrink-0" />
+                    <span className="max-w-[5rem] sm:max-w-[7rem] truncate">{explorerSession.nickname}</span>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearExplorerSession();
+                      setExplorerSession(null);
+                      toast.success('Explorer signed out');
+                    }}
+                    className="text-[10px] sm:text-xs px-2 py-1 hover:bg-white/10 rounded text-slate-300"
+                  >
+                    Exit
+                  </button>
+                </div>
+              ) : user ? (
                 <div className="flex items-center gap-x-1">
                   <button 
-                    onClick={openProfile}
+                    onClick={() => openProfile('profile')}
                     className="flex items-center gap-x-1.5 bg-white/10 hover:bg-white/15 transition px-2 sm:px-3 py-1.5 rounded-2xl text-sm font-medium"
                     title="Edit profile"
                   >
@@ -747,13 +789,24 @@ export default function RVChainApp() {
                   <button onClick={handleSignOut} className="hidden sm:inline text-xs px-2 py-1 hover:bg-white/10 rounded">Sign out</button>
                 </div>
               ) : (
-                <button 
-                  onClick={() => setShowAuthModal(true)}
-                  className="flex items-center gap-x-1.5 bg-white/10 hover:bg-white/15 transition px-2.5 sm:px-3 py-1.5 rounded-2xl text-xs sm:text-sm font-medium"
-                >
-                  <LogIn className="w-4 h-4 shrink-0" />
-                  <span className="hidden min-[380px]:inline">Sign in</span>
-                </button>
+                <div className="flex items-center gap-x-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowExplorerSignIn(true)}
+                    className="hidden sm:flex items-center gap-x-1 bg-amber-500/15 hover:bg-amber-500/25 transition px-2 py-1.5 rounded-2xl text-xs font-medium text-amber-100"
+                    title="Kid explorer sign-in"
+                  >
+                    <Baby className="w-3.5 h-3.5" />
+                    Explorer
+                  </button>
+                  <button 
+                    onClick={() => setShowAuthModal(true)}
+                    className="flex items-center gap-x-1.5 bg-white/10 hover:bg-white/15 transition px-2.5 sm:px-3 py-1.5 rounded-2xl text-xs sm:text-sm font-medium"
+                  >
+                    <LogIn className="w-4 h-4 shrink-0" />
+                    <span className="hidden min-[380px]:inline">Sign in</span>
+                  </button>
+                </div>
               )}
             </div>
           </div>
@@ -812,9 +865,18 @@ export default function RVChainApp() {
       {/* KIDS ADVENTURE */}
       {activeTab === 'kids' && (
         <KidsAdventurePanel
-          userId={getProfileUserId(user?.id)}
+          userId={kidsProgressUserId}
           stateCode={selectedState || null}
-          displayHandle={profileHandle}
+          displayHandle={kidsDisplayHandle}
+          isExplorer={Boolean(explorerSession)}
+          onRequestExplorerSignIn={() => setShowExplorerSignIn(true)}
+          onRequestParentExplorers={
+            user
+              ? () => {
+                  openProfile('explorers');
+                }
+              : undefined
+          }
         />
       )}
 
@@ -1217,8 +1279,10 @@ export default function RVChainApp() {
           onClick={() => setShowProfile(false)}
         >
           <ProfileEditor
+            key={profileInitialTab}
             profile={userProfile}
             profileUserId={getProfileUserId(user?.id)}
+            parentUserId={user.id}
             userEmail={user.email}
             favoritesCount={favorites.length}
             favoritedParks={favoritedParks}
@@ -1227,8 +1291,20 @@ export default function RVChainApp() {
             onParkSelect={(park) => { showParkDetails(park); setShowProfile(false); }}
             onRemoveFavorite={removeFavorite}
             onGoToForum={() => setActiveTab('community')}
+            initialTab={profileInitialTab}
           />
         </div>
+      )}
+
+      {showExplorerSignIn && (
+        <ExplorerSignInModal
+          onClose={() => setShowExplorerSignIn(false)}
+          onSuccess={(session) => {
+            setExplorerSession(session);
+            setShowExplorerSignIn(false);
+            setActiveTab('kids');
+          }}
+        />
       )}
 
       {bookParkTarget && (
