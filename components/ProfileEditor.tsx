@@ -2,10 +2,9 @@
 
 import { useState, useRef } from 'react';
 import {
-  X, Camera, ImagePlus, Trash2, Heart, MessagesSquare, Save,
+  X, Camera, ImagePlus, Trash2, MessagesSquare, Save,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Park } from '@/lib/parks';
 import { compressImageFile } from '@/lib/imageCompress';
 import {
   UserProfile,
@@ -28,12 +27,12 @@ interface ProfileEditorProps {
   /** Parent auth user id for family explorers (required for My Explorers tab) */
   parentUserId: string;
   userEmail?: string;
-  favoritesCount: number;
-  favoritedParks: Park[];
+  favoritesCount?: number;
+  favoritedParks?: { id: string; name: string }[];
   onSave: (profile: UserProfile) => void;
   onClose: () => void;
-  onParkSelect: (park: Park) => void;
-  onRemoveFavorite: (parkId: string) => void;
+  onParkSelect?: (park: { id: string; name: string }) => void;
+  onRemoveFavorite?: (parkId: string) => void;
   onGoToForum: () => void;
   initialTab?: 'profile' | 'explorers';
 }
@@ -393,29 +392,6 @@ export default function ProfileEditor({
               ))}
             </div>
           )}
-        </div>
-
-        {/* Saved stops */}
-        <div>
-          <div className="text-sm font-medium mb-2">
-            My Saved Stops <span className="text-slate-400">({favoritesCount})</span>
-          </div>
-          <div className="space-y-2 max-h-[180px] overflow-y-auto pr-1">
-            {favoritedParks.length === 0 ? (
-              <p className="text-xs text-slate-500 py-2">No saved stops yet.</p>
-            ) : (
-              favoritedParks.map((park) => (
-                <div key={park.id} className="flex items-center gap-2 bg-slate-800 border border-slate-700 rounded-xl px-3 py-2">
-                  <Heart className="w-3.5 h-3.5 text-red-400 shrink-0" />
-                  <div className="flex-1 min-w-0">
-                    <div className="text-sm font-medium truncate">{park.name}</div>
-                  </div>
-                  <button type="button" onClick={() => onParkSelect(park)} className="text-[10px] px-2 py-1 bg-white/10 rounded-lg">View</button>
-                  <button type="button" onClick={() => onRemoveFavorite(park.id)} className="text-[10px] text-red-300">Remove</button>
-                </div>
-              ))
-            )}
-          </div>
         </div>
 
         <button

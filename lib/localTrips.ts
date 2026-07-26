@@ -1,4 +1,3 @@
-import { Park } from './parks';
 import type { ChecklistPackId } from './tripChecklists';
 
 export interface StoredTrip {
@@ -12,11 +11,20 @@ export interface StoredTrip {
   camper_packs?: ChecklistPackId[];
 }
 
+/** Free-text trip stop (no campground catalog). */
+export interface StoredTripStop {
+  trip_id: string;
+  id: string;
+  label: string;
+  visit_order: number;
+}
+
+/** @deprecated kept for reading old local data only */
 export interface StoredTripPark {
   trip_id: string;
   park_id: string;
   visit_order: number;
-  parks?: Park;
+  parks?: { name?: string; city?: string };
 }
 
 export interface TripChecklistProgress {
@@ -27,6 +35,7 @@ export interface TripChecklistProgress {
 
 const tripsKey = (userId: string) => `rvchain_trips_${userId}`;
 const parksKey = (userId: string) => `rvchain_trip_parks_${userId}`;
+const stopsKey = (userId: string) => `rvchain_trip_stops_v2_${userId}`;
 const progressKey = (userId: string) => `rvchain_trip_checklist_progress_${userId}`;
 
 function readTrips(userId: string): StoredTrip[] {
@@ -114,26 +123,66 @@ export function upsertLocalTrip(userId: string, trip: StoredTrip): StoredTrip {
   return trips[idx];
 }
 
-export function listLocalTripParks(
+function readTripStops(userId: string): StoredTripStop[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    return JSON.parse(localStorage.getItem(stopsKey(userId)) || '[]');
+  } catch {
+    return [];
+  }
+}
+
+function writeTripStops(userId: string, entries: StoredTripStop[]) {
+  localStorage.setItem(stopsKey(userId), JSON.stringify(entries));
+}
+
+export function listLocalTripStops(userId: string, tripId: string): StoredTripStop[] {
+  return readTripStops(userId)
+    .filter((s) => s.trip_id === tripId)
+    .sort((a, b) => a.visit_order - b.visit_order);
+}
+
+export function addLocalTripStop(
   userId: string,
   tripId: string,
-  allParks: Park[]
-): StoredTripPark[] {
-  const parkById = new Map(allParks.map((p) => [p.id, p]));
+  label: string
+): StoredTripStop[] {
+  const trimmed = label.trim();
+  if (!trimmed) return listLocalTripStops(userId, tripId);
+  const existing = readTripStops(userId).filter((s) => s.trip_id === tripId);
+  const entry: StoredTripStop = {
+    trip_id: tripId,
+    id: `stop-${Date.now()}`,
+    label: trimmed,
+    visit_order: existing.length,
+  };
+  writeTripStops(userId, [...readTripStops(userId), entry]);
+  return listLocalTripStops(userId, tripId);
+}
+
+export function removeLocalTripStop(
+  userId: string,
+  tripId: string,
+  stopId: string
+): StoredTripStop[] {
+  const next = readTripStops(userId).filter(
+    (s) => !(s.trip_id === tripId && s.id === stopId)
+  );
+  writeTripStops(userId, next);
+  return listLocalTripStops(userId, tripId);
+}
+
+/** Legacy park-catalog helpers no longer used by the UI. */
+export function listLocalTripParks(userId: string, tripId: string): StoredTripPark[] {
   return readTripParks(userId)
     .filter((tp) => tp.trip_id === tripId)
-    .sort((a, b) => a.visit_order - b.visit_order)
-    .map((tp) => ({
-      ...tp,
-      parks: parkById.get(tp.park_id),
-    }));
+    .sort((a, b) => a.visit_order - b.visit_order);
 }
 
 export function addLocalTripPark(
   userId: string,
   tripId: string,
-  parkId: string,
-  allParks: Park[]
+  parkId: string
 ): StoredTripPark[] {
   const existing = readTripParks(userId).filter((tp) => tp.trip_id === tripId);
   const entry: StoredTripPark = {
@@ -142,7 +191,7 @@ export function addLocalTripPark(
     visit_order: existing.length,
   };
   writeTripParks(userId, [...readTripParks(userId), entry]);
-  return listLocalTripParks(userId, tripId, allParks);
+  return listLocalTripParks(userId, tripId);
 }
 
 export function getTripChecklistProgress(

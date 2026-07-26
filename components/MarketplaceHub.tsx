@@ -2,25 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
-  Caravan, Search, X, MapPin, MessageCircle, Trash2, List, Package, Wrench, ShieldCheck,
+  Search, X, MapPin, MessageCircle, Trash2, List, Package, Wrench, ShieldCheck,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import {
-  RvListing,
-  RvClass,
-  RvCondition,
-  RV_CLASS_LABELS,
-  US_MARKET_STATES,
-  formatRvPrice,
-} from '@/lib/rvListings';
-import {
-  loadAllListings,
-  saveUserListing,
-  loadUserListingsOnly,
-  removeUserListing,
-  saveListingInterest,
-  markListingSold,
-} from '@/lib/rvMarketplaceStorage';
+import { US_MARKET_STATES } from '@/lib/rvListings';
+import { saveListingInterest } from '@/lib/rvMarketplaceStorage';
 import {
   GearListing,
   GearCategoryId,
@@ -47,7 +33,6 @@ import {
 import {
   marketplaceGearImage,
   marketplacePartsImage,
-  marketplaceRvImageForClass,
   resolveMarketplaceImage,
 } from '@/lib/marketplaceImages';
 import {
@@ -87,31 +72,14 @@ import { getMembershipPlanId } from '@/lib/membershipSubscription';
 import MarketplaceDisclosure from './MarketplaceDisclosure';
 import MarketplaceCheckoutModal from './MarketplaceCheckoutModal';
 
-type HubView = 'rvs' | 'gear' | 'parts' | 'sell' | 'mine';
-type SellKind = MarketplaceItemType;
+type HubView = 'gear' | 'parts' | 'sell' | 'mine';
+type SellKind = 'gear' | 'parts';
 
 interface Props {
   user: { id: string; email?: string; username?: string } | null;
   displayHandle: string;
   onRequestSignIn: () => void;
 }
-
-const EMPTY_RV = {
-  title: '',
-  make: '',
-  model: '',
-  year: String(new Date().getFullYear()),
-  rvClass: 'travel-trailer' as RvClass,
-  condition: 'good' as RvCondition,
-  price: '',
-  mileage: '',
-  lengthFt: '',
-  sleeps: '4',
-  city: '',
-  state: 'TX',
-  description: '',
-  image: '',
-};
 
 const EMPTY_GEAR = {
   title: '',
@@ -148,17 +116,16 @@ type CheckoutTarget = {
 };
 
 export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }: Props) {
-  const [view, setView] = useState<HubView>('rvs');
-  const [sellKind, setSellKind] = useState<SellKind>('rv');
-  const [rvs, setRvs] = useState<RvListing[]>([]);
+  const [view, setView] = useState<HubView>('gear');
+  const [sellKind, setSellKind] = useState<SellKind>('gear');
+
   const [gear, setGear] = useState<GearListing[]>([]);
   const [parts, setParts] = useState<PartsListing[]>([]);
   const [search, setSearch] = useState('');
   const [stateFilter, setStateFilter] = useState('');
   const [subscribed, setSubscribed] = useState(false);
-  const [credits, setCredits] = useState({ rv: 0, gear: 0, parts: 0 });
+  const [credits, setCredits] = useState({ gear: 0, parts: 0 });
   const [sellerInterval, setSellerInterval] = useState<SellerBillingInterval>('monthly');
-  const [rvForm, setRvForm] = useState(EMPTY_RV);
   const [gearForm, setGearForm] = useState(EMPTY_GEAR);
   const [partsForm, setPartsForm] = useState(EMPTY_PARTS);
   const [sellerAgreeOwn, setSellerAgreeOwn] = useState(false);
@@ -170,19 +137,17 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
   >(null);
 
   const refresh = useCallback(() => {
-    setRvs(loadAllListings());
     setGear(loadAllGearListings());
     setParts(loadAllPartsListings());
     if (user) {
       setSubscribed(isRvchainSubscriber(user.id));
       setCredits({
-        rv: countUnusedListingCredits(user.id, 'rv'),
         gear: countUnusedListingCredits(user.id, 'gear'),
         parts: countUnusedListingCredits(user.id, 'parts'),
       });
     } else {
       setSubscribed(false);
-      setCredits({ rv: 0, gear: 0, parts: 0 });
+      setCredits({ gear: 0, parts: 0 });
     }
   }, [user]);
 
@@ -190,7 +155,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     refresh();
   }, [refresh]);
 
-  const myRvs = useMemo(() => (user ? loadUserListingsOnly(user.id) : []), [user, rvs]);
   const myGear = useMemo(() => (user ? loadUserGearListingsOnly(user.id) : []), [user, gear]);
   const myParts = useMemo(() => (user ? loadUserPartsListingsOnly(user.id) : []), [user, parts]);
 
@@ -208,7 +172,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     });
   };
 
-  const filteredRvs = useMemo(() => filterActive(rvs), [rvs, search, stateFilter]);
   const filteredGear = useMemo(() => filterActive(gear), [gear, search, stateFilter]);
   const filteredParts = useMemo(() => filterActive(parts), [parts, search, stateFilter]);
 
@@ -219,7 +182,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     purchaseSingleListingCredit(user.id, t);
     refresh();
     toast.success(
-      `${t === 'rv' ? 'RV' : t === 'gear' ? 'Gear' : 'Parts'} listing credit (demo $${singleListingPrice(t)}) — ${SINGLE_LISTING_DAYS} days when published.`
+      `${t === 'gear' ? 'Gear' : 'Parts'} listing credit (demo $${singleListingPrice(t)}) — ${SINGLE_LISTING_DAYS} days when published.`
     );
   };
 
@@ -244,7 +207,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       sellerUserId: checkout.sellerUserId,
       grossPrice: checkout.price,
     });
-    if (checkout.itemType === 'rv') markListingSold(checkout.id, sale.id);
     if (checkout.itemType === 'gear') markGearListingSold(checkout.id, sale.id);
     if (checkout.itemType === 'parts') markPartsListingSold(checkout.id, sale.id);
     setCheckout(null);
@@ -259,80 +221,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
       'market_sale',
       checkout.title
     );
-    if (pts > 0) toast.message(`Road Crew +${pts} pts`);
-  };
-
-  const publishRv = () => {
-    if (!user) return onRequestSignIn();
-    const gate = canPublishAnotherListing(user.id, 'rv');
-    if (!gate.ok) return toast.info(gate.error);
-    if (!sellerAgreeOwn || !sellerAgreeFee) return toast.error('Confirm ownership and fee terms.');
-    const price = Number(rvForm.price);
-    const year = Number(rvForm.year);
-    const lengthFt = Number(rvForm.lengthFt);
-    if (!rvForm.title.trim() || !rvForm.make.trim() || !rvForm.model.trim())
-      return toast.error('Title, make, and model required.');
-    if (!Number.isFinite(price) || price <= 0) return toast.error('Valid price required.');
-    if (!Number.isFinite(year) || !Number.isFinite(lengthFt) || lengthFt <= 0)
-      return toast.error('Valid year and length required.');
-
-    setSubmitting(true);
-    const access = getPublishAccess(user.id, 'rv');
-    const id = `rv-user-${Date.now()}`;
-    let expiresAt: string | null = null;
-    let listingAccess: 'single' | 'seller-pro' = 'seller-pro';
-    if (access === 'single-credit') {
-      const c = consumeListingCredit(user.id, id, 'rv');
-      if (!c) {
-        setSubmitting(false);
-        return toast.error('No RV listing credit.');
-      }
-      listingAccess = 'single';
-      expiresAt = listingExpiresAt(new Date(), c.durationDays);
-    }
-    saveUserListing({
-      id,
-      title: rvForm.title.trim(),
-      make: rvForm.make.trim(),
-      model: rvForm.model.trim(),
-      year,
-      rvClass: rvForm.rvClass,
-      condition: rvForm.condition,
-      price,
-      mileage: rvForm.mileage ? Number(rvForm.mileage) : undefined,
-      lengthFt,
-      sleeps: Number(rvForm.sleeps) || 4,
-      city: rvForm.city.trim() || 'Unknown',
-      state: rvForm.state,
-      description: rvForm.description.trim() || 'No description.',
-      features: [],
-      image: resolveMarketplaceImage(
-        rvForm.image,
-        marketplaceRvImageForClass(rvForm.rvClass)
-      ),
-      sellerName: displayHandle,
-      sellerUserId: user.id,
-      listedAt: new Date().toISOString(),
-      rating: 0,
-      reviewCount: 0,
-      sellerRating: 5,
-      sellerReviewCount: 0,
-      listingAccess,
-      expiresAt,
-      status: 'active',
-    });
-    const q = quoteMarketplaceFee(price, 'rv');
-    const listedTitle = rvForm.title.trim();
-    setRvForm(EMPTY_RV);
-    setSellerAgreeFee(false);
-    setSellerAgreeOwn(false);
-    setSubmitting(false);
-    refresh();
-    setView('mine');
-    toast.success(
-      `RV listed (demo). At list price you receive ${formatSellerPayout(q.sellerNet)} (${formatFeePercent(q.feePercent)}).`
-    );
-    const pts = awardRoadCrewForUser(user.id, getMembershipPlanId(user.id), 'market_list', listedTitle);
     if (pts > 0) toast.message(`Road Crew +${pts} pts`);
   };
 
@@ -577,15 +465,14 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
     <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10 space-y-5">
       <div className="rounded-3xl border border-slate-700/80 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/30 p-5 sm:p-7">
         <div className="text-amber-400 text-sm font-medium mb-1">rvchain Market</div>
-        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">RVs · Gear · Parts</h2>
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">Gear · Parts</h2>
         <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-          Listing software for RVs, gear, and parts. Seller Pro = unlimited ads. Buyers contact sellers — no escrow. Demo until Stripe is live.</p>
+          Private-party gear and parts listing software. Seller Pro = unlimited ads. Buyers contact sellers off-platform — no escrow, no vehicle sales. Demo until Stripe is live.</p>
       </div>
 
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ['rvs', 'RVs', Caravan],
             ['gear', 'Gear', Package],
             ['parts', 'Parts', Wrench],
             ['sell', 'Sell', ShieldCheck],
@@ -608,7 +495,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
         ))}
       </div>
 
-      {(view === 'rvs' || view === 'gear' || view === 'parts') && (
+      {(view === 'gear' || view === 'parts') && (
         <div className="flex flex-col sm:flex-row gap-2">
           <div className="flex-1 relative">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
@@ -633,24 +520,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
           </select>
         </div>
       )}
-
-      {view === 'rvs' && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {filteredRvs.length === 0 ? (
-            <p className="text-slate-500 text-sm col-span-full py-8 text-center">No RVs match.</p>
-          ) : (
-            filteredRvs.map((l) =>
-              card(
-                l,
-                'rv',
-                'RV',
-                `${l.year} · ${RV_CLASS_LABELS[l.rvClass]} · ${l.lengthFt}'`,
-                formatRvPrice(l.price)
-              )
-            )
-          )}
-        </div>
-      )}
+
 
       {view === 'gear' && (
         <div className="space-y-3">
@@ -706,7 +576,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
             <div className="flex flex-wrap gap-2">
               {(
                 [
-                  ['rv', 'RV / camper'],
                   ['gear', 'Camping gear'],
                   ['parts', 'Parts'],
                 ] as const
@@ -735,7 +604,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
             {user && !canPub(sellKind) && (
               <div className="rounded-2xl border border-amber-800/40 bg-amber-950/20 p-4 space-y-3">
                 <p className="text-sm text-amber-100 font-semibold">
-                  {sellKind === 'rv' ? 'RV' : sellKind === 'gear' ? 'Gear' : 'Parts'} listing — $
+                  {sellKind === 'gear' ? 'Gear' : 'Parts'} listing — $
                   {singleListingPrice(sellKind)} / {SINGLE_LISTING_DAYS} days (demo)
                 </p>
                 <button
@@ -786,103 +655,7 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
 
             <div
               className={`space-y-3 ${user && !canPub(sellKind) ? 'opacity-40 pointer-events-none' : ''}`}
-            >
-              {sellKind === 'rv' && (
-                <>
-                  <input
-                    className="w-full bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                    placeholder="Title"
-                    value={rvForm.title}
-                    onChange={(e) => setRvForm((f) => ({ ...f, title: e.target.value }))}
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      placeholder="Make"
-                      value={rvForm.make}
-                      onChange={(e) => setRvForm((f) => ({ ...f, make: e.target.value }))}
-                    />
-                    <input
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      placeholder="Model"
-                      value={rvForm.model}
-                      onChange={(e) => setRvForm((f) => ({ ...f, model: e.target.value }))}
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-                    <input
-                      type="number"
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      placeholder="Year"
-                      value={rvForm.year}
-                      onChange={(e) => setRvForm((f) => ({ ...f, year: e.target.value }))}
-                    />
-                    <input
-                      type="number"
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      placeholder="Price"
-                      value={rvForm.price}
-                      onChange={(e) => setRvForm((f) => ({ ...f, price: e.target.value }))}
-                    />
-                    <input
-                      type="number"
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      placeholder="Length ft"
-                      value={rvForm.lengthFt}
-                      onChange={(e) => setRvForm((f) => ({ ...f, lengthFt: e.target.value }))}
-                    />
-                    <select
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      value={rvForm.rvClass}
-                      onChange={(e) =>
-                        setRvForm((f) => ({ ...f, rvClass: e.target.value as RvClass }))
-                      }
-                    >
-                      {(Object.entries(RV_CLASS_LABELS) as [RvClass, string][]).map(([k, v]) => (
-                        <option key={k} value={k}>
-                          {v}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      placeholder="City"
-                      value={rvForm.city}
-                      onChange={(e) => setRvForm((f) => ({ ...f, city: e.target.value }))}
-                    />
-                    <select
-                      className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                      value={rvForm.state}
-                      onChange={(e) => setRvForm((f) => ({ ...f, state: e.target.value }))}
-                    >
-                      {US_MARKET_STATES.map((s) => (
-                        <option key={s.code} value={s.code}>
-                          {s.code}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  <textarea
-                    className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-sm"
-                    rows={3}
-                    placeholder="Description"
-                    value={rvForm.description}
-                    onChange={(e) => setRvForm((f) => ({ ...f, description: e.target.value }))}
-                  />
-                  {sellerPayoutPreview(Number(rvForm.price), 'rv')}
-                  {sellerChecks}
-                  <button
-                    type="button"
-                    disabled={submitting}
-                    onClick={publishRv}
-                    className="w-full h-11 rounded-xl bg-amber-600 font-semibold text-sm disabled:opacity-50"
-                  >
-                    Publish RV (demo)
-                  </button>
-                </>
-              )}
+            >
 
               {sellKind === 'gear' && (
                 <>
@@ -1045,7 +818,6 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
           ) : (
             <>
               {[
-                ['My RVs', myRvs, removeUserListing, formatRvPrice] as const,
                 ['My gear', myGear, removeUserGearListing, formatGearPrice] as const,
                 ['My parts', myParts, removeUserPartsListing, formatPartsPrice] as const,
               ].map(([label, list, removeFn, fmt]) => (
@@ -1110,11 +882,9 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
             </div>
             <p className="text-sm text-slate-300">{detail.description}</p>
             <div className="text-2xl font-bold text-amber-300">
-              {detail.itemType === 'rv'
-                ? formatRvPrice(detail.price)
-                : detail.itemType === 'gear'
-                  ? formatGearPrice(detail.price)
-                  : formatPartsPrice(detail.price)}
+              {detail.itemType === 'gear'
+                ? formatGearPrice(detail.price)
+                : formatPartsPrice(detail.price)}
             </div>
             {user?.id && detail.sellerUserId === user.id && sellerPayoutPreview(detail.price, detail.itemType)}
             <div className="flex flex-col gap-2">

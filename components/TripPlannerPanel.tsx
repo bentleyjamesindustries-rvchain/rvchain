@@ -5,19 +5,19 @@ import {
   Plus, Calendar, Lock, Printer, MapPin, ChevronRight, ChevronDown, LayoutDashboard, ListChecks,
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { Park } from '@/lib/parks';
 import { supabase } from '@/lib/supabaseClient';
 import { isMissingTableError } from '@/lib/supabaseSetup';
 import {
   listLocalTrips,
   createLocalTrip,
   upsertLocalTrip,
-  listLocalTripParks,
-  addLocalTripPark,
+  listLocalTripStops,
+  addLocalTripStop,
+  removeLocalTripStop,
   getTripChecklistProgress,
   toggleChecklistItem,
   StoredTrip,
-  StoredTripPark,
+  StoredTripStop,
 } from '@/lib/localTrips';
 import {
   getMembershipPlanId,
@@ -49,8 +49,6 @@ import ChecklistPackPicker from './ChecklistPackPicker';
 
 interface TripPlannerPanelProps {
   user: { id: string; email?: string } | null;
-  allParks: Park[];
-  quickAddParks: Park[];
   onRequestSignIn: () => void;
 }
 
@@ -58,13 +56,12 @@ type TripWorkspaceTab = 'checklists' | 'stops' | 'details';
 
 export default function TripPlannerPanel({
   user,
-  allParks,
-  quickAddParks,
   onRequestSignIn,
 }: TripPlannerPanelProps) {
   const [userTrips, setUserTrips] = useState<StoredTrip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<StoredTrip | null>(null);
-  const [tripParks, setTripParks] = useState<StoredTripPark[]>([]);
+  const [tripStops, setTripStops] = useState<StoredTripStop[]>([]);
+  const [newStopLabel, setNewStopLabel] = useState('');
   const [newTripTitle, setNewTripTitle] = useState('');
   const [supabaseReady, setSupabaseReady] = useState(true);
   const [activePackTab, setActivePackTab] = useState<ChecklistPackId | null>(null);
@@ -113,29 +110,14 @@ export default function TripPlannerPanel({
     loadTrips();
   }, [loadTrips]);
 
-  const loadTripParks = async (trip: StoredTrip) => {
+  const loadTripStops = (trip: StoredTrip) => {
     if (!user) return;
     setSelectedTrip(trip);
-    setWorkspaceTab(
-      (trip.camper_packs?.length ?? 0) === 0 ? 'checklists' : 'checklists'
-    );
+    setWorkspaceTab('checklists');
     const packs = trip.camper_packs ?? [];
     setActivePackTab(packs[0] ?? null);
-    if (!supabaseReady) {
-      setTripParks(listLocalTripParks(user.id, trip.id, allParks));
-      return;
-    }
-    const { data, error } = await supabase
-      .from('trip_parks')
-      .select('*, parks(*)')
-      .eq('trip_id', trip.id)
-      .order('visit_order');
-    if (error && isMissingTableError(error)) {
-      setSupabaseReady(false);
-      setTripParks(listLocalTripParks(user.id, trip.id, allParks));
-      return;
-    }
-    setTripParks(data || []);
+    setTripStops(listLocalTripStops(user.id, trip.id));
+    setNewStopLabel('');
   };
 
   const createTrip = async () => {
@@ -153,7 +135,7 @@ export default function TripPlannerPanel({
       setUserTrips((prev) => [trip, ...prev.filter((t) => t.id !== trip.id)]);
       setNewTripTitle('');
       setSelectedTrip(trip);
-      setTripParks([]);
+      setTripStops([]);
       setActivePackTab(null);
       setWorkspaceTab('checklists');
       toast.success('Trip created — pick a checklist pack to pack smarter.');
@@ -212,38 +194,15 @@ export default function TripPlannerPanel({
     }
   };
 
-  const addParkToTrip = async (parkId: string) => {
+  const addStopToTrip = () => {
     if (!selectedTrip || !user) return;
     if (!canUseTripPlanner(planId)) {
-      return toast.error('Spot stops require Weekender or higher.');
+      return toast.error('Trip stops require Weekender or higher.');
     }
-    if (!supabaseReady) {
-      setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, allParks));
-      toast.success('Spot added to trip!');
-      return;
-    }
-    const { error } = await supabase.from('trip_parks').insert({
-      trip_id: selectedTrip.id,
-      park_id: parkId,
-      visit_order: tripParks.length,
-    });
-    if (error) {
-      if (isMissingTableError(error)) {
-        setSupabaseReady(false);
-        setTripParks(addLocalTripPark(user.id, selectedTrip.id, parkId, allParks));
-        toast.success('Spot added to trip!');
-        return;
-      }
-      toast.error(error.message || "Couldn't add spot.");
-      return;
-    }
-    const { data } = await supabase
-      .from('trip_parks')
-      .select('*, parks(*)')
-      .eq('trip_id', selectedTrip.id)
-      .order('visit_order');
-    if (data) setTripParks(data);
-    toast.success('Spot added to trip!');
+    if (!newStopLabel.trim()) return toast.error('Enter a stop name or place note.');
+    setTripStops(addLocalTripStop(user.id, selectedTrip.id, newStopLabel));
+    setNewStopLabel('');
+    toast.success('Stop added.');
   };
 
   const handleSubscribe = (
@@ -454,7 +413,7 @@ export default function TripPlannerPanel({
                     <button
                       key={trip.id}
                       type="button"
-                      onClick={() => loadTripParks(trip)}
+                      onClick={() => loadTripStops(trip)}
                       className={`w-full text-left p-3 rounded-2xl border transition ${
                         selectedTrip?.id === trip.id
                           ? 'bg-green-900/30 border-green-700'
@@ -559,48 +518,68 @@ export default function TripPlannerPanel({
                   <div className="bg-slate-900 border border-slate-700 rounded-3xl p-4 sm:p-5 space-y-4">
                     <div className="text-sm font-medium flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-emerald-400" />
-                      Community spots ({tripParks.length})
+                      Your stops ({tripStops.length})
                     </div>
-                    {tripParks.length === 0 ? (
+                    <p className="text-xs text-slate-500">
+                      Free-text notes (town, address, or place name). rvchain is not a campground
+                      directory — book stays on your own.
+                    </p>
+                    {tripStops.length === 0 ? (
                       <p className="text-xs text-slate-500 border border-dashed border-slate-700 p-4 rounded-2xl">
-                        Add stops from the Spots tab or quick-add below.
+                        No stops yet. Add one below.
                       </p>
                     ) : (
                       <div className="space-y-2">
-                        {tripParks.map((tp, idx) => (
+                        {tripStops.map((stop, idx) => (
                           <div
-                            key={`${tp.trip_id}-${tp.park_id}-${idx}`}
-                            className="flex items-center justify-between bg-slate-950 border border-slate-800 p-3 rounded-2xl text-sm"
+                            key={stop.id}
+                            className="flex items-center justify-between gap-2 bg-slate-950 border border-slate-800 p-3 rounded-2xl text-sm"
                           >
-                            <span>{tp.parks?.name ?? 'Spot'}</span>
-                            <span className="text-xs text-emerald-400">Stop #{idx + 1}</span>
+                            <span className="min-w-0 truncate">{stop.label}</span>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-xs text-emerald-400">#{idx + 1}</span>
+                              <button
+                                type="button"
+                                className="text-[10px] text-red-300"
+                                onClick={() => {
+                                  if (!user || !selectedTrip) return;
+                                  setTripStops(
+                                    removeLocalTripStop(user.id, selectedTrip.id, stop.id)
+                                  );
+                                }}
+                              >
+                                Remove
+                              </button>
+                            </div>
                           </div>
                         ))}
                       </div>
                     )}
-                    {plan.routeSummary && tripParks.length > 0 && (
+                    {plan.routeSummary && tripStops.length > 0 && (
                       <p className="text-[11px] text-sky-400/90">
-                        Route:{' '}
-                        {tripParks
-                          .map((tp) => tp.parks?.city ?? tp.parks?.name)
-                          .filter(Boolean)
-                          .join(' → ')}
+                        Route: {tripStops.map((s) => s.label).join(' → ')}
                       </p>
                     )}
-                    <div>
-                      <div className="text-xs text-slate-400 mb-2">Quick add spots</div>
-                      <div className="flex flex-wrap gap-2">
-                        {quickAddParks.slice(0, 10).map((p) => (
-                          <button
-                            key={p.id}
-                            type="button"
-                            onClick={() => addParkToTrip(p.id)}
-                            className="text-xs bg-slate-800 hover:bg-slate-700 border border-slate-600 px-3 py-1.5 rounded-2xl"
-                          >
-                            + {p.name}
-                          </button>
-                        ))}
-                      </div>
+                    <div className="flex gap-2">
+                      <input
+                        value={newStopLabel}
+                        onChange={(e) => setNewStopLabel(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            addStopToTrip();
+                          }
+                        }}
+                        placeholder="e.g. Mom’s driveway · Boise, ID"
+                        className="flex-1 bg-slate-950 border border-slate-700 rounded-xl px-3 h-10 text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={addStopToTrip}
+                        className="px-4 h-10 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-sm font-semibold shrink-0"
+                      >
+                        Add
+                      </button>
                     </div>
                   </div>
                 )}

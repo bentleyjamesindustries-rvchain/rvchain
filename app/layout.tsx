@@ -29,9 +29,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "rvchain — Demo · Family Road Life",
+  title: "rvchain — Gear & Parts Market · Family Road Life",
   description:
-    "Demonstration app for RV community tools. Sample parks, market listings, and brand names are fictional. No real sales or third-party brand affiliations.",
+    "Private-party camping gear and parts board for road people. Listing software, trips, and family tools. Not a campground directory or vehicle dealer. Demo sample data is fictional.",
   icons: {
     icon: "/rvchain-logo.jpg",
     apple: "/rvchain-logo.jpg",

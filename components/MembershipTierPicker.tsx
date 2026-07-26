@@ -40,9 +40,8 @@ export default function MembershipTierPicker({
       <div className="rounded-2xl border border-emerald-800/40 bg-emerald-950/20 px-4 py-3 text-sm text-slate-300 leading-relaxed">
         <p className="font-semibold text-emerald-200">rvchain membership = trip software</p>
         <p className="text-xs text-slate-400 mt-1">
-          Pay for planning tools, forum posts, and Road Crew boosts — not for booking parks and not
-          for marketplace escrow. Demo upgrades simulate billing until Stripe is live under RV Chain
-          LLC.
+          Pay for planning tools, forum posts, and Road Crew boosts — not campground booking and not
+          marketplace escrow. Demo upgrades simulate billing until Stripe is live under RV Chain LLC.
         </p>
       </div>
 

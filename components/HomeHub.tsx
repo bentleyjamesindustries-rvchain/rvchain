@@ -4,10 +4,10 @@ import {
   Calendar,
   Caravan,
   Leaf,
-  MapPin,
   Sparkles,
   Gift,
   ArrowRight,
+  MessagesSquare,
 } from 'lucide-react';
 
 export type HomeDestination =
@@ -15,8 +15,8 @@ export type HomeDestination =
   | 'marketplace'
   | 'field'
   | 'kids'
-  | 'discover'
-  | 'rewards';
+  | 'rewards'
+  | 'community';
 
 interface HomeHubProps {
   displayName?: string | null;
@@ -37,20 +37,20 @@ export default function HomeHub({
 
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-emerald-700/40 bg-gradient-to-br from-emerald-950 via-slate-900 to-amber-950/50 p-6 sm:p-10">
+      <section className="relative overflow-hidden rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950 via-slate-900 to-emerald-950/50 p-6 sm:p-10">
         <div className="absolute -right-8 -top-8 text-[140px] opacity-[0.07] pointer-events-none select-none">
           ⛺
         </div>
         <div className="relative z-[1] max-w-xl">
-          <p className="text-emerald-400/90 text-xs font-bold uppercase tracking-[0.2em] mb-2">
-            Family road life OS
+          <p className="text-amber-400/90 text-xs font-bold uppercase tracking-[0.2em] mb-2">
+            Family road life · Market first
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
             Welcome back, {greet}
           </h1>
           <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-            Plan trips, trade gear, explore trails — home base for RV families and road people.
-            Little Explorer for kids (no tracking). Big Explorer for adult geo-catch.
+            Private-party gear and parts for road people. List with Seller Pro, contact sellers
+            off-platform. Not a campground directory. Not a vehicle dealer.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             {tripCount > 0 && (
@@ -77,6 +77,21 @@ export default function HomeHub({
         <div className="grid sm:grid-cols-3 gap-3">
           <button
             type="button"
+            onClick={() => onGo('marketplace')}
+            className="group text-left rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950/70 to-slate-900 p-5 sm:p-6 hover:border-amber-500/50 transition shadow-lg shadow-amber-950/20 sm:col-span-1"
+          >
+            <Caravan className="w-8 h-8 text-amber-300 mb-3 group-hover:scale-110 transition" />
+            <div className="text-lg font-bold text-white flex items-center gap-2">
+              Market
+              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
+            </div>
+            <p className="text-sm text-slate-400 mt-1.5 leading-snug">
+              Gear &amp; parts · list &amp; contact sellers · no escrow
+            </p>
+          </button>
+
+          <button
+            type="button"
             onClick={() => onGo('trips')}
             className="group text-left rounded-3xl border border-orange-700/40 bg-gradient-to-br from-orange-950/70 to-slate-900 p-5 sm:p-6 hover:border-orange-500/50 transition shadow-lg shadow-orange-950/20"
           >
@@ -86,22 +101,7 @@ export default function HomeHub({
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
             <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              Dates, stops, pack lists — upgrade to Weekender+ (demo)
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onGo('marketplace')}
-            className="group text-left rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950/60 to-slate-900 p-5 sm:p-6 hover:border-amber-500/50 transition shadow-lg shadow-amber-950/20"
-          >
-            <Caravan className="w-8 h-8 text-amber-300 mb-3 group-hover:scale-110 transition" />
-            <div className="text-lg font-bold text-white flex items-center gap-2">
-              Market
-              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
-            </div>
-            <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              Listing software · contact sellers · no escrow
+              Dates, free-text stops, pack lists — Weekender+ (demo)
             </p>
           </button>
 
@@ -134,12 +134,12 @@ export default function HomeHub({
         </button>
         <button
           type="button"
-          onClick={() => onGo('discover')}
+          onClick={() => onGo('community')}
           className="text-left rounded-2xl border border-slate-700 bg-slate-900/50 hover:border-slate-500 p-4 transition"
         >
-          <MapPin className="w-5 h-5 text-green-300 mb-2" />
-          <div className="text-sm font-bold text-white">Community spots</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Road picks · not a full inventory</p>
+          <MessagesSquare className="w-5 h-5 text-sky-300 mb-2" />
+          <div className="text-sm font-bold text-white">Forum</div>
+          <p className="text-[11px] text-slate-400 mt-0.5">Road talk · tips</p>
         </button>
         <button
           type="button"
@@ -148,13 +148,13 @@ export default function HomeHub({
         >
           <Gift className="w-5 h-5 text-amber-300 mb-2" />
           <div className="text-sm font-bold text-white">Road Crew</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Loyalty stamps & points</p>
+          <p className="text-[11px] text-slate-400 mt-0.5">Loyalty stamps &amp; points</p>
         </button>
       </section>
 
       <p className="text-center text-[11px] text-slate-500 leading-relaxed max-w-md mx-auto pb-4">
-        rvchain — home base for RV families. Demo mode: listings and memberships are simulated on
-        this device unless cloud tables are set up.
+        rvchain — gear &amp; parts for road families. Demo mode: listings and memberships are
+        simulated on this device unless cloud tables are set up.
       </p>
     </div>
   );
