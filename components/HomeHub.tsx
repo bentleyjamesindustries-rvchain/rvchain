@@ -49,8 +49,8 @@ export default function HomeHub({
             Welcome back, {greet}
           </h1>
           <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-            Private-party gear and parts for road people. List with Seller Pro, contact sellers
-            off-platform. Not a campground directory. Not a vehicle dealer.
+            List used gear and parts. Buyers contact you directly — no escrow cut. Free accounts get
+            3 active listings; Seller Pro unlocks unlimited + featured.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             {tripCount > 0 && (
@@ -153,8 +153,8 @@ export default function HomeHub({
       </section>
 
       <p className="text-center text-[11px] text-slate-500 leading-relaxed max-w-md mx-auto pb-4">
-        rvchain — gear &amp; parts for road families. Demo mode: listings and memberships are
-        simulated on this device unless cloud tables are set up.
+        rvchain — gear &amp; parts for road families. Sign up free to list. Transactions stay
+        off-platform between buyers and sellers.
       </p>
     </div>
   );

@@ -1,12 +1,13 @@
-/** Site-wide demo flag — flip to false when real Stripe billing goes live. */
-export const SITE_DEMO_MODE = true;
+/**
+ * Demo mode is OFF by default for production.
+ * Set NEXT_PUBLIC_SITE_DEMO_MODE=true only for local mock demos.
+ */
+export const SITE_DEMO_MODE = process.env.NEXT_PUBLIC_SITE_DEMO_MODE === 'true';
 
 export const DEMO_NOTICE =
-  'Demonstration only. Sample listings, parks, brands, and names are fictional. No real charges, sales, bookings, or brand affiliations. Not legal advice.';
+  'Sandbox mode is on — some actions may be simulated. Turn off NEXT_PUBLIC_SITE_DEMO_MODE for production.';
 
-export const DEMO_NOTICE_SHORT =
-  'Demo site — fictional sample data · no real sales, brands, or charges';
+export const DEMO_NOTICE_SHORT = 'Sandbox mode — simulated actions may apply';
 
-/** Longer legal-safe copy for footers / disclosures */
 export const DEMO_FICTIONAL_CONTENT_NOTICE =
-  'All sample RVs, gear, parks, seller names, and product titles on this site are invented for demonstration. They are not real listings, not endorsed by any manufacturer, park, or retailer, and do not use third-party trademarks or brand likeness. Grok Imagine art is used for app visuals. Map tiles are third-party map data for navigation UI only.';
+  'When sandbox mode is enabled, sample content may be fictional. Live mode uses real user listings only.';

@@ -6,6 +6,7 @@ import DeviceAdapt from "@/components/DeviceAdapt";
 import ScenicBackground from "@/components/ScenicBackground";
 import RvMouseTrail from "@/components/RvMouseTrail";
 import DemoBanner from "@/components/DemoBanner";
+import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SITE_DEMO_MODE } from "@/lib/demoMode";
 
 export const viewport: Viewport = {
@@ -28,10 +29,31 @@ const geistMono = Geist_Mono({
   weight: ["400", "500", "600"],
 });
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://rv-chain.com";
+
 export const metadata: Metadata = {
-  title: "rvchain — Gear & Parts Market · Family Road Life",
+  metadataBase: new URL(siteUrl),
+  title: {
+    default: "rvchain — Gear & Parts for Family Road Life",
+    template: "%s | rvchain",
+  },
   description:
-    "Private-party camping gear and parts board for road people. Listing software, trips, and family tools. Not a campground directory or vehicle dealer. Demo sample data is fictional.",
+    "Private-party camping gear and parts marketplace for road families. List items, contact sellers directly. Not a campground directory. Not a vehicle dealer.",
+  openGraph: {
+    type: "website",
+    locale: "en_US",
+    url: siteUrl,
+    siteName: "rvchain",
+    title: "rvchain — Gear & Parts for Family Road Life",
+    description:
+      "Private-party gear and parts board for people who live on the road. Simple listings. Direct contact. No escrow cut.",
+    images: [{ url: "/rvchain-logo.jpg", width: 512, height: 512, alt: "rvchain" }],
+  },
+  twitter: {
+    card: "summary",
+    title: "rvchain — Gear & Parts Market",
+    description: "Private-party gear and parts for family road life.",
+  },
   icons: {
     icon: "/rvchain-logo.jpg",
     apple: "/rvchain-logo.jpg",
@@ -49,6 +71,7 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col text-slate-200 overflow-x-hidden">
+        <GoogleAnalytics />
         <ScenicBackground />
         <RvMouseTrail />
         <DeviceAdapt />

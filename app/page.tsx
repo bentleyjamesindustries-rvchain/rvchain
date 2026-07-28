@@ -31,7 +31,8 @@ import AdultExplorerPanel from '@/components/AdultExplorerPanel';
 import HomeHub from '@/components/HomeHub';
 import { loadKidsProgress } from '@/lib/kidsProgress';
 import ExplorerSignInModal from '@/components/ExplorerSignInModal';
-import MarketplaceHub from '@/components/MarketplaceHub';
+import MarketLive from '@/components/MarketLive';
+import SiteFooter from '@/components/SiteFooter';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileAvatar from '@/components/ProfileAvatar';
 import {
@@ -430,7 +431,7 @@ export default function RVChainApp() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
           <div>
             <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Gear. Parts.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Family on the road.</h1>
-            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Private-party gear &amp; parts board — not a campground directory, not a vehicle dealer.</p>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">List used camping gear &amp; parts. Buyers contact you directly. Not a campground directory. Not a vehicle dealer.</p>
           </div>
           <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">
             <button
@@ -438,7 +439,16 @@ export default function RVChainApp() {
               className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 bg-white text-slate-900 hover:bg-amber-50 active:bg-white font-semibold rounded-3xl transition text-sm shadow-sm"
             >
               <Caravan className="w-4 h-4 shrink-0" />
-              <span>Open Market</span>
+              <span>Browse the market</span>
+            </button>
+            <button
+              onClick={() => {
+                if (!user) setShowAuthModal(true);
+                else setActiveTab('marketplace');
+              }}
+              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 border border-white/30 hover:bg-white/5 font-medium rounded-3xl transition text-sm"
+            >
+              <span>{user ? 'List your gear' : 'Sign up free'}</span>
             </button>
           </div>
         </div>
@@ -491,13 +501,15 @@ export default function RVChainApp() {
         />
       )}
 
-      {/* MARKETPLACE: Gear · Parts */}
+      {/* MARKETPLACE: Gear · Parts (live Supabase listings) */}
       {activeTab === 'marketplace' && (
-        <MarketplaceHub
-          user={user}
-          displayHandle={profileHandle}
-          onRequestSignIn={() => setShowAuthModal(true)}
-        />
+        <div id="market">
+          <MarketLive
+            user={user}
+            displayHandle={profileHandle}
+            onRequestSignIn={() => setShowAuthModal(true)}
+          />
+        </div>
       )}
 
       {/* FORUM */}
@@ -728,12 +740,9 @@ export default function RVChainApp() {
         />
       )}
 
-      <footer className="section-intro max-w-screen-xl mx-auto px-4 sm:px-6 py-6 sm:py-8 pb-24 md:pb-8 text-center text-[10px] sm:text-xs text-slate-500 border-t border-slate-800 mt-6 sm:mt-8 space-y-2">
-        <p className="text-amber-400/90 max-w-lg mx-auto leading-relaxed">
-          Demo — private-party gear & parts board. Listing tools and memberships are simulated until live billing. Not a campground directory or vehicle dealer.
-        </p>
-        <p>rvchain • Powered by Supabase</p>
-      </footer>
+      <div className="pb-20 md:pb-0">
+        <SiteFooter />
+      </div>
       </div>
 
       {/* Mobile bottom navigation */}

@@ -7,10 +7,8 @@ export function isModerator(user: { email?: string; username?: string } | null):
     .map((e) => e.trim().toLowerCase())
     .filter(Boolean);
 
-  if (allowed.length === 0) {
-    // MVP: any signed-in user can verify when no moderator list is configured
-    return true;
-  }
+  // Production: only listed emails. Empty list = no client-side admin UI.
+  if (allowed.length === 0) return false;
 
   return allowed.includes(user.email.toLowerCase());
 }
