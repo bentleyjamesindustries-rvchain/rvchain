@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 import { Toaster } from "sonner";
 import DeviceAdapt from "@/components/DeviceAdapt";
@@ -80,6 +81,7 @@ export default function RootLayout({
           {children}
         </div>
         <Toaster position="top-center" richColors closeButton />
+        <Analytics />
       </body>
     </html>
   );
