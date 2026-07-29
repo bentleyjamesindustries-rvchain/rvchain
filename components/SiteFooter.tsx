@@ -7,16 +7,24 @@ export default function SiteFooter() {
         <div className="grid sm:grid-cols-3 gap-8 text-sm">
           <div>
             <div className="font-semibold text-white text-lg tracking-tight">rvchain</div>
-            <p className="text-slate-500 mt-2 text-xs leading-relaxed max-w-xs">
+            <p className="text-slate-300 mt-2 text-sm leading-relaxed max-w-xs">
               Private-party gear &amp; parts for family road life. Not a campground directory. Not a
               vehicle dealer.
             </p>
+            <p className="mt-3 text-sm">
+              <a
+                href="mailto:admin@rv-chain.com"
+                className="text-amber-300 font-semibold hover:text-amber-200 underline"
+              >
+                admin@rv-chain.com
+              </a>
+            </p>
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-300 mb-3">
               Company
             </div>
-            <ul className="space-y-2 text-slate-300">
+            <ul className="space-y-2 text-slate-100 font-medium">
               <li>
                 <Link href="/about" className="hover:text-white">
                   About
@@ -40,10 +48,10 @@ export default function SiteFooter() {
             </ul>
           </div>
           <div>
-            <div className="text-xs font-semibold uppercase tracking-wide text-slate-400 mb-3">
+            <div className="text-xs font-semibold uppercase tracking-wide text-slate-300 mb-3">
               Guides
             </div>
-            <ul className="space-y-2 text-slate-300">
+            <ul className="space-y-2 text-slate-100 font-medium">
               <li>
                 <Link href="/guides/essential-gear-checklist" className="hover:text-white">
                   Essential gear checklist
@@ -67,7 +75,7 @@ export default function SiteFooter() {
             </ul>
           </div>
         </div>
-        <p className="text-[11px] text-slate-600 mt-8 text-center">
+        <p className="text-xs text-slate-400 mt-8 text-center">
           © {new Date().getFullYear()} RV Chain LLC · Transactions are off-platform between buyers and
           sellers
         </p>

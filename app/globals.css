@@ -527,3 +527,34 @@ body {
     transition: none !important;
   }
 }
+
+/* Marketing / legal / guide pages — high contrast body copy */
+.prose-rv p {
+  color: #f1f5f9;
+  margin: 0;
+}
+.prose-rv h2 {
+  color: #ffffff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  margin-top: 0.5rem;
+}
+.prose-rv ul {
+  color: #f1f5f9;
+  padding-left: 1.25rem;
+  list-style-type: disc;
+}
+.prose-rv li {
+  color: #f1f5f9;
+  margin-bottom: 0.35rem;
+}
+.prose-rv a {
+  color: #fcd34d;
+  font-weight: 600;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.prose-rv a:hover {
+  color: #fde68a;
+}
+

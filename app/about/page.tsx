@@ -16,10 +16,10 @@ export const metadata: Metadata = {
 export default function AboutPage() {
   return (
     <MarketingPage title="About rvchain">
-      <p className="text-lg text-slate-200">
+      <p className="text-lg text-white font-medium">
         rvchain is a private-party gear &amp; parts board built for road families.
       </p>
-      <ul className="list-disc pl-5 space-y-2 text-slate-300">
+      <ul className="list-disc pl-5 space-y-2 text-slate-100">
         <li>We are not a campground directory.</li>
         <li>We are not a vehicle dealer.</li>
         <li>We are not a big marketplace with escrow and fees taking a cut of every sale.</li>

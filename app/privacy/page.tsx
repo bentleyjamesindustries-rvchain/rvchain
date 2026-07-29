@@ -44,7 +44,10 @@ export default function PrivacyPage() {
       </p>
       <h2 className="text-xl font-semibold text-white pt-4">Contact</h2>
       <p>
-        Privacy questions: <a href="mailto:hello@rv-chain.com" className="text-sky-400 underline">hello@rv-chain.com</a>
+        Privacy questions:{' '}
+        <a href="mailto:admin@rv-chain.com" className="text-amber-300 font-semibold underline">
+          admin@rv-chain.com
+        </a>
       </p>
     </MarketingPage>
   );
