@@ -3,11 +3,8 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import MarketingPage from '@/components/MarketingPage';
-import { submitContactMessage } from '@/lib/marketListings';
 import { toast } from 'sonner';
-import { Mail, MessageSquare } from 'lucide-react';
-
-const CONTACT_EMAIL = 'admin@rv-chain.com';
+import { MessageSquare } from 'lucide-react';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
@@ -22,57 +19,43 @@ export default function ContactPage() {
       return;
     }
     setSending(true);
-    const { error } = await submitContactMessage({ name, email, message });
-    setSending(false);
-    if (error) {
-      toast.error(error);
-      return;
+    try {
+      const res = await fetch('/api/contact', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, message }),
+      });
+      const data = (await res.json().catch(() => ({}))) as { error?: string };
+      if (!res.ok) {
+        toast.error(data.error || 'Could not send message. Try again.');
+        return;
+      }
+      toast.success('Message sent — we will get back to you soon.');
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch {
+      toast.error('Network error. Please try again.');
+    } finally {
+      setSending(false);
     }
-    toast.success('Message sent — thanks for reaching out.');
-    setName('');
-    setEmail('');
-    setMessage('');
   };
 
   return (
     <MarketingPage title="Contact us">
       <p className="text-lg text-white font-medium">
-        Questions, feedback, or want to list gear? Reach out — we read every message.
+        Questions, feedback, or want to list gear? Send us a message and it goes to our team inbox
+        at <span className="text-amber-300 font-bold">admin@rv-chain.com</span>.
       </p>
 
-      <div className="rounded-2xl border-2 border-amber-500/60 bg-amber-950/40 px-4 py-4 sm:px-5 sm:py-5 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
-        <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-xl bg-amber-500 flex items-center justify-center shrink-0">
-            <Mail className="w-5 h-5 text-slate-950" />
-          </div>
-          <div className="min-w-0">
-            <div className="text-xs font-bold uppercase tracking-wide text-amber-200">
-              Email us directly
-            </div>
-            <a
-              href={`mailto:${CONTACT_EMAIL}`}
-              className="text-lg sm:text-xl font-bold text-white hover:text-amber-200 underline underline-offset-4 break-all"
-            >
-              {CONTACT_EMAIL}
-            </a>
-          </div>
-        </div>
-        <a
-          href={`mailto:${CONTACT_EMAIL}?subject=rvchain%20inquiry`}
-          className="sm:ml-auto shrink-0 h-11 px-5 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm inline-flex items-center justify-center"
-        >
-          Open email app
-        </a>
-      </div>
-
-      <div className="rounded-2xl border border-slate-500 bg-slate-950/80 p-4 sm:p-6 space-y-4">
-        <div className="flex items-center gap-2 text-white font-semibold">
+      <div className="rounded-2xl border-2 border-slate-500 bg-slate-950/90 p-4 sm:p-6 space-y-4">
+        <div className="flex items-center gap-2 text-white font-semibold text-lg">
           <MessageSquare className="w-5 h-5 text-amber-400" />
-          Or send a message here
+          Send us a message
         </div>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="text-sm font-semibold text-slate-200 mb-1.5 block">Name (optional)</span>
+            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">Name (optional)</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -81,7 +64,7 @@ export default function ContactPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-slate-200 mb-1.5 block">Your email</span>
+            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">Your email</span>
             <input
               type="email"
               required
@@ -92,13 +75,13 @@ export default function ContactPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-slate-200 mb-1.5 block">Message</span>
+            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">Message</span>
             <textarea
               required
               value={message}
               onChange={(e) => setMessage(e.target.value)}
               placeholder="How can we help?"
-              rows={5}
+              rows={6}
               className="w-full bg-slate-900 border-2 border-slate-500 focus:border-amber-500 text-white placeholder:text-slate-400 px-3 py-3 rounded-xl text-base outline-none resize-y"
             />
           </label>
@@ -110,9 +93,13 @@ export default function ContactPage() {
             {sending ? 'Sending…' : 'Send message'}
           </button>
         </form>
+        <p className="text-xs text-slate-300 leading-relaxed">
+          Your message is emailed to admin@rv-chain.com. We do not open your mail app — everything
+          stays on this page.
+        </p>
       </div>
 
-      <p className="text-sm text-slate-200">
+      <p className="text-sm text-slate-100">
         Prefer the Market?{' '}
         <Link href="/" className="text-amber-300 font-semibold underline underline-offset-2">
           List or browse gear →
