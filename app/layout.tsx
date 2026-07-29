@@ -8,6 +8,7 @@ import RvMouseTrail from "@/components/RvMouseTrail";
 import DemoBanner from "@/components/DemoBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SITE_DEMO_MODE } from "@/lib/demoMode";
+import { Analytics } from "@vercel/analytics/next";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -80,6 +81,7 @@ export default function RootLayout({
           {children}
         </div>
         <Toaster position="top-center" richColors closeButton />
+        <Analytics />
       </body>
     </html>
   );
