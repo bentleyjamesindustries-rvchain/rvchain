@@ -6,6 +6,8 @@ import MarketingPage from '@/components/MarketingPage';
 import { toast } from 'sonner';
 import { MessageSquare } from 'lucide-react';
 
+const TO_EMAIL = 'admin@rv-chain.com';
+
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -18,18 +20,66 @@ export default function ContactPage() {
       toast.error('Email and message are required');
       return;
     }
+
     setSending(true);
     try {
-      const res = await fetch('/api/contact', {
+      // 1) Save on our server (+ Resend email if configured on Vercel)
+      const apiRes = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name, email, message }),
       });
-      const data = (await res.json().catch(() => ({}))) as { error?: string };
-      if (!res.ok) {
-        toast.error(data.error || 'Could not send message. Try again.');
+      const apiData = (await apiRes.json().catch(() => ({}))) as {
+        error?: string;
+        ok?: boolean;
+        saved?: boolean;
+        emailed?: boolean;
+      };
+
+      // 2) Also email from the browser (FormSubmit often blocks server-side = "Forbidden")
+      let formSubmitOk = false;
+      try {
+        const fsRes = await fetch(
+          `https://formsubmit.co/ajax/${encodeURIComponent(TO_EMAIL)}`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Accept: 'application/json',
+            },
+            body: JSON.stringify({
+              name: name.trim() || 'Website visitor',
+              email: email.trim(),
+              message: message.trim(),
+              _subject: `rvchain contact from ${name.trim() || email.trim()}`,
+              _template: 'table',
+              _captcha: 'false',
+              _replyto: email.trim(),
+            }),
+          }
+        );
+        const fsData = (await fsRes.json().catch(() => ({}))) as {
+          success?: string | boolean;
+          message?: string;
+        };
+        formSubmitOk =
+          fsRes.ok &&
+          (fsData.success === true ||
+            fsData.success === 'true' ||
+            String(fsData.message || '').toLowerCase().includes('success'));
+      } catch {
+        formSubmitOk = false;
+      }
+
+      const ok = apiRes.ok || formSubmitOk || apiData.saved || apiData.emailed;
+      if (!ok) {
+        toast.error(
+          apiData.error ||
+            'Could not send. If this is the first message ever, check admin@rv-chain.com for a confirmation link from FormSubmit, then try again.'
+        );
         return;
       }
+
       toast.success('Message sent — we will get back to you soon.');
       setName('');
       setEmail('');
@@ -44,8 +94,8 @@ export default function ContactPage() {
   return (
     <MarketingPage title="Contact us">
       <p className="text-lg text-white font-medium">
-        Questions, feedback, or want to list gear? Send us a message and it goes to our team inbox
-        at <span className="text-amber-300 font-bold">admin@rv-chain.com</span>.
+        Questions, feedback, or want to list gear? Send a message below — it goes to{' '}
+        <span className="text-amber-300 font-bold">{TO_EMAIL}</span>. No mail app opens.
       </p>
 
       <div className="rounded-2xl border-2 border-slate-500 bg-slate-950/90 p-4 sm:p-6 space-y-4">
@@ -94,8 +144,9 @@ export default function ContactPage() {
           </button>
         </form>
         <p className="text-xs text-slate-300 leading-relaxed">
-          Your message is emailed to admin@rv-chain.com. We do not open your mail app — everything
-          stays on this page.
+          First-time note: FormSubmit may send a one-time activation email to {TO_EMAIL}. Open that
+          link once so future messages land in the inbox. You can also read messages anytime in
+          Supabase → Table Editor → <code className="text-amber-200">contact_messages</code>.
         </p>
       </div>
 

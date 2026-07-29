@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 const TO_EMAIL = process.env.CONTACT_TO_EMAIL ?? 'admin@rv-chain.com';
 
-function getServiceSupabase() {
+function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL ?? '';
   const key =
     process.env.SUPABASE_SERVICE_ROLE_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '';
@@ -50,38 +50,12 @@ async function sendViaResend(input: {
   return { ok: true };
 }
 
-/** FormSubmit — works without API keys; first message may need inbox confirmation. */
-async function sendViaFormSubmit(input: {
-  name: string;
-  email: string;
-  message: string;
-}): Promise<{ ok: boolean; error?: string }> {
-  try {
-    const res = await fetch(`https://formsubmit.co/ajax/${encodeURIComponent(TO_EMAIL)}`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Accept: 'application/json',
-      },
-      body: JSON.stringify({
-        name: input.name || 'Website visitor',
-        email: input.email,
-        message: input.message,
-        _subject: `rvchain contact from ${input.name || input.email}`,
-        _template: 'table',
-        _captcha: 'false',
-      }),
-    });
-    const data = (await res.json().catch(() => ({}))) as { success?: string | boolean; message?: string };
-    if (!res.ok) {
-      return { ok: false, error: data.message || res.statusText };
-    }
-    return { ok: true };
-  } catch (e) {
-    return { ok: false, error: e instanceof Error ? e.message : 'FormSubmit failed' };
-  }
-}
-
+/**
+ * Contact form handler:
+ * 1) Always stores the message in Supabase (contact_messages)
+ * 2) Emails admin when RESEND_API_KEY is set (recommended)
+ * 3) Client also attempts FormSubmit from the browser (see contact page)
+ */
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as {
@@ -104,42 +78,43 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message is too long.' }, { status: 400 });
     }
 
-    // Store a copy in Supabase when available
-    const sb = getServiceSupabase();
+    const sb = getSupabase();
+    let saved = false;
     if (sb) {
-      await sb.from('contact_messages').insert({
+      const { error } = await sb.from('contact_messages').insert({
         name: name || null,
         email,
         message,
       });
+      if (error) {
+        console.error('contact_messages insert', error.message);
+      } else {
+        saved = true;
+      }
     }
-
-    // Prefer Resend when configured; otherwise FormSubmit → admin@rv-chain.com
-    let emailOk = false;
-    let emailError = '';
 
     const resend = await sendViaResend({ name, email, message });
-    if (resend.ok) {
-      emailOk = true;
-    } else {
-      const fs = await sendViaFormSubmit({ name, email, message });
-      if (fs.ok) emailOk = true;
-      else emailError = fs.error || resend.error || 'Could not send email';
-    }
+    const emailed = resend.ok;
 
-    if (!emailOk) {
+    // Success if we saved and/or emailed. Client may also send FormSubmit.
+    if (!saved && !emailed) {
       return NextResponse.json(
         {
           error:
-            emailError ||
-            'Could not deliver email. Please try again later.',
+            'Could not save or send your message. Please try again in a moment.',
         },
         { status: 502 }
       );
     }
 
-    return NextResponse.json({ ok: true });
+    return NextResponse.json({
+      ok: true,
+      saved,
+      emailed,
+      to: TO_EMAIL,
+    });
   } catch (e) {
+    console.error('contact api', e);
     return NextResponse.json(
       { error: e instanceof Error ? e.message : 'Server error' },
       { status: 500 }
