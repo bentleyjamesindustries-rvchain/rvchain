@@ -377,7 +377,7 @@ export async function submitContactMessage(input: {
   message: string;
 }): Promise<{ error?: string }> {
   if (!isSupabaseConfigured) {
-    return { error: 'Contact form requires Supabase. Email hello@rv-chain.com for now.' };
+    return { error: 'Contact form requires Supabase. Email admin@rv-chain.com for now.' };
   }
   const { error } = await supabase.from('contact_messages').insert({
     name: input.name.trim() || null,
