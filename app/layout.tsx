@@ -5,7 +5,6 @@ import "./globals.css";
 import { Toaster } from "sonner";
 import DeviceAdapt from "@/components/DeviceAdapt";
 import ScenicBackground from "@/components/ScenicBackground";
-import RvMouseTrail from "@/components/RvMouseTrail";
 import DemoBanner from "@/components/DemoBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
 import { SITE_DEMO_MODE } from "@/lib/demoMode";
@@ -74,7 +73,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col text-slate-200 overflow-x-hidden">
         <GoogleAnalytics />
         <ScenicBackground />
-        <RvMouseTrail />
         <DeviceAdapt />
         <div className="relative z-10 flex flex-col flex-1 min-h-full">
           {SITE_DEMO_MODE && <DemoBanner />}
