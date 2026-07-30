@@ -117,7 +117,7 @@ export default function RoadCrewPanel({
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12">
         <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-slate-700 bg-slate-900/80">
           <Users className="w-10 h-10 text-amber-400 mx-auto" />
-          <h2 className="text-xl font-semibold">Join Road Crew</h2>
+          <h2 className="text-xl font-semibold">{t('crew.join')}</h2>
           <p className="text-sm text-slate-400">
             Earn for trips, forum, Market, and Explorer adventures — not campground bookings. Sign in
             to continue.

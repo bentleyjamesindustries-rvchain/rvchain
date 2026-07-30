@@ -60,23 +60,22 @@ function mapSupabaseRow(row: {
 }
 
 function SignInWall({ onRequestSignIn }: { onRequestSignIn: () => void }) {
+  const { t } = useI18n();
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12 sm:py-16">
       <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-slate-700 bg-slate-900/80">
         <div className="w-14 h-14 rounded-2xl bg-emerald-900/40 flex items-center justify-center mx-auto">
           <MessagesSquare className="w-7 h-7 text-emerald-400" />
         </div>
-        <h2 className="text-xl font-semibold">Sign in to read the camper forum</h2>
-        <p className="text-sm text-slate-400 leading-relaxed">
-          Browse tips, destination favorites, and maintenance advice from fellow RVers. Posting requires a paid membership.
-        </p>
+        <h2 className="text-xl font-semibold">{t('forum.signInRead')}</h2>
+        <p className="text-sm text-slate-400 leading-relaxed">{t('forum.subtitle')}</p>
         <button
           type="button"
           onClick={onRequestSignIn}
           className="w-full flex items-center justify-center gap-2 bg-white text-black h-11 rounded-3xl font-semibold text-sm"
         >
           <LogIn className="w-4 h-4" />
-          Sign in
+          {t('header.signIn')}
         </button>
       </div>
     </div>

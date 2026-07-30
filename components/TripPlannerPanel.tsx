@@ -350,7 +350,7 @@ export default function TripPlannerPanel({
         <div className="space-y-6">
           <div className="text-center py-10 border border-dashed border-emerald-800/50 rounded-3xl bg-emerald-950/20 px-4">
             <Lock className="w-10 h-10 text-emerald-500/70 mx-auto mb-3" />
-            <h3 className="text-lg font-semibold text-slate-200">Trip planner is a paid feature</h3>
+            <h3 className="text-lg font-semibold text-slate-200">{t('trips.paidFeature')}</h3>
             <p className="text-sm text-slate-400 mt-2 max-w-md mx-auto leading-relaxed">
               Upgrade to Weekender or higher to create trips, add community spots, and unlock packing
               checklists.
