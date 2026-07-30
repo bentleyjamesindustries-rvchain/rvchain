@@ -51,7 +51,7 @@ export default function HomeHub({
             Welcome back, {greet}
           </h1>
           <p className="mt-3 text-sm sm:text-base text-slate-100 leading-relaxed">
-            RV Chain is the co-pilot for recreational vehicle life — campers, overland trucks, ATVs,
+            RV Chain is the co-pilot for recreational vehicle life — campers, off-road trucks, ATVs,
             dirt bikes, snowmobiles, and gear. Ask Trailhead AI, shop the Market, plan the next run.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">

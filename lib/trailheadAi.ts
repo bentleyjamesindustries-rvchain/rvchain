@@ -15,7 +15,7 @@ export const TRAILHEAD_MODES: {
   {
     id: 'trip',
     label: 'Trip / trail',
-    short: 'RV, ATV, snow, dirt, overland',
+    short: 'RV, ATV, snow, dirt, off-road',
     placeholder: 'Where, when, and which recreational vehicle(s)?',
   },
   {
@@ -42,7 +42,7 @@ export const FREE_AI_MESSAGES_PER_DAY = 1;
 
 export const TRAILHEAD_SYSTEM = `You are Trailhead AI on rvchain (rv-chain.com) — the co-pilot for recreational vehicle life.
 
-Scope: street RVs and campers, overland trucks, ATVs/UTVs, dirt bikes, snowmobiles, trailers, and related gear/parts. Family road life and off-road adventure.
+Scope: street RVs and campers, off-road trucks, ATVs/UTVs, dirt bikes, snowmobiles, trailers, and related gear/parts. Family road life and off-road adventure.
 
 Brand: RV Chain is NOT a campground directory, NOT a vehicle dealer, and does NOT sell whole vehicles or take escrow. Users buy/sell gear and parts privately on the Market; they contact sellers themselves.
 
@@ -61,7 +61,7 @@ export function modeInstruction(mode: TrailheadMode): string {
     case 'parts':
       return 'Mode: PARTS ID. Identify likely part category from description or image. List what to measure/check. Suggest Market search keywords. Never guarantee fitment.';
     case 'trip':
-      return 'Mode: TRIP/TRAIL PLAN. Ask only if critical info missing. Produce a practical plan: packing, vehicle readiness, weather/skill caveats. Cover RV/road and/or ATV/snow/dirt/overland as relevant.';
+      return 'Mode: TRIP/TRAIL PLAN. Ask only if critical info missing. Produce a practical plan: packing, vehicle readiness, weather/skill caveats. Cover RV/road and/or ATV/snow/dirt/off-road as relevant.';
     case 'checklist':
       return 'Mode: PRE-RIDE / PRE-TOW CHECKLIST. Output a prioritized checklist for the vehicle type(s) mentioned. Include safety and "don\'t leave without" items.';
     case 'listing':

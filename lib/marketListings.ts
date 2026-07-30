@@ -15,7 +15,7 @@ export const GEAR_CATEGORIES: Record<string, string> = {
   outdoor: 'Outdoor & fire',
   safety: 'Safety',
   powersports: 'Powersports (ATV / dirt / snow)',
-  overland: 'Overland & truck camp',
+  offroad: 'Off-road trucks & camp',
   riding: 'Helmets, boots & riding gear',
   recovery: 'Recovery & winch gear',
   other: 'Other gear',
@@ -86,6 +86,7 @@ export function formatMarketPrice(price: number): string {
 }
 
 export function categoryLabel(kind: MarketKind, category: string): string {
+  if (category === 'overland') return GEAR_CATEGORIES.offroad ?? 'Off-road trucks & camp';
   const map = kind === 'gear' ? GEAR_CATEGORIES : PARTS_CATEGORIES;
   return map[category] ?? category;
 }

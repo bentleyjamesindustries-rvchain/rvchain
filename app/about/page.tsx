@@ -5,7 +5,7 @@ import Link from 'next/link';
 export const metadata: Metadata = {
   title: 'About RV Chain — Recreational Vehicles + Trailhead AI',
   description:
-    'RV Chain is the co-pilot for recreational vehicle life: road campers, overland trucks, ATVs, dirt bikes, snowmobiles, gear market, and Trailhead AI.',
+    'RV Chain is the co-pilot for recreational vehicle life: road campers, off-road trucks, ATVs, dirt bikes, snowmobiles, gear market, and Trailhead AI.',
   openGraph: {
     title: 'About RV Chain',
     description: 'Road. Trail. Ready. — AI + gear for recreational vehicles.',
@@ -18,7 +18,7 @@ export default function AboutPage() {
     <MarketingPage title="About RV Chain">
       <p className="text-lg text-white font-medium">
         RV Chain is built for <strong className="text-amber-300">recreational vehicle life</strong>{' '}
-        — not just Class A motorhomes. That means campers and towables, overland trucks, ATVs and
+        — not just Class A motorhomes. That means campers and towables, off-road trucks, ATVs and
         UTVs, dirt bikes, snowmobiles, and the gear that keeps you moving.
       </p>
       <p>

@@ -38,7 +38,7 @@ export const metadata: Metadata = {
     template: "%s | RV Chain",
   },
   description:
-    "Road. Trail. Ready. Trailhead AI for campers, overland trucks, ATVs, dirt bikes, and snowmobiles — plus private-party gear & parts. Not a dealer. Not a campground directory.",
+    "Road. Trail. Ready. Trailhead AI for campers, off-road trucks, ATVs, dirt bikes, and snowmobiles — plus private-party gear & parts. Not a dealer. Not a campground directory.",
   openGraph: {
     type: "website",
     locale: "en_US",

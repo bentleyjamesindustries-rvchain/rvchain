@@ -41,7 +41,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
     {
       role: 'assistant',
       content:
-        'I’m Trailhead AI — co-pilot for recreational vehicle life: road campers, overland trucks, ATVs, dirt bikes, snowmobiles, and the gear that goes with them.\n\nPick a mode, ask a question, or upload a part photo. Suggestions are educational only — verify safety and fitment yourself.',
+        'I’m Trailhead AI — co-pilot for recreational vehicle life: road campers, off-road trucks, ATVs, dirt bikes, snowmobiles, and the gear that goes with them.\n\nPick a mode, ask a question, or upload a part photo. Suggestions are educational only — verify safety and fitment yourself.',
     },
   ]);
   const [busy, setBusy] = useState(false);
@@ -205,7 +205,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
               Road. Trail. Ready.
             </h2>
             <p className="text-sm text-slate-200 mt-2 leading-relaxed max-w-2xl">
-              AI co-pilot for recreational vehicles — campers, overland trucks, ATVs, dirt bikes,
+              AI co-pilot for recreational vehicles — campers, off-road trucks, ATVs, dirt bikes,
               snowmobiles, and gear. Not a dealer. Not a campground directory.
             </p>
           </div>

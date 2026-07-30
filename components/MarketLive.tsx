@@ -273,7 +273,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
         <div className="text-amber-400 text-sm font-medium mb-1">rvchain Market</div>
         <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">Gear &amp; Parts</h2>
         <p className="text-sm text-slate-300 mt-2 max-w-2xl">
-          Private-party gear and parts for recreational vehicles — campers, overland, ATV, dirt bike,
+          Private-party gear and parts for recreational vehicles — campers, off-road trucks, ATV, dirt bike,
           snowmobile life. Contact sellers directly. No escrow. No whole-vehicle sales. No campground
           directory.
         </p>
