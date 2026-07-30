@@ -132,22 +132,42 @@ body {
   display: none;
 }
 
-/* Scenic background — full screen; slow ease-in pan on scroll */
+/* Scenic background — full viewport (incl. mobile browser chrome) */
 .rv-scene-fixed {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 0;
   pointer-events: none;
+  width: 100%;
+  /* Prefer dynamic/small viewport height so iOS/Android chrome doesn't leave gaps */
+  height: 100vh;
+  height: 100dvh;
+  height: var(--rv-vvh, 100dvh);
+  min-height: -webkit-fill-available;
 }
 
 .rv-scene-img {
-  position: fixed;
+  position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+  min-width: 100%;
+  min-height: 100%;
   object-fit: cover;
   object-position: center 35%;
   will-change: object-position;
+}
+
+/* Phone / coarse pointer: show full vehicle lineup (crop lower in the image) */
+@media (max-width: 768px), (pointer: coarse) {
+  .rv-scene-img {
+    object-position: center 52%;
+    /* Slight zoom so cover fills edge-to-edge on tall screens */
+    transform: scale(1.08);
+    transform-origin: center center;
+  }
 }
 
 .rv-mouse-trail {
@@ -163,14 +183,21 @@ body {
 
 .rv-scene-overlay {
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
   z-index: 0;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  height: var(--rv-vvh, 100dvh);
+  min-height: -webkit-fill-available;
   /* Slightly stronger so golden-hour vehicle BG stays behind UI text */
   background: linear-gradient(
     180deg,
-    rgba(15, 23, 42, 0.28) 0%,
-    rgba(15, 23, 42, 0.38) 45%,
-    rgba(15, 23, 42, 0.55) 100%
+    rgba(15, 23, 42, 0.32) 0%,
+    rgba(15, 23, 42, 0.42) 45%,
+    rgba(15, 23, 42, 0.58) 100%
   );
   pointer-events: none;
 }
