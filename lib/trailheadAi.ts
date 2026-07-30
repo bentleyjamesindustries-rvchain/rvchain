@@ -38,7 +38,7 @@ export const TRAILHEAD_MODES: {
   },
 ];
 
-export const FREE_AI_MESSAGES_PER_DAY = 5;
+export const FREE_AI_MESSAGES_PER_DAY = 2;
 
 export const TRAILHEAD_SYSTEM = `You are Trailhead AI on rvchain (rv-chain.com) — the co-pilot for recreational vehicle life.
 

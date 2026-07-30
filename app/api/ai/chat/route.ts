@@ -1,6 +1,11 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
-import { TRAILHEAD_SYSTEM, modeInstruction, type TrailheadMode } from '@/lib/trailheadAi';
+import {
+  TRAILHEAD_SYSTEM,
+  modeInstruction,
+  FREE_AI_MESSAGES_PER_DAY,
+  type TrailheadMode,
+} from '@/lib/trailheadAi';
 import { createClient } from '@supabase/supabase-js';
 
 export const runtime = 'nodejs';
@@ -75,11 +80,10 @@ export async function POST(request: Request) {
     const authHeader = request.headers.get('authorization');
     const isPro = await userHasAiPro(authHeader);
     const freeUsed = Number(body.freeTierUsed ?? 0);
-    const FREE_LIMIT = 5;
-    if (!isPro && freeUsed >= FREE_LIMIT) {
+    if (!isPro && freeUsed >= FREE_AI_MESSAGES_PER_DAY) {
       return NextResponse.json(
         {
-          error: 'Free daily limit reached (5 messages). AI Pro unlocks unlimited Trailhead AI.',
+          error: `Free daily limit reached (${FREE_AI_MESSAGES_PER_DAY} messages). AI Pro unlocks unlimited Trailhead AI.`,
           code: 'LIMIT',
         },
         { status: 429 }

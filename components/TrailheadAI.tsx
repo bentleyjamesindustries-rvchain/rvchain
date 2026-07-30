@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
 import {
   TRAILHEAD_MODES,
+  FREE_AI_MESSAGES_PER_DAY,
   type TrailheadMode,
 } from '@/lib/trailheadAi';
 import {
@@ -96,7 +97,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
     if (!text && !imageDataUrl) return;
 
     if (!aiPro && !canSendFreeMessage(user?.id)) {
-      toast.error('Free daily limit reached (5). AI Pro unlocks unlimited â€” ask admin@rv-chain.com');
+      toast.error(`Free daily limit reached (${FREE_AI_MESSAGES_PER_DAY}). AI Pro unlocks unlimited — ask admin@rv-chain.com`);
       return;
     }
 
