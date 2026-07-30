@@ -22,4 +22,4 @@ where id = '<your-auth-user-uuid>';
 
 6. Redeploy / restart the app.
 
-**Limits:** free users = 3 active listings; Seller Pro = unlimited + Featured.
+**Limits:** free users = 1 active listing; Seller Pro = unlimited + Featured.

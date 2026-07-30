@@ -4,7 +4,7 @@ export type MarketKind = 'gear' | 'parts';
 export type MarketCondition = 'new' | 'like-new' | 'good' | 'fair' | 'for-parts';
 export type MarketStatus = 'active' | 'sold' | 'deleted';
 
-export const FREE_ACTIVE_LISTING_LIMIT = 3;
+export const FREE_ACTIVE_LISTING_LIMIT = 1;
 export const MAX_LISTING_PHOTOS = 6;
 
 export const GEAR_CATEGORIES: Record<string, string> = {
