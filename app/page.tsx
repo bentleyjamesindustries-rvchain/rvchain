@@ -501,12 +501,13 @@ export default function RVChainApp() {
         <KidsAdventurePanel stateCode={null} />
       )}
 
-      {/* ADULT FIELD EXPLORER — geo-catch + collection */}
+      {/* Big Explorer — Trail Log (adult ride sessions) */}
       {activeTab === 'field' && (
         <AdultExplorerPanel
           userId={user?.id || kidsProgressUserId}
-          stateCode={null}
           displayHandle={user ? kidsDisplayHandle : null}
+          onGoAi={() => setActiveTab('ai')}
+          onGoMarket={() => setActiveTab('marketplace')}
         />
       )}
 

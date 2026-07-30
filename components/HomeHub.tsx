@@ -150,7 +150,7 @@ export default function HomeHub({
         >
           <Leaf className="w-5 h-5 text-sky-300 mb-2" />
           <div className="text-sm font-bold text-white">Big Explorer</div>
-          <p className="text-[11px] text-slate-300 mt-0.5">Geo-catch</p>
+          <p className="text-[11px] text-slate-300 mt-0.5">Trail log</p>
         </button>
         <button
           type="button"
