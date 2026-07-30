@@ -2,9 +2,10 @@
 
 import { useEffect, useRef, useState } from 'react';
 
-const PAN_START = 5;
-/** Full vertical sweep so mountains → campsite are visible by page bottom. */
-const PAN_RANGE = 78;
+/** Start lower so the vehicle lineup stays in frame on first paint. */
+const PAN_START = 35;
+/** Scroll pan still reveals mountains / water above the trail. */
+const PAN_RANGE = 50;
 /** Lower = background eases in more slowly after scroll. */
 const PAN_LERP = 0.028;
 const SNAP_THRESHOLD = 0.04;
