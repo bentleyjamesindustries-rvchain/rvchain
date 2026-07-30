@@ -164,10 +164,10 @@ export default function KidsScavengerHunt({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-amber-50">
-              Adult geo-catch
+              Trail Log tip
             </h2>
             <p className="text-sm text-amber-100/80 mt-1 leading-relaxed">
-              Big Explorer (18+): snap a field photo and optionally tag GPS to unlock stickers.
+              Grown-ups: log rides with GPS and photos in the Trail Log tab (18+).
               Kids use Little Explorer — no location or photo logging there.
             </p>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-xs">

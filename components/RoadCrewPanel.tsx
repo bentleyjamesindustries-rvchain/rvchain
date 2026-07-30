@@ -233,7 +233,7 @@ export default function RoadCrewPanel({
           <li>Create trips &amp; complete checklist items (Trips tab)</li>
           <li>Post in the camper forum</li>
           <li>Publish a Market listing or complete a demo sale</li>
-          <li>Explorers: mark a plant found on the scavenger hunt</li>
+          <li>Trail Log: complete a ride log session</li>
           <li>Optional: track drive miles below (secondary)</li>
         </ul>
       </div>

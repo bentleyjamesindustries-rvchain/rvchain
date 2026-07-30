@@ -90,8 +90,7 @@ export default function AdultExplorerPanel({
         <div className="rounded-3xl border border-sky-700/40 bg-gradient-to-br from-sky-950/50 via-slate-900 to-slate-950 p-6 space-y-4">
           <div className="inline-flex items-center gap-2 text-sky-300 text-xs font-bold uppercase tracking-wide">
             <MapPin className="w-4 h-4" />
-            Big Explorer
-          </div>
+            Trail Log`n          </div>
           <h1 className="text-2xl font-bold text-white tracking-tight">Adult explorers only</h1>
           <p className="text-sm text-slate-200 leading-relaxed">
             Trail Log uses optional device location and photos to record rides and road trips.
@@ -101,7 +100,7 @@ export default function AdultExplorerPanel({
           <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4 leading-relaxed">
             <li>GPS and photos stay on this device unless you choose to share elsewhere</li>
             <li>Little Explorer (separate tab) has no GPS or photo capture</li>
-            <li>Do not create child profiles in Big Explorer</li>
+            <li>Do not create child profiles in Trail Log</li>
           </ul>
           <button
             type="button"
@@ -199,7 +198,7 @@ export default function AdultExplorerPanel({
             </li>
           </ol>
           <p className="text-xs text-slate-400 pt-2">
-            Kids play in Little Explorer without GPS or photo logging. Keep Big Explorer for adult
+            Kids play in Little Explorer without GPS or photo logging. Keep Trail Log for adult
             accounts.
           </p>
         </div>

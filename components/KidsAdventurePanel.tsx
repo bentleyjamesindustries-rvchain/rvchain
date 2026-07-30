@@ -108,10 +108,9 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
             </li>
           </ul>
           <div className="rounded-2xl border border-sky-800/40 bg-sky-950/30 p-4 text-xs text-sky-100/90 leading-relaxed">
-            <p className="font-semibold text-sky-200 mb-1">Want geo-catch & stickers?</p>
+            <p className="font-semibold text-sky-200 mb-1">Grown-ups nearby\?</p>
             <p>
-              Grown-ups use the <strong>Big Explorer</strong> tab (18+) for location and photo
-              logging. Keep kids in Little Explorer.
+              Grown-ups use the <strong>Trail Log</strong> tab (18+) to log rides and road trips. Keep kids in Little Explorer.
             </p>
           </div>
         </div>
@@ -133,7 +132,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
         <Shield className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
         <p>
           <strong className="text-sky-200">Privacy:</strong> no location, no camera saves, no child
-          accounts here. Adults geo-catch in <strong>Big Explorer</strong>.
+          accounts here. Adults log rides in <strong>Trail Log</strong>.
         </p>
       </div>
 
