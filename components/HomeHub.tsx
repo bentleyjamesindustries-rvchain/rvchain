@@ -149,7 +149,7 @@ export default function HomeHub({
           className="text-left rounded-2xl border border-sky-800/40 bg-sky-950/30 hover:border-sky-600/50 p-4 transition"
         >
           <Leaf className="w-5 h-5 text-sky-300 mb-2" />
-          <div className="text-sm font-bold text-white">Big Explorer</div>
+          <div className="text-sm font-bold text-white">Trail Log</div>
           <p className="text-[11px] text-slate-300 mt-0.5">Trail log</p>
         </button>
         <button

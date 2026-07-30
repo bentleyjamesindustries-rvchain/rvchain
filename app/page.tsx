@@ -76,7 +76,7 @@ const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'ai', label: 'Trailhead AI', icon: Bot },
   { id: 'marketplace', label: 'Market', icon: Caravan },
   { id: 'kids', label: 'Little Explorer', icon: Sparkles },
-  { id: 'field', label: 'Big Explorer', icon: Leaf },
+  { id: 'field', label: 'Trail Log', icon: Leaf },
   { id: 'community', label: 'Forum', icon: MessagesSquare },
   { id: 'trips', label: 'Trips', icon: Calendar },
   { id: 'rewards', label: 'Crew', icon: Gift },
