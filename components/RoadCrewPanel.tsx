@@ -139,7 +139,7 @@ export default function RoadCrewPanel({
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-12">
         <div className="max-w-md mx-auto text-center space-y-5 p-8 rounded-3xl border border-amber-800/50 bg-amber-950/20">
           <Lock className="w-10 h-10 text-amber-400 mx-auto" />
-          <h2 className="text-xl font-semibold">Road Crew is for members</h2>
+          <h2 className="text-xl font-semibold">{t('crew.membersOnly')}</h2>
           <p className="text-sm text-slate-400">
             Upgrade to Weekender or higher to earn trail points for living on rvchain.
           </p>
