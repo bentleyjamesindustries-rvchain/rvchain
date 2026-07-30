@@ -97,7 +97,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
     if (!text && !imageDataUrl) return;
 
     if (!aiPro && !canSendFreeMessage(user?.id)) {
-      toast.error(`Free daily limit reached (${FREE_AI_MESSAGES_PER_DAY}). AI Pro unlocks unlimited — ask admin@rv-chain.com`);
+      toast.error(`Free daily limit reached (${FREE_AI_MESSAGES_PER_DAY}). AI Pro unlocks unlimited - ask admin@rv-chain.com`);
       return;
     }
 
