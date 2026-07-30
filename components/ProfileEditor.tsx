@@ -333,11 +333,11 @@ export default function ProfileEditor({
         <div>
           <div className="text-sm font-medium mb-1">Trail Badge showcase</div>
           <p className="text-xs text-slate-400 mb-3">
-            50 camping collector badges from Explorer packs · plants from scavenger hunts.
+            Trail badges from Trail Log rides and Little Explorer packs.
           </p>
           {trailBadges.length === 0 && trailCards.length === 0 ? (
             <p className="text-xs text-slate-500 py-2 border border-dashed border-slate-700 rounded-xl px-3">
-              No badges yet — open Big Explorer, find a plant, then open a free pack.
+              No badges yet — log a ride in Trail Log (18+) to earn trail badges, or play Little Explorer games.
             </p>
           ) : (
             <div className="grid grid-cols-3 gap-2">

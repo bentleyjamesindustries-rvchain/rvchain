@@ -42,7 +42,7 @@ interface AdultExplorerPanelProps {
 }
 
 /**
- * Big Explorer — Trail Log for adult recreational vehicle adventures.
+ * Trail Log for adult recreational vehicle adventures.
  * Not for under-13 collection of location/photos.
  */
 export default function AdultExplorerPanel({
@@ -492,7 +492,7 @@ export default function AdultExplorerPanel({
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
       <div className="rounded-3xl border border-sky-700/40 bg-gradient-to-br from-sky-950/60 via-slate-900 to-violet-950/40 p-6 sm:p-8">
         <div className="text-sky-400 text-xs font-bold uppercase tracking-wide mb-1">
-          Big Explorer · Trail Log
+          Trail Log
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
           {name !== 'Explorer' ? `${name}'s trail log` : 'Trail log'}
