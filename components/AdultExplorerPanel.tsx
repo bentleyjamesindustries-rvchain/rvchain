@@ -60,6 +60,18 @@ export default function AdultExplorerPanel({
   void tick;
 
   const name = displayHandle?.trim() || 'Explorer';
+  const vehicleLabelI18n = (id: string) => {
+    const map: Record<string, string> = {
+      camper: t('trailLog.vCamper'),
+      'offroad-truck': t('trailLog.vTruck'),
+      atv: t('trailLog.vAtv'),
+      'dirt-bike': t('trailLog.vDirt'),
+      snowmobile: t('trailLog.vSnow'),
+      other: t('trailLog.vOther'),
+    };
+    return map[id] || id;
+  };
+
   const stats = trailLogStats(userId);
   const sessions = listTrailSessions(userId);
 
@@ -119,7 +131,7 @@ export default function AdultExplorerPanel({
       const fix = await getCurrentPositionOnce();
       setLat(fix.lat);
       setLng(fix.lng);
-      toast.success('Location pinned for this log');
+      toast.success(t('trailLog.locPinned'));
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not get location');
     } finally {
@@ -134,7 +146,7 @@ export default function AdultExplorerPanel({
       const dataUrl = await compressImageFile(file, 1200, 0.8, 600_000);
       setPhoto(dataUrl);
     } catch {
-      toast.error('Could not process photo');
+      toast.error(t('trailLog.photoFail'));
     }
   };
 
@@ -164,7 +176,7 @@ export default function AdultExplorerPanel({
       refresh();
       setView('hub');
     } catch {
-      toast.error('Could not save log');
+      toast.error(t('trailLog.saveFail'));
     } finally {
       setSaving(false);
     }
@@ -174,32 +186,17 @@ export default function AdultExplorerPanel({
     return (
       <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
         <button type="button" onClick={() => setView('hub')} className="text-sm text-slate-300 hover:text-white min-h-[44px]">
-          ← Back
+          {t('common.back')}
         </button>
         <div className="rounded-3xl border border-slate-600 bg-slate-900/90 p-6 space-y-3 text-sm text-slate-100">
-          <h2 className="text-xl font-bold text-white">How Trail Log works</h2>
+          <h2 className="text-xl font-bold text-white">{t('trailLog.howtoTitle')}</h2>
           <ol className="list-decimal pl-5 space-y-2 leading-relaxed">
-            <li>
-              <strong className="text-white">Log a ride</strong> — pick camper, off-road truck, ATV,
-              dirt bike, or snowmobile.
-            </li>
-            <li>
-              <strong className="text-white">Optional GPS</strong> — pins location and stamps your
-              state passport.
-            </li>
-            <li>
-              <strong className="text-white">Optional photo</strong> — trail, mud, snow, or rig shot
-              for your private history.
-            </li>
-            <li>
-              <strong className="text-white">Earn badges</strong> and open Trailhead AI for pre-ride
-              checklists or Market for gear.
-            </li>
+            <li>{t('trailLog.howto1')}</li>
+            <li>{t('trailLog.howto2')}</li>
+            <li>{t('trailLog.howto3')}</li>
+            <li>{t('trailLog.howto4')}</li>
           </ol>
-          <p className="text-xs text-slate-400 pt-2">
-            Kids play in Little Explorer without GPS or photo logging. Keep Trail Log for adult
-            accounts.
-          </p>
+          <p className="text-xs text-slate-400 pt-2">{t('trailLog.howtoNote')}</p>
         </div>
       </div>
     );
@@ -215,22 +212,22 @@ export default function AdultExplorerPanel({
           onClick={() => setView('hub')}
           className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-white min-h-[44px]"
         >
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('common.back')}
         </button>
         <div className="rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950/50 via-slate-900 to-sky-950/40 p-5 sm:p-7">
-          <h2 className="text-xl sm:text-2xl font-bold text-white">Road &amp; trail passport</h2>
+          <h2 className="text-xl sm:text-2xl font-bold text-white">{t('trailLog.passportTitle')}</h2>
           <p className="text-sm text-slate-200 mt-1">
-            Stamp states when you log a ride with GPS. Fill the map as you travel.
+            {t('trailLog.passportSub')}
           </p>
           <div className="mt-3 flex flex-wrap gap-2 text-xs font-semibold">
             <span className="px-2.5 py-1 rounded-full bg-amber-500/20 border border-amber-600/40 text-amber-100">
-              {summary.stamped} / {summary.total} states
+              {t('trailLog.statesCount', { n: summary.stamped, total: summary.total })}
             </span>
             <span className="px-2.5 py-1 rounded-full bg-sky-500/15 border border-sky-600/40 text-sky-100">
-              {summary.withGps} GPS logs
+              {t('trailLog.gpsLogs', { n: summary.withGps })}
             </span>
             <span className="px-2.5 py-1 rounded-full bg-emerald-500/15 border border-emerald-600/40 text-emerald-100">
-              {summary.pct}% complete
+              {t('trailLog.pctComplete', { n: summary.pct })}
             </span>
           </div>
           <div className="mt-3 h-2.5 rounded-full bg-slate-950 overflow-hidden border border-slate-800 max-w-md">
@@ -248,7 +245,7 @@ export default function AdultExplorerPanel({
               }}
               className="mt-4 min-h-[44px] px-5 rounded-2xl bg-sky-600 hover:bg-sky-500 text-white text-sm font-bold"
             >
-              Log a ride with GPS →
+              {t('trailLog.logWithGps')}
             </button>
           )}
         </div>
@@ -285,9 +282,9 @@ export default function AdultExplorerPanel({
           onClick={() => setView('hub')}
           className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-white min-h-[44px]"
         >
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('common.back')}
         </button>
-        <h2 className="text-xl font-bold text-white">Trail badges</h2>
+        <h2 className="text-xl font-bold text-white">{t('trailLog.badgesTitle')}</h2>
         <p className="text-sm text-slate-300">
           {earned.size} / {TRAIL_LOG_BADGES.length} unlocked
         </p>
@@ -327,11 +324,11 @@ export default function AdultExplorerPanel({
           onClick={() => setView('hub')}
           className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-white min-h-[44px]"
         >
-          <ChevronLeft className="w-4 h-4" /> Back
+          <ChevronLeft className="w-4 h-4" /> {t('common.back')}
         </button>
-        <h2 className="text-xl font-bold text-white">Ride history</h2>
+        <h2 className="text-xl font-bold text-white">{t('trailLog.historyTitle')}</h2>
         {sessions.length === 0 ? (
-          <p className="text-sm text-slate-400">No logs yet. Start your first ride log.</p>
+          <p className="text-sm text-slate-400">{t('trailLog.historyEmpty')}</p>
         ) : (
           <div className="space-y-3">
             {sessions.map((s: TrailSession) => (
@@ -385,15 +382,15 @@ export default function AdultExplorerPanel({
           }}
           className="inline-flex items-center gap-1 text-sm text-slate-300 hover:text-white min-h-[44px]"
         >
-          <ChevronLeft className="w-4 h-4" /> Cancel
+          <ChevronLeft className="w-4 h-4" /> {t('common.cancel')}
         </button>
 
         <div className="rounded-3xl border border-sky-700/40 bg-slate-900 p-5 space-y-4">
           <h2 className="text-xl font-bold text-white">
-            {view === 'active' ? 'Active log' : 'Log a ride'}
+            {view === 'active' ? t('trailLog.activeLog') : t('trailLog.logRide')}
           </h2>
           <p className="text-sm text-slate-300">
-            Pick your recreational vehicle. GPS and photo are optional.
+            {t('trailLog.pickVehicle')}
           </p>
 
           <div className="grid grid-cols-2 gap-2">
@@ -410,7 +407,7 @@ export default function AdultExplorerPanel({
                 }`}
               >
                 <span className="mr-1.5">{v.emoji}</span>
-                {v.label}
+                {vehicleLabelI18n(v.id)}
               </button>
             ))}
           </div>
@@ -421,14 +418,14 @@ export default function AdultExplorerPanel({
               onClick={startLog}
               className="w-full min-h-[48px] rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold flex items-center justify-center gap-2"
             >
-              <Play className="w-4 h-4" /> Start log
+              <Play className="w-4 h-4" /> {t('trailLog.startLog')}
             </button>
           )}
 
           {view === 'active' && (
             <>
               <p className="text-xs text-emerald-300 font-semibold">
-                Started {startedAt ? new Date(startedAt).toLocaleTimeString() : '—'}
+                {t('trailLog.started', { time: startedAt ? new Date(startedAt).toLocaleTimeString() : '—' })}
               </p>
 
               <div className="flex flex-wrap gap-2">
@@ -439,11 +436,11 @@ export default function AdultExplorerPanel({
                   className="min-h-[44px] px-4 rounded-xl border border-slate-600 text-sm font-semibold text-slate-100 hover:border-sky-500 flex items-center gap-2"
                 >
                   <Navigation className="w-4 h-4" />
-                  {gpsBusy ? 'Getting GPS…' : lat != null ? 'GPS pinned' : 'Pin GPS'}
+                  {gpsBusy ? t('trailLog.gettingGps') : lat != null ? t('trailLog.gpsPinned') : t('trailLog.pinGps')}
                 </button>
                 <label className="min-h-[44px] px-4 rounded-xl border border-slate-600 text-sm font-semibold text-slate-100 hover:border-sky-500 flex items-center gap-2 cursor-pointer">
                   <Camera className="w-4 h-4" />
-                  {photo ? 'Photo added' : 'Add photo'}
+                  {photo ? t('trailLog.photoAdded') : t('trailLog.addPhoto')}
                   <input
                     type="file"
                     accept="image/*"
@@ -466,7 +463,7 @@ export default function AdultExplorerPanel({
                 value={note}
                 onChange={(e) => setNote(e.target.value)}
                 rows={3}
-                placeholder="Optional note — muddy trail, first snow, long tow day…"
+                placeholder={t('trailLog.notePh')}
                 className="w-full bg-slate-950 border border-slate-600 rounded-xl px-3 py-2 text-sm text-white placeholder:text-slate-500 outline-none focus:border-sky-500"
               />
 
@@ -477,7 +474,7 @@ export default function AdultExplorerPanel({
                 className="w-full min-h-[48px] rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold flex items-center justify-center gap-2 disabled:opacity-50"
               >
                 <Square className="w-4 h-4" />
-                {saving ? 'Saving…' : 'End & save log'}
+                {saving ? t('trailLog.saving') : t('trailLog.endSave')}
               </button>
             </>
           )}
@@ -500,9 +497,13 @@ export default function AdultExplorerPanel({
           {t('trailLog.subtitle')}
         </p>
         <p className="mt-3 text-sm font-semibold text-sky-100">
-          {stats.sessions} session{stats.sessions === 1 ? '' : 's'} · {stats.states} states ·{' '}
-          {stats.badges}/{stats.badgeTotal} badges · {stats.vehiclesUsed} vehicle type
-          {stats.vehiclesUsed === 1 ? '' : 's'}
+          {t('trailLog.statsLine', {
+            sessions: stats.sessions,
+            states: stats.states,
+            badges: stats.badges,
+            badgeTotal: stats.badgeTotal,
+            vehicles: stats.vehiclesUsed,
+          })}
         </p>
       </div>
 
@@ -514,7 +515,7 @@ export default function AdultExplorerPanel({
         }}
         className="w-full min-h-[52px] rounded-3xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-base flex items-center justify-center gap-2"
       >
-        <Play className="w-5 h-5" /> Log a ride
+        <Play className="w-5 h-5" /> {t('trailLog.logRide')}
       </button>
 
       <div className="grid sm:grid-cols-3 gap-3">
@@ -524,8 +525,8 @@ export default function AdultExplorerPanel({
           className="text-left rounded-3xl border border-amber-700/40 bg-amber-950/30 hover:border-amber-500/50 p-5 transition"
         >
           <MapPin className="w-8 h-8 text-amber-300 mb-3" />
-          <div className="text-lg font-bold text-white">Passport</div>
-          <p className="text-sm text-slate-300 mt-1">Stamp states with GPS logs</p>
+          <div className="text-lg font-bold text-white">{t('trailLog.passport')}</div>
+          <p className="text-sm text-slate-300 mt-1">{t('trailLog.passportDesc')}</p>
         </button>
         <button
           type="button"
@@ -533,9 +534,9 @@ export default function AdultExplorerPanel({
           className="text-left rounded-3xl border border-violet-700/40 bg-violet-950/30 hover:border-violet-500/50 p-5 transition"
         >
           <Trophy className="w-8 h-8 text-violet-300 mb-3" />
-          <div className="text-lg font-bold text-white">Badges</div>
+          <div className="text-lg font-bold text-white">{t('trailLog.badges')}</div>
           <p className="text-sm text-slate-300 mt-1">
-            {stats.badges}/{stats.badgeTotal} trail badges
+            {t('trailLog.badgesCount', { n: stats.badges, total: stats.badgeTotal })}
           </p>
         </button>
         <button
@@ -544,8 +545,8 @@ export default function AdultExplorerPanel({
           className="text-left rounded-3xl border border-emerald-700/40 bg-emerald-950/30 hover:border-emerald-500/50 p-5 transition"
         >
           <Sparkles className="w-8 h-8 text-emerald-300 mb-3" />
-          <div className="text-lg font-bold text-white">History</div>
-          <p className="text-sm text-slate-300 mt-1">Past rides &amp; notes</p>
+          <div className="text-lg font-bold text-white">{t('trailLog.history')}</div>
+          <p className="text-sm text-slate-300 mt-1">{t('trailLog.historyDesc')}</p>
         </button>
       </div>
 
@@ -557,8 +558,8 @@ export default function AdultExplorerPanel({
         >
           <Bot className="w-5 h-5 text-violet-300 shrink-0" />
           <div>
-            <div className="text-sm font-bold text-white">Pre-ride with Trailhead AI</div>
-            <div className="text-xs text-slate-400">Checklists &amp; trip plans</div>
+            <div className="text-sm font-bold text-white">{t('trailLog.preRideAi')}</div>
+            <div className="text-xs text-slate-400">{t('trailLog.preRideAiDesc')}</div>
           </div>
         </button>
         <button
@@ -568,8 +569,8 @@ export default function AdultExplorerPanel({
         >
           <Caravan className="w-5 h-5 text-amber-300 shrink-0" />
           <div>
-            <div className="text-sm font-bold text-white">Need gear?</div>
-            <div className="text-xs text-slate-400">Browse Market parts &amp; gear</div>
+            <div className="text-sm font-bold text-white">{t('trailLog.needGear')}</div>
+            <div className="text-xs text-slate-400">{t('trailLog.needGearDesc')}</div>
           </div>
         </button>
       </div>
@@ -580,7 +581,7 @@ export default function AdultExplorerPanel({
         className="w-full text-left rounded-2xl border border-slate-700 bg-slate-900/40 px-4 py-3 flex items-center gap-3 text-sm text-slate-300 hover:text-white"
       >
         <BookOpen className="w-4 h-4 shrink-0" />
-        How it works &amp; privacy
+        {t('trailLog.howWorks')}
       </button>
     </div>
   );

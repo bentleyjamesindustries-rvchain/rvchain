@@ -85,34 +85,31 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
           onClick={() => setView('hub')}
           className="text-sm text-slate-400 hover:text-white"
         >
-          ← Back
+          {t('common.back')}
         </button>
         <div className="rounded-3xl border border-slate-700 bg-slate-900/80 p-6 space-y-4">
-          <h2 className="text-xl font-bold text-white">Little Explorer — privacy first</h2>
+          <h2 className="text-xl font-bold text-white">{t('kids.privacyTitle')}</h2>
           <ul className="list-disc pl-5 space-y-2 text-sm text-slate-300 leading-relaxed">
             <li>
-              <strong className="text-white">No GPS</strong> — we never request location here.
+{t('kids.noGps')}
             </li>
             <li>
-              <strong className="text-white">No camera logging</strong> — no field photos are saved.
+{t('kids.noCamera')}
             </li>
             <li>
-              <strong className="text-white">No accounts</strong> — play without signing in as a
-              child.
+{t('kids.noAccounts')}
             </li>
             <li>
-              <strong className="text-white">Field guide</strong> — learn plant facts with a grown-up
-              outdoors (look only).
+{t('kids.guideLi')}
             </li>
             <li>
-              <strong className="text-white">Games</strong> — fun trail mini-games. Optional high
-              scores use an anonymous device key, not a child profile.
+{t('kids.gamesLi')}
             </li>
           </ul>
           <div className="rounded-2xl border border-sky-800/40 bg-sky-950/30 p-4 text-xs text-sky-100/90 leading-relaxed">
-            <p className="font-semibold text-sky-200 mb-1">Grown-ups nearby\?</p>
+            <p className="font-semibold text-sky-200 mb-1">{t('kids.grownupsTitle')}</p>
             <p>
-              Grown-ups use the <strong>Trail Log</strong> tab (18+) to log rides and road trips. Keep kids in Little Explorer.
+{t('kids.grownupsBody')}
             </p>
           </div>
         </div>
@@ -131,10 +128,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
 
       <div className="flex items-start gap-2 rounded-2xl border border-sky-800/40 bg-sky-950/25 px-4 py-3 text-xs sm:text-sm text-sky-100/90">
         <Shield className="w-4 h-4 text-sky-400 shrink-0 mt-0.5" />
-        <p>
-          <strong className="text-sky-200">Privacy:</strong> no location, no camera saves, no child
-          accounts here. Adults log rides in <strong>Trail Log</strong>.
-        </p>
+        <p>{t('kids.privacyBanner')}</p>
       </div>
 
       <div className="grid sm:grid-cols-2 gap-3">
@@ -144,8 +138,8 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
           className="text-left rounded-3xl border border-emerald-700/40 bg-emerald-950/40 hover:border-emerald-500/50 p-5 sm:p-6 transition"
         >
           <Leaf className="w-8 h-8 text-emerald-400 mb-3" />
-          <div className="text-lg font-bold text-white">Field guide</div>
-          <p className="text-sm text-slate-400 mt-1">Learn plants — look only, nothing is saved</p>
+          <div className="text-lg font-bold text-white">{t('kids.fieldGuide')}</div>
+          <p className="text-sm text-slate-400 mt-1">{t('kids.fieldGuideDesc')}</p>
         </button>
 
         <button
@@ -154,8 +148,8 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
           className="text-left rounded-3xl border border-sky-700/40 bg-sky-950/40 hover:border-sky-500/50 p-5 sm:p-6 transition"
         >
           <Gamepad2 className="w-8 h-8 text-sky-300 mb-3" />
-          <div className="text-lg font-bold text-white">Games</div>
-          <p className="text-sm text-slate-400 mt-1">Trail Run, Tree Climb, Marshmallow Catch</p>
+          <div className="text-lg font-bold text-white">{t('kids.games')}</div>
+          <p className="text-sm text-slate-400 mt-1">{t('kids.gamesDesc')}</p>
         </button>
       </div>
 
@@ -165,7 +159,7 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
         className="w-full text-left rounded-2xl border border-slate-800 bg-slate-900/40 px-4 py-3 flex items-center gap-3 text-sm text-slate-400 hover:text-slate-200 hover:border-slate-600 transition"
       >
         <BookOpen className="w-4 h-4 shrink-0" />
-        How Little Explorer works & privacy
+        {t('kids.howPrivacy')}
       </button>
     </div>
   );

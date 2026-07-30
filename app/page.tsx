@@ -354,7 +354,7 @@ export default function RVChainApp() {
               </div>
               <div className="min-w-0">
                 <div className="rv-logo-text font-semibold text-xl sm:text-3xl tracking-tighter text-white truncate">rvchain</div>
-                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">FAMILY ROAD LIFE</div>
+                <div className="rv-logo-tagline text-[10px] text-green-300 -mt-0.5 font-medium tracking-[1.5px]">{t('chrome.familyRoadLife')}</div>
               </div>
             </div>
 
@@ -367,12 +367,12 @@ export default function RVChainApp() {
               >
                 <Gift className="w-3.5 h-3.5 shrink-0" />
                 <span className="font-semibold text-amber-100">{rewardPoints.toLocaleString()}</span>
-                <span className="text-amber-300/80 text-[10px] sm:text-xs hidden min-[380px]:inline">crew</span>
+                <span className="text-amber-300/80 text-[10px] sm:text-xs hidden min-[380px]:inline">{t('chrome.crewPts')}</span>
               </button>
 
               <div className="hidden lg:flex items-center gap-x-2 text-sm bg-white/10 backdrop-blur px-3 py-1.5 rounded-2xl text-green-100">
                 <div className="w-2 h-2 bg-emerald-400 rounded-full animate-pulse" />
-                <span><span className="font-semibold text-white">{connectedRVers}</span> RVers connected</span>
+                <span>{t('chrome.rversConnected', { n: connectedRVers })}</span>
               </div>
 
               {explorerSession ? (
@@ -391,11 +391,11 @@ export default function RVChainApp() {
                     onClick={() => {
                       clearExplorerSession();
                       setExplorerSession(null);
-                      toast.success('Explorer signed out');
+                      toast.success(t('chrome.explorerSignedOut'));
                     }}
                     className="text-[10px] sm:text-xs px-2 py-1 hover:bg-white/10 rounded text-slate-300"
                   >
-                    Exit
+                    {t('common.exit')}
                   </button>
                 </div>
               ) : user ? (

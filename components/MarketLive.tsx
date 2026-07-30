@@ -175,12 +175,12 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
 
   const publish = async () => {
     if (!user) return onRequestSignIn();
-    if (!form.title.trim()) return toast.error('Title required');
+    if (!form.title.trim()) return toast.error(t('market.titleRequired'));
     const price = Number(form.price);
-    if (!Number.isFinite(price) || price < 0) return toast.error('Valid price required');
-    if (!form.city.trim() || !form.state.trim()) return toast.error('City and state required');
+    if (!Number.isFinite(price) || price < 0) return toast.error(t('market.priceRequired'));
+    if (!form.city.trim() || !form.state.trim()) return toast.error(t('market.cityStateRequired'));
     if (!form.contact_email.trim() && !form.contact_phone.trim()) {
-      return toast.error('Add an email or phone so buyers can contact you');
+      return toast.error(t('market.contactRequired'));
     }
 
     setSubmitting(true);
@@ -218,7 +218,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
           featured: form.featured,
         });
         if (error) throw new Error(error);
-        toast.success('Listing updated');
+        toast.success(t('market.listingUpdated'));
       } else {
         const { error } = await createListing(user.id, {
           kind: form.kind,
@@ -235,7 +235,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
           featured: form.featured,
         });
         if (error) throw new Error(error);
-        toast.success('Listing published');
+        toast.success(t('market.listingPublished'));
       }
       resetForm();
       setView('mine');
@@ -249,11 +249,11 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
 
   const removeMine = async (id: string) => {
     if (!user) return;
-    if (!confirm('Remove this listing?')) return;
+    if (!confirm(t('market.removeConfirm'))) return;
     const { error } = await softDeleteListing(user.id, id);
     if (error) toast.error(error);
     else {
-      toast.success('Listing removed');
+      toast.success(t('market.listingRemoved'));
       await refresh();
     }
   };
@@ -298,7 +298,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
         {user && (
           <p className="text-xs text-slate-500 mt-3">
             {sellerPro
-              ? 'Seller Pro'
+              ? t('market.sellerPro')
               : t('market.freeLimit', {
                   used: activeCount,
                   limit: FREE_ACTIVE_LISTING_LIMIT,
@@ -435,7 +435,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
                         }}
                         className="flex-1 h-10 rounded-xl bg-emerald-700 hover:bg-emerald-600 text-sm font-semibold"
                       >
-                        View
+                        {t('market.view')}
                       </button>
                       {isAdmin && (
                         <button
@@ -461,13 +461,13 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
           <MarketplaceDisclosure />
           {!user ? (
             <button type="button" onClick={onRequestSignIn} className="text-sky-400 font-semibold text-sm">
-              Sign in to list →
+              {t('market.signInToList')}
             </button>
           ) : (
             <div className="bg-slate-900 border border-slate-700 rounded-3xl p-5 space-y-3">
               <div className="text-sm font-semibold flex items-center gap-2">
                 <ShieldCheck className="w-4 h-4 text-amber-400" />
-                {editingId ? 'Edit listing' : 'New listing'}
+                {editingId ? t('market.editListing') : t('market.newListing')}
               </div>
               <div className="flex gap-2">
                 {(['gear', 'parts'] as const).map((k) => (
@@ -483,20 +483,20 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
                         : 'border-slate-700 text-slate-300'
                     }`}
                   >
-                    {k === 'gear' ? 'Camping gear' : 'Parts'}
+                    {k === 'gear' ? t('market.campingGear') : t('market.parts')}
                   </button>
                 ))}
               </div>
               <input
                 className="w-full bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                placeholder="Title"
+                placeholder={t('market.titleField')}
                 value={form.title}
                 onChange={(e) => setForm((f) => ({ ...f, title: e.target.value }))}
               />
               <textarea
                 className="w-full bg-slate-950 border border-slate-700 px-3 py-2 rounded-xl text-sm"
                 rows={4}
-                placeholder="Description — condition notes, what’s included…"
+                placeholder={t('market.descPh')}
                 value={form.description}
                 onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
               />
@@ -504,7 +504,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
                 <input
                   type="number"
                   className="bg-slate-950 border border-slate-700 h-11 px-3 rounded-xl text-sm"
-                  placeholder="Price $"
+                  placeholder={t('market.pricePh')}
                   value={form.price}
                   onChange={(e) => setForm((f) => ({ ...f, price: e.target.value }))}
                 />
@@ -515,13 +515,19 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
                     setForm((f) => ({ ...f, condition: e.target.value as MarketCondition }))
                   }
                 >
-                  {(Object.entries(CONDITION_LABELS) as [MarketCondition, string][]).map(
-                    ([k, v]) => (
+                  {(
+                    [
+                      ['new', 'market.condNew'],
+                      ['like-new', 'market.condLikeNew'],
+                      ['good', 'market.condGood'],
+                      ['fair', 'market.condFair'],
+                      ['for-parts', 'market.condParts'],
+                    ] as const
+                  ).map(([k, key]) => (
                       <option key={k} value={k}>
-                        {v}
+                        {t(key)}
                       </option>
-                    )
-                  )}
+                    ))}
                 </select>
               </div>
               <div className="grid grid-cols-2 gap-2">
@@ -735,7 +741,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
                   }}
                   className="w-full h-12 rounded-2xl bg-emerald-700 hover:bg-emerald-600 font-semibold text-sm flex items-center justify-center gap-2"
                 >
-                  <MessageCircle className="w-4 h-4" /> Contact seller
+                  <MessageCircle className="w-4 h-4" /> {t('market.contactSeller')}
                 </button>
               ) : (
                 <div className="rounded-2xl border border-emerald-800/50 bg-emerald-950/30 p-4 space-y-2 text-sm">

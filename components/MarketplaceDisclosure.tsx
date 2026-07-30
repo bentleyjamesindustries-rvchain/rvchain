@@ -1,9 +1,19 @@
 'use client';
 
 import { Info } from 'lucide-react';
-import { MARKETPLACE_DISCLOSURE } from '@/lib/marketplaceDisclosure';
+import { useI18n } from '@/lib/i18n/context';
 
 export default function MarketplaceDisclosure({ compact }: { compact?: boolean }) {
+  const { t } = useI18n();
+  const bullets = [
+    t('market.discB1'),
+    t('market.discB2'),
+    t('market.discB3'),
+    t('market.discB4'),
+    t('market.discB5'),
+    t('market.discB6'),
+    t('market.discB7'),
+  ];
   return (
     <section
       className={`bg-slate-900/80 border border-slate-700/80 rounded-3xl ${compact ? 'p-4' : 'p-5 sm:p-6'}`}
@@ -15,18 +25,18 @@ export default function MarketplaceDisclosure({ compact }: { compact?: boolean }
         </div>
         <div className="min-w-0 flex-1">
           <h3 id="marketplace-disclosure-title" className="font-semibold text-slate-200 text-sm">
-            {MARKETPLACE_DISCLOSURE.title}
+            {t('market.discTitle')}
           </h3>
-          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{MARKETPLACE_DISCLOSURE.summary}</p>
+          <p className="text-xs text-slate-400 mt-1.5 leading-relaxed">{t('market.discSummary')}</p>
           {!compact && (
             <ul className="mt-2 space-y-1.5 text-[11px] sm:text-xs text-slate-500 leading-relaxed list-disc pl-4">
-              {MARKETPLACE_DISCLOSURE.bullets.map((item) => (
+              {bullets.map((item) => (
                 <li key={item}>{item}</li>
               ))}
             </ul>
           )}
           <p className="text-[10px] text-slate-600 mt-3 border-t border-slate-800 pt-2">
-            {MARKETPLACE_DISCLOSURE.footer}
+            {t('market.discFooter')}
           </p>
         </div>
       </div>
