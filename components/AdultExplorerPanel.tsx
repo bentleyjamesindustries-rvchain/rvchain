@@ -92,25 +92,21 @@ export default function AdultExplorerPanel({
         <div className="rounded-3xl border border-sky-700/40 bg-gradient-to-br from-sky-950/50 via-slate-900 to-slate-950 p-6 space-y-4">
           <div className="inline-flex items-center gap-2 text-sky-300 text-xs font-bold uppercase tracking-wide">
             <MapPin className="w-4 h-4" />
-            Trail Log
+            {t('trailLog.title')}
           </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Adult explorers only</h1>
-          <p className="text-sm text-slate-200 leading-relaxed">
-            Trail Log uses optional device location and photos to record rides and road trips.
-            For adults (18+) or teens on their own account — not for collecting children&apos;s
-            personal information.
-          </p>
+          <h1 className="text-2xl font-bold text-white tracking-tight">{t('trailLog.ageGateTitle')}</h1>
+          <p className="text-sm text-slate-200 leading-relaxed">{t('trailLog.ageGateBody')}</p>
           <ul className="text-xs text-slate-300 space-y-1.5 list-disc pl-4 leading-relaxed">
-            <li>GPS and photos stay on this device unless you choose to share elsewhere</li>
-            <li>Little Explorer (separate tab) has no GPS or photo capture</li>
-            <li>Do not create child profiles in Trail Log</li>
+            <li>{t('trailLog.ageGateLi1')}</li>
+            <li>{t('trailLog.ageGateLi2')}</li>
+            <li>{t('trailLog.ageGateLi3')}</li>
           </ul>
           <button
             type="button"
             onClick={() => setAdultOk(true)}
             className="w-full min-h-[48px] rounded-2xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-sm"
           >
-            I am 18+ — continue to Trail Log
+            {t('trailLog.ageGateCta')}
           </button>
         </div>
       </div>

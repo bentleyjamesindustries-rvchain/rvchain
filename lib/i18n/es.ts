@@ -196,6 +196,13 @@ const es: Dictionary = {
     subtitle: 'Registra salidas y días de sendero con tus vehículos recreativos',
     newSession: 'Nueva sesión',
     empty: 'Aún no hay sesiones. Empieza una después de tu próxima salida.',
+    ageGateTitle: 'Solo exploradores adultos',
+    ageGateBody:
+      'Bitácora usa ubicación del dispositivo y fotos opcionales para registrar salidas y viajes. Para adultos (18+) o adolescentes en su propia cuenta — no para recopilar información personal de menores.',
+    ageGateLi1: 'El GPS y las fotos se quedan en este dispositivo a menos que decidas compartirlos en otro lugar',
+    ageGateLi2: 'Pequeño explorador (otra pestaña) no usa GPS ni captura de fotos',
+    ageGateLi3: 'No crees perfiles de niños en Bitácora',
+    ageGateCta: 'Tengo 18+ — continuar a Bitácora',
   },
   kids: {
     title: 'Pequeño explorador',

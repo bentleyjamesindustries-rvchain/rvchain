@@ -194,6 +194,13 @@ const en = {
     subtitle: 'Log rides and trail days for your recreational vehicles',
     newSession: 'New session',
     empty: 'No trail sessions yet. Start one after your next ride.',
+    ageGateTitle: 'Adult explorers only',
+    ageGateBody:
+      "Trail Log uses optional device location and photos to record rides and road trips. For adults (18+) or teens on their own account — not for collecting children's personal information.",
+    ageGateLi1: 'GPS and photos stay on this device unless you choose to share elsewhere',
+    ageGateLi2: 'Little Explorer (separate tab) has no GPS or photo capture',
+    ageGateLi3: 'Do not create child profiles in Trail Log',
+    ageGateCta: 'I am 18+ — continue to Trail Log',
   },
   kids: {
     title: 'Little Explorer',
