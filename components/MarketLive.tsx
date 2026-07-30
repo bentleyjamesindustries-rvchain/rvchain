@@ -272,9 +272,10 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
       <div className="rounded-3xl border border-amber-700/40 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 p-5 sm:p-7">
         <div className="text-amber-400 text-sm font-medium mb-1">rvchain Market</div>
         <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">Gear &amp; Parts</h2>
-        <p className="text-sm text-slate-400 mt-2 max-w-2xl">
-          Private-party listings for road families. List gear and parts, contact sellers directly —
-          no escrow, no vehicle sales, no campground directory.
+        <p className="text-sm text-slate-300 mt-2 max-w-2xl">
+          Private-party gear and parts for recreational vehicles — campers, overland, ATV, dirt bike,
+          snowmobile life. Contact sellers directly. No escrow. No whole-vehicle sales. No campground
+          directory.
         </p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button

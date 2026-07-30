@@ -8,8 +8,8 @@ export default function SiteFooter() {
           <div>
             <div className="font-semibold text-white text-lg tracking-tight">rvchain</div>
             <p className="text-slate-300 mt-2 text-sm leading-relaxed max-w-xs">
-              Private-party gear &amp; parts for family road life. Not a campground directory. Not a
-              vehicle dealer.
+              Trailhead AI + gear &amp; parts for recreational vehicles — road and trail. Not a
+              campground directory. Not a vehicle dealer.
             </p>
             <p className="mt-3 text-sm">
               <a

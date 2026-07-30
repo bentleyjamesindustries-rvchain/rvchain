@@ -14,6 +14,10 @@ export const GEAR_CATEGORIES: Record<string, string> = {
   comfort: 'Comfort & seating',
   outdoor: 'Outdoor & fire',
   safety: 'Safety',
+  powersports: 'Powersports (ATV / dirt / snow)',
+  overland: 'Overland & truck camp',
+  riding: 'Helmets, boots & riding gear',
+  recovery: 'Recovery & winch gear',
   other: 'Other gear',
 };
 
@@ -24,6 +28,10 @@ export const PARTS_CATEGORIES: Record<string, string> = {
   plumbing: 'Plumbing',
   covers: 'Covers & protection',
   hardware: 'Hardware',
+  drivetrain: 'Drivetrain & suspension',
+  snow: 'Snowmobile parts',
+  atv: 'ATV / UTV parts',
+  dirtbike: 'Dirt bike parts',
   other: 'Other parts',
 };
 
@@ -64,6 +72,8 @@ export interface MarketProfile {
   contact_email: string | null;
   contact_phone: string | null;
   seller_pro: boolean;
+  ai_pro?: boolean;
+  is_admin?: boolean;
   avatar_url?: string | null;
 }
 
@@ -200,6 +210,8 @@ export async function fetchMarketProfile(userId: string): Promise<MarketProfile 
     contact_email: data.contact_email,
     contact_phone: data.contact_phone,
     seller_pro: Boolean(data.seller_pro),
+    ai_pro: Boolean((data as { ai_pro?: boolean }).ai_pro),
+    is_admin: Boolean((data as { is_admin?: boolean }).is_admin),
     avatar_url: data.avatar_url,
   };
 }
@@ -338,6 +350,14 @@ export async function adminSetSellerPro(userId: string, sellerPro: boolean): Pro
   const { error } = await supabase
     .from('profiles')
     .update({ seller_pro: sellerPro, updated_at: new Date().toISOString() })
+    .eq('id', userId);
+  return error ? { error: error.message } : {};
+}
+
+export async function adminSetAiPro(userId: string, aiPro: boolean): Promise<{ error?: string }> {
+  const { error } = await supabase
+    .from('profiles')
+    .update({ ai_pro: aiPro, updated_at: new Date().toISOString() })
     .eq('id', userId);
   return error ? { error: error.message } : {};
 }

@@ -8,6 +8,7 @@ import {
   Gift,
   ArrowRight,
   MessagesSquare,
+  Bot,
 } from 'lucide-react';
 
 export type HomeDestination =
@@ -16,7 +17,8 @@ export type HomeDestination =
   | 'field'
   | 'kids'
   | 'rewards'
-  | 'community';
+  | 'community'
+  | 'ai';
 
 interface HomeHubProps {
   displayName?: string | null;
@@ -33,24 +35,24 @@ export default function HomeHub({
   plantCount = 0,
   rewardPoints = 0,
 }: HomeHubProps) {
-  const greet = displayName?.trim() || 'traveler';
+  const greet = displayName?.trim() || 'adventurer';
 
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-6">
-      <section className="relative overflow-hidden rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950 via-slate-900 to-emerald-950/50 p-6 sm:p-10">
+      <section className="relative overflow-hidden rounded-3xl border border-violet-600/40 bg-gradient-to-br from-violet-950 via-slate-900 to-amber-950/50 p-6 sm:p-10">
         <div className="absolute -right-8 -top-8 text-[140px] opacity-[0.07] pointer-events-none select-none">
-          ⛺
+          🏔
         </div>
         <div className="relative z-[1] max-w-xl">
-          <p className="text-amber-400/90 text-xs font-bold uppercase tracking-[0.2em] mb-2">
-            Family road life · Market first
+          <p className="text-violet-300 text-xs font-bold uppercase tracking-[0.2em] mb-2">
+            Recreational vehicles · Road + trail
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
             Welcome back, {greet}
           </h1>
-          <p className="mt-3 text-sm sm:text-base text-slate-300 leading-relaxed">
-            List used gear and parts. Buyers contact you directly — no escrow cut. Free accounts get
-            3 active listings; Seller Pro unlocks unlimited + featured.
+          <p className="mt-3 text-sm sm:text-base text-slate-100 leading-relaxed">
+            RV Chain is the co-pilot for recreational vehicle life — campers, overland trucks, ATVs,
+            dirt bikes, snowmobiles, and gear. Ask Trailhead AI, shop the Market, plan the next run.
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             {tripCount > 0 && (
@@ -67,62 +69,71 @@ export default function HomeHub({
               {rewardPoints.toLocaleString()} crew pts
             </span>
           </div>
+          <button
+            type="button"
+            onClick={() => onGo('ai')}
+            className="mt-5 h-12 px-6 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm inline-flex items-center gap-2"
+          >
+            <Bot className="w-5 h-5" />
+            Try Trailhead AI free
+            <ArrowRight className="w-4 h-4" />
+          </button>
         </div>
       </section>
 
       <section>
-        <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wide mb-3 px-1">
+        <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-3 px-1">
           What do you want to do?
         </h2>
         <div className="grid sm:grid-cols-3 gap-3">
           <button
             type="button"
+            onClick={() => onGo('ai')}
+            className="group text-left rounded-3xl border border-violet-600/50 bg-gradient-to-br from-violet-950/80 to-slate-900 p-5 sm:p-6 hover:border-violet-400/60 transition shadow-lg"
+          >
+            <Bot className="w-8 h-8 text-violet-300 mb-3 group-hover:scale-110 transition" />
+            <div className="text-lg font-bold text-white flex items-center gap-2">
+              Trailhead AI
+              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
+            </div>
+            <p className="text-sm text-slate-300 mt-1.5 leading-snug">
+              Parts ID, trip plans, pre-ride checklists, listing help
+            </p>
+          </button>
+
+          <button
+            type="button"
             onClick={() => onGo('marketplace')}
-            className="group text-left rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950/70 to-slate-900 p-5 sm:p-6 hover:border-amber-500/50 transition shadow-lg shadow-amber-950/20 sm:col-span-1"
+            className="group text-left rounded-3xl border border-amber-700/40 bg-gradient-to-br from-amber-950/70 to-slate-900 p-5 sm:p-6 hover:border-amber-500/50 transition shadow-lg"
           >
             <Caravan className="w-8 h-8 text-amber-300 mb-3 group-hover:scale-110 transition" />
             <div className="text-lg font-bold text-white flex items-center gap-2">
               Market
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
-            <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              Gear &amp; parts · list &amp; contact sellers · no escrow
+            <p className="text-sm text-slate-300 mt-1.5 leading-snug">
+              Gear &amp; parts for road + powersports · contact sellers
             </p>
           </button>
 
           <button
             type="button"
             onClick={() => onGo('trips')}
-            className="group text-left rounded-3xl border border-orange-700/40 bg-gradient-to-br from-orange-950/70 to-slate-900 p-5 sm:p-6 hover:border-orange-500/50 transition shadow-lg shadow-orange-950/20"
+            className="group text-left rounded-3xl border border-orange-700/40 bg-gradient-to-br from-orange-950/70 to-slate-900 p-5 sm:p-6 hover:border-orange-500/50 transition shadow-lg"
           >
             <Calendar className="w-8 h-8 text-orange-300 mb-3 group-hover:scale-110 transition" />
             <div className="text-lg font-bold text-white flex items-center gap-2">
               Plan a trip
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
-            <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              Dates, free-text stops, pack lists — Weekender+ (demo)
-            </p>
-          </button>
-
-          <button
-            type="button"
-            onClick={() => onGo('field')}
-            className="group text-left rounded-3xl border border-sky-700/40 bg-gradient-to-br from-sky-950/70 to-slate-900 p-5 sm:p-6 hover:border-sky-500/50 transition shadow-lg shadow-sky-950/20"
-          >
-            <Leaf className="w-8 h-8 text-sky-300 mb-3 group-hover:scale-110 transition" />
-            <div className="text-lg font-bold text-white flex items-center gap-2">
-              Big Explorer
-              <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
-            </div>
-            <p className="text-sm text-slate-400 mt-1.5 leading-snug">
-              Geo-catch plants · passport stamps · stickers
+            <p className="text-sm text-slate-300 mt-1.5 leading-snug">
+              Dates, free-text stops, pack lists
             </p>
           </button>
         </div>
       </section>
 
-      <section className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-3">
+      <section className="grid grid-cols-2 sm:grid-cols-4 gap-2 sm:gap-3">
         <button
           type="button"
           onClick={() => onGo('kids')}
@@ -130,31 +141,40 @@ export default function HomeHub({
         >
           <Sparkles className="w-5 h-5 text-emerald-300 mb-2" />
           <div className="text-sm font-bold text-white">Little Explorer</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Kids games · no tracking</p>
+          <p className="text-[11px] text-slate-300 mt-0.5">Kids games</p>
+        </button>
+        <button
+          type="button"
+          onClick={() => onGo('field')}
+          className="text-left rounded-2xl border border-sky-800/40 bg-sky-950/30 hover:border-sky-600/50 p-4 transition"
+        >
+          <Leaf className="w-5 h-5 text-sky-300 mb-2" />
+          <div className="text-sm font-bold text-white">Big Explorer</div>
+          <p className="text-[11px] text-slate-300 mt-0.5">Geo-catch</p>
         </button>
         <button
           type="button"
           onClick={() => onGo('community')}
-          className="text-left rounded-2xl border border-slate-700 bg-slate-900/50 hover:border-slate-500 p-4 transition"
+          className="text-left rounded-2xl border border-slate-600 bg-slate-900/50 hover:border-slate-400 p-4 transition"
         >
           <MessagesSquare className="w-5 h-5 text-sky-300 mb-2" />
           <div className="text-sm font-bold text-white">Forum</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Road talk · tips</p>
+          <p className="text-[11px] text-slate-300 mt-0.5">Road talk</p>
         </button>
         <button
           type="button"
           onClick={() => onGo('rewards')}
-          className="text-left rounded-2xl border border-amber-800/40 bg-amber-950/20 hover:border-amber-600/50 p-4 transition col-span-2 sm:col-span-1"
+          className="text-left rounded-2xl border border-amber-800/40 bg-amber-950/20 hover:border-amber-600/50 p-4 transition"
         >
           <Gift className="w-5 h-5 text-amber-300 mb-2" />
           <div className="text-sm font-bold text-white">Road Crew</div>
-          <p className="text-[11px] text-slate-400 mt-0.5">Loyalty stamps &amp; points</p>
+          <p className="text-[11px] text-slate-300 mt-0.5">Points</p>
         </button>
       </section>
 
-      <p className="text-center text-[11px] text-slate-500 leading-relaxed max-w-md mx-auto pb-4">
-        rvchain — gear &amp; parts for road families. Sign up free to list. Transactions stay
-        off-platform between buyers and sellers.
+      <p className="text-center text-[11px] text-slate-400 leading-relaxed max-w-md mx-auto pb-4">
+        RV Chain — recreational vehicles on road and trail. AI co-pilot + private-party gear/parts.
+        No whole-vehicle sales. No campground booking engine.
       </p>
     </div>
   );

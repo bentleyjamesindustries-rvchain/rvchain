@@ -35,25 +35,25 @@ const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://rv-chain.com";
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
   title: {
-    default: "rvchain — Gear & Parts for Family Road Life",
-    template: "%s | rvchain",
+    default: "RV Chain — Trailhead AI for Recreational Vehicles",
+    template: "%s | RV Chain",
   },
   description:
-    "Private-party camping gear and parts marketplace for road families. List items, contact sellers directly. Not a campground directory. Not a vehicle dealer.",
+    "Road. Trail. Ready. Trailhead AI for campers, overland trucks, ATVs, dirt bikes, and snowmobiles — plus private-party gear & parts. Not a dealer. Not a campground directory.",
   openGraph: {
     type: "website",
     locale: "en_US",
     url: siteUrl,
-    siteName: "rvchain",
-    title: "rvchain — Gear & Parts for Family Road Life",
+    siteName: "RV Chain",
+    title: "RV Chain — Road. Trail. Ready.",
     description:
-      "Private-party gear and parts board for people who live on the road. Simple listings. Direct contact. No escrow cut.",
+      "AI co-pilot + gear market for recreational vehicles on road and trail.",
     images: [{ url: "/rvchain-logo.jpg", width: 512, height: 512, alt: "rvchain" }],
   },
   twitter: {
     card: "summary",
-    title: "rvchain — Gear & Parts Market",
-    description: "Private-party gear and parts for family road life.",
+    title: "RV Chain — Trailhead AI",
+    description: "Recreational vehicle co-pilot: AI + gear & parts.",
   },
   icons: {
     icon: "/rvchain-logo.jpg",

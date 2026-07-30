@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { 
-  MessagesSquare, Compass, LogIn, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles, Baby, Leaf
+  MessagesSquare, Compass, LogIn, Calendar, Gift, Eye, EyeOff, Caravan, Sparkles, Baby, Leaf, Bot
 } from 'lucide-react';
 import { supabase } from '@/lib/supabaseClient';
 import { checkSupabaseTables, isMissingTableError } from '@/lib/supabaseSetup';
@@ -32,6 +32,7 @@ import HomeHub from '@/components/HomeHub';
 import { loadKidsProgress } from '@/lib/kidsProgress';
 import ExplorerSignInModal from '@/components/ExplorerSignInModal';
 import MarketLive from '@/components/MarketLive';
+import TrailheadAI from '@/components/TrailheadAI';
 import SiteFooter from '@/components/SiteFooter';
 import ProfileEditor from '@/components/ProfileEditor';
 import ProfileAvatar from '@/components/ProfileAvatar';
@@ -55,6 +56,7 @@ import type { LucideIcon } from 'lucide-react';
 
 type Tab =
   | 'home'
+  | 'ai'
   | 'kids'
   | 'field'
   | 'marketplace'
@@ -71,6 +73,7 @@ interface User {
 
 const NAV_TABS: { id: Tab; label: string; icon: LucideIcon }[] = [
   { id: 'home', label: 'Home', icon: Compass },
+  { id: 'ai', label: 'Trailhead AI', icon: Bot },
   { id: 'marketplace', label: 'Market', icon: Caravan },
   { id: 'kids', label: 'Little Explorer', icon: Sparkles },
   { id: 'field', label: 'Big Explorer', icon: Leaf },
@@ -430,25 +433,23 @@ export default function RVChainApp() {
       <div className="rv-hero max-w-screen-xl mx-auto px-3 sm:px-6 pt-4 sm:pt-6 pb-2 sm:pb-3">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-y-3">
           <div>
-            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Gear. Parts.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Family on the road.</h1>
-            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">List used camping gear &amp; parts. Buyers contact you directly. Not a campground directory. Not a vehicle dealer.</p>
+            <h1 className="text-2xl sm:text-4xl md:text-5xl font-semibold tracking-tighter">Road. Trail.<br className="hidden sm:block" /><span className="sm:hidden"> </span>Ready.</h1>
+            <p className="mt-1.5 sm:mt-2 text-sm sm:text-lg text-slate-100 max-w-md [text-shadow:0_1px_3px_rgb(15_23_42/0.75)]">Trailhead AI for recreational vehicles — campers, trucks, ATVs, dirt bikes, snowmobiles — plus private-party gear &amp; parts.</p>
           </div>
           <div className="flex flex-col min-[400px]:flex-row items-stretch sm:items-center gap-2 sm:gap-x-3 w-full sm:w-auto">
             <button
-              onClick={() => setActiveTab('marketplace')}
-              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 bg-white text-slate-900 hover:bg-amber-50 active:bg-white font-semibold rounded-3xl transition text-sm shadow-sm"
+              onClick={() => setActiveTab('ai')}
+              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-3xl transition text-sm shadow-sm"
             >
-              <Caravan className="w-4 h-4 shrink-0" />
-              <span>Browse the market</span>
+              <Bot className="w-4 h-4 shrink-0" />
+              <span>Trailhead AI</span>
             </button>
             <button
-              onClick={() => {
-                if (!user) setShowAuthModal(true);
-                else setActiveTab('marketplace');
-              }}
-              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 border border-white/30 hover:bg-white/5 font-medium rounded-3xl transition text-sm"
+              onClick={() => setActiveTab('marketplace')}
+              className="flex items-center justify-center gap-x-2 px-4 sm:px-5 h-11 bg-white text-slate-900 hover:bg-amber-50 font-semibold rounded-3xl transition text-sm shadow-sm"
             >
-              <span>{user ? 'List your gear' : 'Sign up free'}</span>
+              <Caravan className="w-4 h-4 shrink-0" />
+              <span>Market</span>
             </button>
           </div>
         </div>
@@ -484,6 +485,14 @@ export default function RVChainApp() {
           tripCount={user ? listLocalTrips(user.id).length : 0}
           plantCount={Object.keys(loadKidsProgress(user?.id || kidsProgressUserId).finds || {}).length}
           rewardPoints={rewardPoints}
+        />
+      )}
+
+      {activeTab === 'ai' && (
+        <TrailheadAI
+          user={user}
+          onRequestSignIn={() => setShowAuthModal(true)}
+          onGoMarket={() => setActiveTab('marketplace')}
         />
       )}
 

@@ -8,6 +8,7 @@ import { isModerator } from '@/lib/moderator';
 import {
   adminSetListingFeatured,
   adminSetSellerPro,
+  adminSetAiPro,
   fetchActiveListings,
   MarketListing,
 } from '@/lib/marketListings';
@@ -81,18 +82,18 @@ export default function AdminPage() {
       </div>
 
       <section className="rounded-2xl border border-slate-700 bg-slate-900 p-5 space-y-3">
-        <h2 className="font-semibold text-white">Grant Seller Pro</h2>
-        <p className="text-xs text-slate-500">
-          Paste a user UUID (from Supabase Auth → Users). Grants unlimited listings + featured
-          toggle for that seller.
+        <h2 className="font-semibold text-white">Grant Seller Pro / AI Pro</h2>
+        <p className="text-xs text-slate-400">
+          Paste a user UUID (Supabase Auth → Users). Run supabase-ai-pro.sql once for the ai_pro
+          column.
         </p>
-        <div className="flex gap-2">
-          <input
-            value={sellerUserId}
-            onChange={(e) => setSellerUserId(e.target.value)}
-            placeholder="user uuid"
-            className="flex-1 bg-slate-950 border border-slate-700 h-10 px-3 rounded-xl text-sm font-mono"
-          />
+        <input
+          value={sellerUserId}
+          onChange={(e) => setSellerUserId(e.target.value)}
+          placeholder="user uuid"
+          className="w-full bg-slate-950 border border-slate-700 h-10 px-3 rounded-xl text-sm font-mono"
+        />
+        <div className="flex flex-wrap gap-2">
           <button
             type="button"
             className="px-4 h-10 rounded-xl bg-emerald-700 text-sm font-semibold"
@@ -103,7 +104,7 @@ export default function AdminPage() {
               else toast.success('Seller Pro enabled');
             }}
           >
-            Enable
+            Seller Pro on
           </button>
           <button
             type="button"
@@ -112,10 +113,34 @@ export default function AdminPage() {
               if (!sellerUserId.trim()) return;
               const { error } = await adminSetSellerPro(sellerUserId.trim(), false);
               if (error) toast.error(error);
-              else toast.success('Seller Pro removed');
+              else toast.success('Seller Pro off');
             }}
           >
-            Revoke
+            Seller Pro off
+          </button>
+          <button
+            type="button"
+            className="px-4 h-10 rounded-xl bg-violet-700 text-sm font-semibold"
+            onClick={async () => {
+              if (!sellerUserId.trim()) return;
+              const { error } = await adminSetAiPro(sellerUserId.trim(), true);
+              if (error) toast.error(error);
+              else toast.success('AI Pro enabled');
+            }}
+          >
+            AI Pro on
+          </button>
+          <button
+            type="button"
+            className="px-4 h-10 rounded-xl border border-violet-700 text-violet-200 text-sm"
+            onClick={async () => {
+              if (!sellerUserId.trim()) return;
+              const { error } = await adminSetAiPro(sellerUserId.trim(), false);
+              if (error) toast.error(error);
+              else toast.success('AI Pro off');
+            }}
+          >
+            AI Pro off
           </button>
         </div>
       </section>

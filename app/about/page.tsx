@@ -3,43 +3,54 @@ import MarketingPage from '@/components/MarketingPage';
 import Link from 'next/link';
 
 export const metadata: Metadata = {
-  title: 'About rvchain — Family Road Life Gear & Parts',
+  title: 'About RV Chain — Recreational Vehicles + Trailhead AI',
   description:
-    'rvchain is a private-party gear and parts board for road families. Not a campground directory. Not a vehicle dealer.',
+    'RV Chain is the co-pilot for recreational vehicle life: road campers, overland trucks, ATVs, dirt bikes, snowmobiles, gear market, and Trailhead AI.',
   openGraph: {
-    title: 'About rvchain',
-    description: 'Private-party gear & parts for family road life.',
+    title: 'About RV Chain',
+    description: 'Road. Trail. Ready. — AI + gear for recreational vehicles.',
     url: 'https://rv-chain.com/about',
   },
 };
 
 export default function AboutPage() {
   return (
-    <MarketingPage title="About rvchain">
+    <MarketingPage title="About RV Chain">
       <p className="text-lg text-white font-medium">
-        rvchain is a private-party gear &amp; parts board built for road families.
+        RV Chain is built for <strong className="text-amber-300">recreational vehicle life</strong>{' '}
+        — not just Class A motorhomes. That means campers and towables, overland trucks, ATVs and
+        UTVs, dirt bikes, snowmobiles, and the gear that keeps you moving.
       </p>
-      <ul className="list-disc pl-5 space-y-2 text-slate-100">
+      <p>
+        <strong className="text-white">Trailhead AI</strong> is your co-pilot: part ID from photos,
+        trip and trail planning, pre-ride checklists, and listing help for private-party gear sales.
+      </p>
+      <p>
+        <strong className="text-white">Market</strong> is a simple gear &amp; parts board. You list.
+        Buyers contact you. No escrow cut. No whole-vehicle dealership.
+      </p>
+      <ul className="list-disc pl-5 space-y-2">
         <li>We are not a campground directory.</li>
         <li>We are not a vehicle dealer.</li>
-        <li>We are not a big marketplace with escrow and fees taking a cut of every sale.</li>
+        <li>We are not a middleman holding your money.</li>
       </ul>
       <p>
-        You list your gear and parts. Interested buyers contact you directly. Simple.
+        Tagline: <span className="text-violet-300 font-semibold">Road. Trail. Ready.</span>
       </p>
-      <p>
-        We’re building tools that make family life on the road easier — trip planning, kids
-        activities, loyalty stamps, and a clean place to buy and sell the stuff that actually
-        matters when you’re living out of an RV.
-      </p>
-      <p className="pt-4">
+      <div className="flex flex-wrap gap-3 pt-4">
         <Link
           href="/"
-          className="inline-flex h-11 items-center px-5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm"
+          className="inline-flex h-11 items-center px-5 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm"
         >
-          Browse the market →
+          Open Trailhead AI →
         </Link>
-      </p>
+        <Link
+          href="/"
+          className="inline-flex h-11 items-center px-5 rounded-2xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-sm"
+        >
+          Browse Market →
+        </Link>
+      </div>
     </MarketingPage>
   );
 }
