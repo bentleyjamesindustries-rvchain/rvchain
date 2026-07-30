@@ -10,6 +10,7 @@ import {
   MessagesSquare,
   Bot,
 } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/context';
 
 export type HomeDestination =
   | 'trips'
@@ -35,7 +36,8 @@ export default function HomeHub({
   plantCount = 0,
   rewardPoints = 0,
 }: HomeHubProps) {
-  const greet = displayName?.trim() || 'adventurer';
+  const { t } = useI18n();
+  const greet = displayName?.trim() || t('home.adventurer');
 
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-6">
@@ -45,28 +47,27 @@ export default function HomeHub({
         </div>
         <div className="relative z-[1] max-w-xl">
           <p className="text-violet-300 text-xs font-bold uppercase tracking-[0.2em] mb-2">
-            Recreational vehicles · Road + trail
+            {t('home.eyebrow')}
           </p>
           <h1 className="text-3xl sm:text-4xl font-bold text-white tracking-tight leading-tight">
-            Welcome back, {greet}
+            {t('home.welcome', { name: greet })}
           </h1>
           <p className="mt-3 text-sm sm:text-base text-slate-100 leading-relaxed">
-            RV Chain is the co-pilot for recreational vehicle life — campers, off-road trucks, ATVs,
-            dirt bikes, snowmobiles, and gear. Ask Trailhead AI, shop the Market, plan the next run.
+            {t('home.blurb')}
           </p>
           <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
             {tripCount > 0 && (
               <span className="px-3 py-1.5 rounded-full bg-white/10 text-slate-200">
-                {tripCount} trip{tripCount === 1 ? '' : 's'}
+                {t(tripCount === 1 ? 'home.trips' : 'home.trips_other', { n: tripCount })}
               </span>
             )}
             {plantCount > 0 && (
               <span className="px-3 py-1.5 rounded-full bg-sky-500/20 text-sky-100">
-                {plantCount} plants logged
+                {t('home.plants', { n: plantCount })}
               </span>
             )}
             <span className="px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-100">
-              {rewardPoints.toLocaleString()} crew pts
+              {t('home.crewPts', { n: rewardPoints.toLocaleString() })}
             </span>
           </div>
           <button
@@ -75,7 +76,7 @@ export default function HomeHub({
             className="mt-5 h-12 px-6 rounded-2xl bg-violet-600 hover:bg-violet-500 text-white font-bold text-sm inline-flex items-center gap-2"
           >
             <Bot className="w-5 h-5" />
-            Try Trailhead AI free
+            {t('home.tryAi')}
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -83,7 +84,7 @@ export default function HomeHub({
 
       <section>
         <h2 className="text-sm font-bold text-slate-300 uppercase tracking-wide mb-3 px-1">
-          What do you want to do?
+          {t('home.whatDo')}
         </h2>
         <div className="grid sm:grid-cols-3 gap-3">
           <button
@@ -93,12 +94,10 @@ export default function HomeHub({
           >
             <Bot className="w-8 h-8 text-violet-300 mb-3 group-hover:scale-110 transition" />
             <div className="text-lg font-bold text-white flex items-center gap-2">
-              Trailhead AI
+              {t('home.aiTitle')}
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
-            <p className="text-sm text-slate-300 mt-1.5 leading-snug">
-              Parts ID, trip plans, pre-ride checklists, listing help
-            </p>
+            <p className="text-sm text-slate-300 mt-1.5 leading-snug">{t('home.aiDesc')}</p>
           </button>
 
           <button
@@ -108,12 +107,10 @@ export default function HomeHub({
           >
             <Caravan className="w-8 h-8 text-amber-300 mb-3 group-hover:scale-110 transition" />
             <div className="text-lg font-bold text-white flex items-center gap-2">
-              Market
+              {t('home.marketTitle')}
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
-            <p className="text-sm text-slate-300 mt-1.5 leading-snug">
-              Gear &amp; parts for road + powersports · contact sellers
-            </p>
+            <p className="text-sm text-slate-300 mt-1.5 leading-snug">{t('home.marketDesc')}</p>
           </button>
 
           <button
@@ -123,12 +120,10 @@ export default function HomeHub({
           >
             <Calendar className="w-8 h-8 text-orange-300 mb-3 group-hover:scale-110 transition" />
             <div className="text-lg font-bold text-white flex items-center gap-2">
-              Plan a trip
+              {t('home.tripTitle')}
               <ArrowRight className="w-4 h-4 opacity-60 group-hover:translate-x-0.5 transition" />
             </div>
-            <p className="text-sm text-slate-300 mt-1.5 leading-snug">
-              Dates, free-text stops, pack lists
-            </p>
+            <p className="text-sm text-slate-300 mt-1.5 leading-snug">{t('home.tripDesc')}</p>
           </button>
         </div>
       </section>
@@ -140,8 +135,8 @@ export default function HomeHub({
           className="text-left rounded-2xl border border-emerald-800/40 bg-emerald-950/30 hover:border-emerald-600/50 p-4 transition"
         >
           <Sparkles className="w-5 h-5 text-emerald-300 mb-2" />
-          <div className="text-sm font-bold text-white">Little Explorer</div>
-          <p className="text-[11px] text-slate-300 mt-0.5">Kids games</p>
+          <div className="text-sm font-bold text-white">{t('home.kidsTitle')}</div>
+          <p className="text-[11px] text-slate-300 mt-0.5">{t('home.kidsDesc')}</p>
         </button>
         <button
           type="button"
@@ -149,8 +144,8 @@ export default function HomeHub({
           className="text-left rounded-2xl border border-sky-800/40 bg-sky-950/30 hover:border-sky-600/50 p-4 transition"
         >
           <Leaf className="w-5 h-5 text-sky-300 mb-2" />
-          <div className="text-sm font-bold text-white">Trail Log</div>
-          <p className="text-[11px] text-slate-300 mt-0.5">Trail log</p>
+          <div className="text-sm font-bold text-white">{t('home.trailTitle')}</div>
+          <p className="text-[11px] text-slate-300 mt-0.5">{t('home.trailDesc')}</p>
         </button>
         <button
           type="button"
@@ -158,8 +153,8 @@ export default function HomeHub({
           className="text-left rounded-2xl border border-slate-600 bg-slate-900/50 hover:border-slate-400 p-4 transition"
         >
           <MessagesSquare className="w-5 h-5 text-sky-300 mb-2" />
-          <div className="text-sm font-bold text-white">Forum</div>
-          <p className="text-[11px] text-slate-300 mt-0.5">Road talk</p>
+          <div className="text-sm font-bold text-white">{t('home.forumTitle')}</div>
+          <p className="text-[11px] text-slate-300 mt-0.5">{t('home.forumDesc')}</p>
         </button>
         <button
           type="button"
@@ -167,14 +162,13 @@ export default function HomeHub({
           className="text-left rounded-2xl border border-amber-800/40 bg-amber-950/20 hover:border-amber-600/50 p-4 transition"
         >
           <Gift className="w-5 h-5 text-amber-300 mb-2" />
-          <div className="text-sm font-bold text-white">Road Crew</div>
-          <p className="text-[11px] text-slate-300 mt-0.5">Points</p>
+          <div className="text-sm font-bold text-white">{t('home.crewTitle')}</div>
+          <p className="text-[11px] text-slate-300 mt-0.5">{t('home.crewDesc')}</p>
         </button>
       </section>
 
       <p className="text-center text-[11px] text-slate-400 leading-relaxed max-w-md mx-auto pb-4">
-        RV Chain — recreational vehicles on road and trail. AI co-pilot + private-party gear/parts.
-        No whole-vehicle sales. No campground booking engine.
+        {t('home.footerNote')}
       </p>
     </div>
   );

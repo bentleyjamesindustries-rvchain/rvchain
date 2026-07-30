@@ -2,8 +2,15 @@
 
 import { Info } from 'lucide-react';
 import { DEMO_NOTICE_SHORT } from '@/lib/demoMode';
+import { useI18n } from '@/lib/i18n/context';
 
 export default function DemoBanner() {
+  const { t, locale } = useI18n();
+  const notice =
+    locale === 'es'
+      ? 'Modo demo: datos de muestra. No es producción en vivo.'
+      : DEMO_NOTICE_SHORT;
+
   return (
     <div
       role="status"
@@ -11,12 +18,10 @@ export default function DemoBanner() {
     >
       <span className="inline-flex items-center gap-2">
         <Info className="w-3.5 h-3.5 shrink-0" aria-hidden />
-        <span>{DEMO_NOTICE_SHORT}</span>
+        <span>{notice}</span>
       </span>
       <span className="hidden sm:inline text-amber-900/80">·</span>
-      <span className="text-amber-900/90 font-normal">
-        Sample names &amp; listings are fictional · no third-party brands
-      </span>
+      <span className="text-amber-900/90 font-normal">{t('demo.sample')}</span>
     </div>
   );
 }

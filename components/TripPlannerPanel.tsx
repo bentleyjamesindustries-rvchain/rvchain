@@ -5,6 +5,7 @@ import {
   Plus, Calendar, Lock, Printer, MapPin, ChevronRight, ChevronDown, LayoutDashboard, ListChecks,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useI18n } from '@/lib/i18n/context';
 import { supabase } from '@/lib/supabaseClient';
 import { isMissingTableError } from '@/lib/supabaseSetup';
 import {
@@ -58,6 +59,7 @@ export default function TripPlannerPanel({
   user,
   onRequestSignIn,
 }: TripPlannerPanelProps) {
+  const { t } = useI18n();
   const [userTrips, setUserTrips] = useState<StoredTrip[]>([]);
   const [selectedTrip, setSelectedTrip] = useState<StoredTrip | null>(null);
   const [tripStops, setTripStops] = useState<StoredTripStop[]>([]);
@@ -290,9 +292,9 @@ export default function TripPlannerPanel({
       {/* Header — trip first */}
       <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div className="section-intro">
-          <h2 className="text-xl sm:text-2xl font-semibold">Trip planner</h2>
+          <h2 className="text-xl sm:text-2xl font-semibold">{t('trips.title')}</h2>
           <p className="text-slate-300 text-sm mt-1 max-w-lg">
-            Name a trip, pick packing checklists, and add community spots along the way.
+            {t('trips.subtitle')}
           </p>
           <p className="text-[10px] text-amber-400/80 mt-1">{DEMO_NOTICE_SHORT}</p>
         </div>

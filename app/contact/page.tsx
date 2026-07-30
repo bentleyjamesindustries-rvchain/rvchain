@@ -5,10 +5,12 @@ import Link from 'next/link';
 import MarketingPage from '@/components/MarketingPage';
 import { toast } from 'sonner';
 import { MessageSquare } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/context';
 
 const TO_EMAIL = 'admin@rv-chain.com';
 
 export default function ContactPage() {
+  const { t } = useI18n();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
@@ -80,7 +82,7 @@ export default function ContactPage() {
         return;
       }
 
-      toast.success('Message sent — we will get back to you soon.');
+      toast.success(t('contact.success'));
       setName('');
       setEmail('');
       setMessage('');
@@ -92,29 +94,29 @@ export default function ContactPage() {
   };
 
   return (
-    <MarketingPage title="Contact us">
+    <MarketingPage title={t('contact.title')}>
       <p className="text-lg text-white font-medium">
-        Questions, feedback, or want to list gear? Send a message below — it goes to{' '}
-        <span className="text-amber-300 font-bold">{TO_EMAIL}</span>. No mail app opens.
+        {t('contact.intro')}{' '}
+        <span className="text-amber-300 font-bold">{TO_EMAIL}</span>
       </p>
 
       <div className="rounded-2xl border-2 border-slate-500 bg-slate-950/90 p-4 sm:p-6 space-y-4">
         <div className="flex items-center gap-2 text-white font-semibold text-lg">
           <MessageSquare className="w-5 h-5 text-amber-400" />
-          Send us a message
+          {t('contact.send')}
         </div>
         <form onSubmit={onSubmit} className="space-y-3">
           <label className="block">
-            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">Name (optional)</span>
+            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">{t('contact.formName')}</span>
             <input
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="Your name"
+              placeholder={t('contact.formName')}
               className="w-full bg-slate-900 border-2 border-slate-500 focus:border-amber-500 text-white placeholder:text-slate-400 h-12 px-3 rounded-xl text-base outline-none"
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">Your email</span>
+            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">{t('contact.formEmail')}</span>
             <input
               type="email"
               required
@@ -125,12 +127,12 @@ export default function ContactPage() {
             />
           </label>
           <label className="block">
-            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">Message</span>
+            <span className="text-sm font-semibold text-slate-100 mb-1.5 block">{t('contact.formMessage')}</span>
             <textarea
               required
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="How can we help?"
+              placeholder={t('contact.formMessage')}
               rows={6}
               className="w-full bg-slate-900 border-2 border-slate-500 focus:border-amber-500 text-white placeholder:text-slate-400 px-3 py-3 rounded-xl text-base outline-none resize-y"
             />
@@ -140,7 +142,7 @@ export default function ContactPage() {
             disabled={sending}
             className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-base disabled:opacity-50"
           >
-            {sending ? 'Sending…' : 'Send message'}
+            {sending ? t('contact.sending') : t('contact.send')}
           </button>
         </form>
         <p className="text-xs text-slate-300 leading-relaxed">

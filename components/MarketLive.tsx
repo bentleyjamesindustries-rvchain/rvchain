@@ -32,6 +32,7 @@ import { US_STATE_CODES } from '@/lib/usStates';
 import { isModerator } from '@/lib/moderator';
 import { compressImageFile } from '@/lib/imageCompress';
 import MarketplaceDisclosure from './MarketplaceDisclosure';
+import { useI18n } from '@/lib/i18n/context';
 
 type View = 'browse' | 'sell' | 'mine';
 
@@ -56,6 +57,7 @@ const EMPTY_FORM = {
 };
 
 export default function MarketLive({ user, displayHandle, onRequestSignIn }: Props) {
+  const { t } = useI18n();
   const [view, setView] = useState<View>('browse');
   const [kindFilter, setKindFilter] = useState<MarketKind | 'all'>('all');
   const [search, setSearch] = useState('');
@@ -270,13 +272,9 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
   return (
     <div className="max-w-screen-xl mx-auto px-4 sm:px-6 py-6 pb-10 space-y-5">
       <div className="rounded-3xl border border-amber-700/40 bg-gradient-to-br from-slate-900 via-slate-900 to-amber-950/40 p-5 sm:p-7">
-        <div className="text-amber-400 text-sm font-medium mb-1">rvchain Market</div>
-        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">Gear &amp; Parts</h2>
-        <p className="text-sm text-slate-300 mt-2 max-w-2xl">
-          Private-party gear and parts for recreational vehicles — campers, off-road trucks, ATV, dirt bike,
-          snowmobile life. Contact sellers directly. No escrow. No whole-vehicle sales. No campground
-          directory.
-        </p>
+        <div className="text-amber-400 text-sm font-medium mb-1">rvchain {t('market.title')}</div>
+        <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t('market.title')}</h2>
+        <p className="text-sm text-slate-300 mt-2 max-w-2xl">{t('market.subtitle')}</p>
         <div className="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -287,21 +285,24 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
             }}
             className="h-11 px-5 rounded-2xl bg-amber-600 hover:bg-amber-500 text-white font-semibold text-sm inline-flex items-center gap-2"
           >
-            <Plus className="w-4 h-4" /> List your gear
+            <Plus className="w-4 h-4" /> {t('market.sell')}
           </button>
           <button
             type="button"
             onClick={() => setView('browse')}
             className="h-11 px-5 rounded-2xl border border-slate-600 hover:bg-slate-800 text-sm font-semibold"
           >
-            Browse the market
+            {t('market.browse')}
           </button>
         </div>
         {user && (
           <p className="text-xs text-slate-500 mt-3">
             {sellerPro
-              ? 'Seller Pro · unlimited active listings · can feature'
-              : `Free plan · ${activeCount}/${FREE_ACTIVE_LISTING_LIMIT} active listings used`}
+              ? 'Seller Pro'
+              : t('market.freeLimit', {
+                  used: activeCount,
+                  limit: FREE_ACTIVE_LISTING_LIMIT,
+                })}
           </p>
         )}
       </div>
@@ -322,11 +323,11 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
       <div className="flex flex-wrap gap-2">
         {(
           [
-            ['browse', 'Browse', Search],
-            ['sell', 'Sell', Plus],
-            ['mine', 'My listings', List],
+            ['browse', 'market.browse', Search],
+            ['sell', 'market.sell', Plus],
+            ['mine', 'market.mine', List],
           ] as const
-        ).map(([id, label, Icon]) => (
+        ).map(([id, labelKey, Icon]) => (
           <button
             key={id}
             type="button"
@@ -338,7 +339,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
             }`}
           >
             <Icon className="w-4 h-4" />
-            {label}
+            {t(labelKey)}
           </button>
         ))}
       </div>
@@ -351,7 +352,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Search gear & parts…"
+                placeholder={t('market.search')}
                 className="w-full bg-slate-900 border border-slate-700 pl-10 pr-3 h-11 rounded-2xl text-sm outline-none focus:border-amber-600"
               />
             </div>
@@ -360,16 +361,16 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
               onChange={(e) => setKindFilter(e.target.value as MarketKind | 'all')}
               className="sm:w-36 bg-slate-900 border border-slate-700 h-11 px-3 rounded-2xl text-sm"
             >
-              <option value="all">All</option>
-              <option value="gear">Gear</option>
-              <option value="parts">Parts</option>
+              <option value="all">{t('market.allKinds')}</option>
+              <option value="gear">{t('market.gear')}</option>
+              <option value="parts">{t('market.parts')}</option>
             </select>
             <select
               value={stateFilter}
               onChange={(e) => setStateFilter(e.target.value)}
               className="sm:w-32 bg-slate-900 border border-slate-700 h-11 px-3 rounded-2xl text-sm"
             >
-              <option value="">All states</option>
+              <option value="">{t('market.anyState')}</option>
               {US_STATE_CODES.map((s) => (
                 <option key={s} value={s}>
                   {s}
@@ -379,10 +380,10 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
           </div>
 
           {loading ? (
-            <p className="text-center text-slate-500 py-12 text-sm">Loading listings…</p>
+            <p className="text-center text-slate-500 py-12 text-sm">{t('market.loading')}</p>
           ) : filtered.length === 0 ? (
             <div className="text-center py-14 space-y-3 border border-dashed border-slate-700 rounded-3xl">
-              <p className="text-slate-400 text-sm">No listings yet — be the first.</p>
+              <p className="text-slate-400 text-sm">{t('market.empty')}</p>
               <button
                 type="button"
                 onClick={() => {
@@ -391,7 +392,7 @@ export default function MarketLive({ user, displayHandle, onRequestSignIn }: Pro
                 }}
                 className="text-amber-400 font-semibold text-sm"
               >
-                List your gear →
+                {t('market.sell')} →
               </button>
             </div>
           ) : (

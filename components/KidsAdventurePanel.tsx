@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useI18n } from '@/lib/i18n/context';
 import { BookOpen, Gamepad2, Leaf, Shield } from 'lucide-react';
 import KidsFieldGuide from './KidsFieldGuide';
 import KidsGamesHub from './kids-games/KidsGamesHub';
@@ -29,6 +30,7 @@ interface KidsAdventurePanelProps {
 }
 
 export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProps) {
+  const { t } = useI18n();
   const [view, setView] = useState<KidsView>('hub');
 
   if (view === 'guide') {
@@ -121,10 +123,9 @@ export default function KidsAdventurePanel({ stateCode }: KidsAdventurePanelProp
   return (
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
       <div className="rounded-3xl border border-emerald-800/40 bg-gradient-to-br from-emerald-950/60 via-slate-900 to-slate-950 p-6 sm:p-8">
-        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">Little Explorer</h1>
+        <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">{t('kids.title')}</h1>
         <p className="mt-2 text-sm text-slate-300 max-w-lg leading-relaxed">
-          Play trail games and learn about plants — with a grown-up. This zone does not collect
-          GPS, photos, or personal information.
+          {t('kids.subtitle')}
         </p>
       </div>
 

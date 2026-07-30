@@ -24,6 +24,7 @@ import { getMembershipPlanId } from '@/lib/membershipSubscription';
 import { canPostOnForum, getMembershipPlan } from '@/lib/membershipPlans';
 import ProfileAvatar from './ProfileAvatar';
 import { awardRoadCrewForUser } from '@/lib/roadCrew';
+import { useI18n } from '@/lib/i18n/context';
 
 interface ForumPanelProps {
   user: { id: string; username?: string } | null;
@@ -90,6 +91,7 @@ export default function ForumPanel({
   onRequestUpgrade,
   onOpenProfile,
 }: ForumPanelProps) {
+  const { t } = useI18n();
   const [category, setCategory] = useState<ForumCategoryId | null>(null);
   const [subcategory, setSubcategory] = useState<ForumSubcategoryId | null>(null);
   const [posts, setPosts] = useState<ForumPost[]>([]);
@@ -243,11 +245,11 @@ export default function ForumPanel({
         <div className="section-intro">
           <div className="flex items-center gap-2 text-emerald-400 text-sm font-medium mb-1">
             <MessagesSquare className="w-4 h-4" />
-            Camper Forum
+            {t('forum.title')}
           </div>
-          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">Share tips with fellow campers</h2>
+          <h2 className="text-2xl sm:text-3xl font-semibold tracking-tight">{t('forum.title')}</h2>
           <p className="text-slate-400 mt-2 text-sm sm:text-base max-w-2xl">
-            Pick a camper type, then browse topics like destination favorites, construction alerts, and maintenance advice.
+            {t('forum.subtitle')}
           </p>
         </div>
 

@@ -28,6 +28,7 @@ import { useMileageTracker } from '@/lib/useMileageTracker';
 import { getMembershipPlanId } from '@/lib/membershipSubscription';
 import { canEarnLoyaltyPoints, getMembershipPlan } from '@/lib/membershipPlans';
 import { Info } from 'lucide-react';
+import { useI18n } from '@/lib/i18n/context';
 
 interface RoadCrewPanelProps {
   user: { id: string; username?: string } | null;
@@ -42,6 +43,7 @@ export default function RoadCrewPanel({
   onRequestUpgrade,
   onPointsChange,
 }: RoadCrewPanelProps) {
+  const { t } = useI18n();
   const userId = getRewardsUserId(user?.id);
   const planId = getMembershipPlanId(user?.id);
   const plan = getMembershipPlan(planId);
@@ -160,14 +162,13 @@ export default function RoadCrewPanel({
           <div>
             <div className="flex items-center gap-2 text-amber-400 text-sm font-medium mb-1">
               <Users className="w-4 h-4" />
-              Road Crew
+              {t('crew.title')}
             </div>
             <h2 className="text-2xl sm:text-4xl font-semibold tracking-tight">
-              Earn for living on rvchain
+              {t('crew.title')}
             </h2>
             <p className="text-slate-400 mt-2 max-w-lg text-sm">
-              Trips, forum posts, Market listings, Explorer finds — and optional drive miles. Not a
-              campground booking club.
+              {t('crew.subtitle')}
             </p>
             {plan.checkInBonusPercent > 0 && (
               <p className="text-xs text-emerald-300 mt-2">

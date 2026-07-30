@@ -69,6 +69,7 @@ export async function POST(request: Request) {
       messages?: { role: 'user' | 'assistant'; content: string }[];
       imageDataUrl?: string | null;
       freeTierUsed?: number;
+      locale?: string;
     };
 
     const mode = (body.mode ?? 'general') as TrailheadMode;
@@ -99,10 +100,15 @@ export async function POST(request: Request) {
       | { type: 'text'; text: string }
       | { type: 'image_url'; image_url: { url: string } };
 
+    const localeNote =
+      body.locale === 'es'
+        ? '\n\nLanguage: Respond entirely in Spanish (neutral Latin American Spanish). Keep product names RV Chain and Trailhead AI in English when referring to the brand.'
+        : '\n\nLanguage: Respond in English.';
+
     const openaiMessages: OpenAI.Chat.ChatCompletionMessageParam[] = [
       {
         role: 'system',
-        content: `${TRAILHEAD_SYSTEM}\n\n${modeInstruction(mode)}`,
+        content: `${TRAILHEAD_SYSTEM}\n\n${modeInstruction(mode)}${localeNote}`,
       },
     ];
 

@@ -1,13 +1,12 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Sparkles, Send, ImagePlus, X, Lock, Mountain, Wrench, Map, ClipboardList, Tag,
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { supabase } from '@/lib/supabaseClient';
 import {
-  TRAILHEAD_MODES,
   FREE_AI_MESSAGES_PER_DAY,
   type TrailheadMode,
 } from '@/lib/trailheadAi';
@@ -18,6 +17,8 @@ import {
   incrementAiUsage,
 } from '@/lib/aiUsage';
 import { compressImageFile } from '@/lib/imageCompress';
+import { useI18n } from '@/lib/i18n/context';
+
 type Msg = { role: 'user' | 'assistant'; content: string; imagePreview?: string };
 
 interface Props {
@@ -34,22 +35,40 @@ const MODE_ICONS: Record<TrailheadMode, typeof Wrench> = {
   general: Mountain,
 };
 
+const MODE_LABEL_KEYS: Record<TrailheadMode, { label: string; ph: string }> = {
+  parts: { label: 'ai.modeParts', ph: 'ai.modePartsPh' },
+  trip: { label: 'ai.modeTrip', ph: 'ai.modeTripPh' },
+  checklist: { label: 'ai.modeCheck', ph: 'ai.modeCheckPh' },
+  listing: { label: 'ai.modeList', ph: 'ai.modeListPh' },
+  general: { label: 'ai.modeGen', ph: 'ai.modeGenPh' },
+};
+
 export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props) {
+  const { t, locale } = useI18n();
   const [mode, setMode] = useState<TrailheadMode>('general');
   const [input, setInput] = useState('');
-  const [messages, setMessages] = useState<Msg[]>([
-    {
-      role: 'assistant',
-      content:
-        'I’m Trailhead AI — co-pilot for recreational vehicle life: road campers, off-road trucks, ATVs, dirt bikes, snowmobiles, and the gear that goes with them.\n\nPick a mode, ask a question, or upload a part photo. Suggestions are educational only — verify safety and fitment yourself.',
-    },
-  ]);
+  const [messages, setMessages] = useState<Msg[]>([]);
   const [busy, setBusy] = useState(false);
   const [imageDataUrl, setImageDataUrl] = useState<string | null>(null);
   const [aiPro, setAiPro] = useState(false);
   const [usage, setUsage] = useState(() => getAiUsageToday(user?.id));
   const bottomRef = useRef<HTMLDivElement>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const seededRef = useRef(false);
+
+  useEffect(() => {
+    if (!seededRef.current) {
+      setMessages([{ role: 'assistant', content: t('ai.welcome') }]);
+      seededRef.current = true;
+      return;
+    }
+    setMessages((prev) => {
+      if (prev.length === 1 && prev[0].role === 'assistant') {
+        return [{ role: 'assistant', content: t('ai.welcome') }];
+      }
+      return prev;
+    });
+  }, [locale, t]);
 
   useEffect(() => {
     setUsage(getAiUsageToday(user?.id));
@@ -80,6 +99,16 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, busy]);
 
+  const modes = useMemo(
+    () =>
+      (Object.keys(MODE_LABEL_KEYS) as TrailheadMode[]).map((id) => ({
+        id,
+        label: t(MODE_LABEL_KEYS[id].label),
+        placeholder: t(MODE_LABEL_KEYS[id].ph),
+      })),
+    [t]
+  );
+
   const onPickImage = async (files: FileList | null) => {
     const file = files?.[0];
     if (!file) return;
@@ -88,7 +117,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
       setImageDataUrl(dataUrl);
       if (mode === 'general') setMode('parts');
     } catch {
-      toast.error('Could not process that image');
+      toast.error(t('ai.imageFail'));
     }
   };
 
@@ -97,13 +126,13 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
     if (!text && !imageDataUrl) return;
 
     if (!aiPro && !canSendFreeMessage(user?.id)) {
-      toast.error(`Free daily limit reached (${FREE_AI_MESSAGES_PER_DAY}). AI Pro unlocks unlimited - ask admin@rv-chain.com`);
+      toast.error(t('ai.limitToast', { n: FREE_AI_MESSAGES_PER_DAY }));
       return;
     }
 
     const userMsg: Msg = {
       role: 'user',
-      content: text || 'What can you tell me about this image?',
+      content: text || t('ai.imageAsk'),
       imagePreview: imageDataUrl || undefined,
     };
     const nextHistory = [...messages, userMsg];
@@ -137,6 +166,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
           messages: apiMessages,
           imageDataUrl: img,
           freeTierUsed: aiPro ? 0 : usedBefore,
+          locale,
         }),
       });
 
@@ -148,17 +178,15 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
 
       if (!res.ok) {
         if (data.code === 'LIMIT') {
-          toast.error(data.error || 'Daily limit reached');
+          toast.error(data.error || t('ai.dailyLimit'));
         } else {
-          toast.error(data.error || 'Trailhead AI unavailable');
+          toast.error(data.error || t('ai.unavailable'));
         }
         setMessages((m) => [
           ...m,
           {
             role: 'assistant',
-            content:
-              data.error ||
-              'Sorry — I could not answer just now. Check that XAI_API_KEY is set on the server, or try again.',
+            content: data.error || t('ai.errorReply'),
           },
         ]);
         return;
@@ -177,18 +205,17 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
         },
       ]);
     } catch {
-      toast.error('Network error');
+      toast.error(t('ai.network'));
       setMessages((m) => [
         ...m,
-        { role: 'assistant', content: 'Network error. Please try again.' },
+        { role: 'assistant', content: t('ai.networkReply') },
       ]);
     } finally {
       setBusy(false);
     }
   };
 
-  const placeholder =
-    TRAILHEAD_MODES.find((m) => m.id === mode)?.placeholder || 'Ask Trailhead AI…';
+  const placeholder = modes.find((m) => m.id === mode)?.placeholder || t('ai.modeGenPh');
 
   return (
     <div className="max-w-screen-lg mx-auto px-3 sm:px-6 py-5 sm:py-8 space-y-4 pb-8">
@@ -199,25 +226,22 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
           </div>
           <div className="min-w-0">
             <p className="text-violet-300 text-xs font-bold uppercase tracking-[0.15em]">
-              Trailhead AI
+              {t('ai.eyebrow')}
             </p>
             <h2 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-              Road. Trail. Ready.
+              {t('ai.tagline')}
             </h2>
-            <p className="text-sm text-slate-200 mt-2 leading-relaxed max-w-2xl">
-              AI co-pilot for recreational vehicles — campers, off-road trucks, ATVs, dirt bikes,
-              snowmobiles, and gear. Not a dealer. Not a campground directory.
-            </p>
+            <p className="text-sm text-slate-200 mt-2 leading-relaxed max-w-2xl">{t('ai.blurb')}</p>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap gap-2 text-xs font-semibold">
           {aiPro ? (
             <span className="px-3 py-1.5 rounded-full bg-violet-500/30 text-violet-100 border border-violet-400/40">
-              AI Pro · unlimited today
+              {t('ai.proBadge')}
             </span>
           ) : (
             <span className="px-3 py-1.5 rounded-full bg-slate-800 text-slate-200 border border-slate-600">
-              Free · {usage.remaining}/{usage.limit} left today
+              {t('ai.freeBadge', { remaining: usage.remaining, limit: usage.limit })}
             </span>
           )}
           <button
@@ -225,13 +249,13 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
             onClick={onGoMarket}
             className="px-3 py-1.5 rounded-full bg-amber-500/20 text-amber-100 border border-amber-500/40 hover:bg-amber-500/30"
           >
-            Browse Market gear →
+            {t('ai.browseMarket')}
           </button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {TRAILHEAD_MODES.map((m) => {
+        {modes.map((m) => {
           const Icon = MODE_ICONS[m.id];
           const active = mode === m.id;
           return (
@@ -279,7 +303,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
             </div>
           ))}
           {busy && (
-            <div className="text-sm text-violet-300 animate-pulse px-1">Trailhead is thinking…</div>
+            <div className="text-sm text-violet-300 animate-pulse px-1">{t('ai.thinking')}</div>
           )}
           <div ref={bottomRef} />
         </div>
@@ -293,7 +317,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
                 type="button"
                 onClick={() => setImageDataUrl(null)}
                 className="text-slate-300 hover:text-white p-1"
-                aria-label="Remove image"
+                aria-label={t('ai.removePhoto')}
               >
                 <X className="w-4 h-4" />
               </button>
@@ -311,7 +335,7 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
               type="button"
               onClick={() => fileRef.current?.click()}
               className="h-11 w-11 shrink-0 rounded-xl border border-slate-600 text-slate-200 hover:border-violet-500 flex items-center justify-center"
-              title="Upload photo"
+              title={t('ai.attach')}
             >
               <ImagePlus className="w-5 h-5" />
             </button>
@@ -335,22 +359,17 @@ export default function TrailheadAI({ user, onRequestSignIn, onGoMarket }: Props
               className="h-11 px-4 shrink-0 rounded-xl bg-violet-600 hover:bg-violet-500 text-white font-semibold text-sm disabled:opacity-50 flex items-center gap-1.5"
             >
               <Send className="w-4 h-4" />
-              Send
+              {t('ai.send')}
             </button>
           </div>
           {!user && (
-            <p className="text-[11px] text-slate-400 flex items-center gap-1">
+            <p className="text-[11px] text-slate-400 flex items-center gap-1 flex-wrap">
               <Lock className="w-3 h-3" />
-              Guest free tier works. Sign in so usage and AI Pro can follow your account.{' '}
               <button type="button" onClick={onRequestSignIn} className="text-violet-300 underline">
-                Sign in
+                {t('header.signIn')}
               </button>
             </p>
           )}
-          <p className="text-[10px] text-slate-500 leading-relaxed">
-            AI suggestions only — not a mechanic or guide service. Verify trail rules, fitment, and
-            safety yourself. Gear &amp; parts only on Market (no whole vehicle sales).
-          </p>
         </div>
       </div>
     </div>

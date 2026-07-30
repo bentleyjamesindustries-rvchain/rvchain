@@ -7,6 +7,7 @@ import DeviceAdapt from "@/components/DeviceAdapt";
 import ScenicBackground from "@/components/ScenicBackground";
 import DemoBanner from "@/components/DemoBanner";
 import GoogleAnalytics from "@/components/GoogleAnalytics";
+import { LanguageProvider } from "@/lib/i18n/context";
 import { SITE_DEMO_MODE } from "@/lib/demoMode";
 
 export const viewport: Viewport = {
@@ -71,15 +72,17 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased dark`}
     >
       <body className="min-h-full flex flex-col text-slate-200 overflow-x-hidden">
-        <GoogleAnalytics />
-        <ScenicBackground />
-        <DeviceAdapt />
-        <div className="relative z-10 flex flex-col flex-1 min-h-full">
-          {SITE_DEMO_MODE && <DemoBanner />}
-          {children}
-        </div>
-        <Toaster position="top-center" richColors closeButton />
-        <Analytics />
+        <LanguageProvider>
+          <GoogleAnalytics />
+          <ScenicBackground />
+          <DeviceAdapt />
+          <div className="relative z-10 flex flex-col flex-1 min-h-full">
+            {SITE_DEMO_MODE && <DemoBanner />}
+            {children}
+          </div>
+          <Toaster position="top-center" richColors closeButton />
+          <Analytics />
+        </LanguageProvider>
       </body>
     </html>
   );

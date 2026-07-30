@@ -31,6 +31,7 @@ import {
 } from '@/lib/trailLog';
 import { getCurrentPositionOnce, formatCoords } from '@/lib/geoState';
 import { compressImageFile } from '@/lib/imageCompress';
+import { useI18n } from '@/lib/i18n/context';
 
 type View = 'hub' | 'log' | 'active' | 'passport' | 'badges' | 'history' | 'howto';
 
@@ -51,6 +52,7 @@ export default function AdultExplorerPanel({
   onGoAi,
   onGoMarket,
 }: AdultExplorerPanelProps) {
+  const { t } = useI18n();
   const [view, setView] = useState<View>('hub');
   const [adultOk, setAdultOk] = useState(false);
   const [tick, setTick] = useState(0);
@@ -493,15 +495,13 @@ export default function AdultExplorerPanel({
     <div className="max-w-screen-xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4">
       <div className="rounded-3xl border border-sky-700/40 bg-gradient-to-br from-sky-950/60 via-slate-900 to-violet-950/40 p-6 sm:p-8">
         <div className="text-sky-400 text-xs font-bold uppercase tracking-wide mb-1">
-          Trail Log
+          {t('trailLog.title')}
         </div>
         <h1 className="text-2xl sm:text-3xl font-bold text-white tracking-tight">
-          {name !== 'Explorer' ? `${name}'s trail log` : 'Trail log'}
+          {name !== 'Explorer' ? `${name} · ${t('trailLog.title')}` : t('trailLog.title')}
         </h1>
         <p className="mt-2 text-sm text-slate-200 max-w-lg leading-relaxed">
-          Log rides and road trips — off-road trucks, ATVs, dirt bikes, snowmobiles, campers. Stamp
-          states, unlock badges, then jump into Trailhead AI or Market when you need gear or a
-          checklist.
+          {t('trailLog.subtitle')}
         </p>
         <p className="mt-3 text-sm font-semibold text-sky-100">
           {stats.sessions} session{stats.sessions === 1 ? '' : 's'} · {stats.states} states ·{' '}
