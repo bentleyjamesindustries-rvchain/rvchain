@@ -11,6 +11,9 @@ export function isSupabaseConfigured(): boolean {
 
 export function explainAuthError(message: string): string {
   const lower = message.toLowerCase();
+  if (lower.includes('invalid api key') || lower.includes('invalid jwt') || lower.includes('malformed claim')) {
+    return 'Supabase API key is invalid. In Vercel (and .env.local) set NEXT_PUBLIC_SUPABASE_ANON_KEY to the anon public key from Supabase → Project Settings → API, then redeploy.';
+  }
   if (lower.includes('invalid login credentials')) {
     return 'Incorrect email or password. If you just signed up, confirm your email first.';
   }
@@ -29,8 +32,14 @@ export function explainAuthError(message: string): string {
   if (lower.includes('signup is disabled') || lower.includes('signups not allowed')) {
     return 'New sign-ups are disabled in Supabase. Enable Email provider in Authentication settings.';
   }
-  if (lower.includes('fetch') || lower.includes('network')) {
-    return 'Could not reach Supabase. Check your internet connection and API keys in .env.local.';
+  if (
+    lower.includes('failed to fetch') ||
+    lower.includes('network') ||
+    lower.includes('enotfound') ||
+    lower.includes('getaddrinfo') ||
+    lower.includes('load failed')
+  ) {
+    return 'Cannot reach Supabase. Check NEXT_PUBLIC_SUPABASE_URL (Project Settings → API) and that the project is not paused or deleted. Then redeploy.';
   }
   return message;
 }

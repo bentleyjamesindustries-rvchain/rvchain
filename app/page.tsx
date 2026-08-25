@@ -233,7 +233,7 @@ export default function RVChainApp() {
   const handleAuth = async (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!authEmail || !authPassword) return toast.error('Enter email and password');
-    if (!isSupabaseConfigured) {
+    if (!isSupabaseConfigured()) {
       return toast.error('Supabase is not configured. Add API keys to .env.local and restart the dev server.');
     }
 
@@ -660,7 +660,7 @@ export default function RVChainApp() {
               </div>
             )}
 
-            {!isSupabaseConfigured && (
+            {!isSupabaseConfigured() && (
               <div className="mb-4 p-3 rounded-2xl border border-amber-800/50 bg-amber-950/30 text-xs text-amber-200/90">
                 {t('auth.supabaseMissing')}
               </div>
