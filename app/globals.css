@@ -620,3 +620,31 @@ body {
   border-radius: 0.35rem;
   box-shadow: 0 0 0 1px #2a3340, 0 0 16px rgb(90 166 214 / 0.25);
 }
+/* ── Metal theme, mobile header ── */
+@media (max-width: 768px) {
+  .rv-header-inner {
+    height: 3.4rem !important;
+  }
+
+  .rv-header .w-8 {
+    width: 2.85rem !important;
+    height: 2.85rem !important;
+    border-radius: 0.45rem !important;
+  }
+
+  .rv-header img {
+    object-fit: cover !important;
+    object-position: center 30% !important;
+    box-shadow: none !important;
+  }
+
+  .rv-header .rv-logo-text {
+    font-size: 0.92rem !important;
+    letter-spacing: 0.06em !important;
+    font-weight: 700 !important;
+  }
+
+  .rv-header .border-green-800\/60 {
+    border-color: #2a3340 !important;
+  }
+}
