@@ -686,3 +686,22 @@ button[class*="border-violet-700"] {
     display: none !important;
   }
 }
+/* Hide Trail Log, Forum, Trips, Crew — keep Games (4th) */
+.desktop-tabs .nav-tab:nth-child(5),
+.desktop-tabs .nav-tab:nth-child(6),
+.desktop-tabs .nav-tab:nth-child(7),
+.desktop-tabs .nav-tab:nth-child(8),
+.mobile-bottom-nav .mobile-nav-btn:nth-child(5),
+.mobile-bottom-nav .mobile-nav-btn:nth-child(6),
+.mobile-bottom-nav .mobile-nav-btn:nth-child(7),
+.mobile-bottom-nav .mobile-nav-btn:nth-child(8) {
+  display: none !important;
+}
+
+button[class*="from-orange-950"],
+button[class*="border-orange-700"],
+button[class*="border-sky-800"][class*="bg-sky-950"],
+button[class*="border-slate-600"][class*="bg-slate-900"],
+button[class*="border-amber-800"] {
+  display: none !important;
+}
