@@ -681,3 +681,8 @@ button[class*="border-violet-700"] {
     font-size: 0.6rem !important;
   }
 }
+@media (max-width: 768px) {
+  .rv-header .rv-logo-text {
+    display: none !important;
+  }
+}
