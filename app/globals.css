@@ -648,3 +648,36 @@ body {
     border-color: #2a3340 !important;
   }
 }
+/* ── One-move: hide forum + badges, fix mobile ── */
+
+.desktop-tabs .nav-tab:nth-child(6),
+.mobile-bottom-nav .mobile-nav-btn:nth-child(6) {
+  display: none !important;
+}
+
+button[class*="border-violet-700"] {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  .rv-header img {
+    object-position: center 18% !important;
+  }
+
+  .mobile-bottom-nav {
+    justify-content: flex-start !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .mobile-nav-btn {
+    flex: 0 0 auto !important;
+    min-width: 4.35rem;
+    padding-left: 0.35rem;
+    padding-right: 0.35rem;
+  }
+
+  .mobile-nav-btn span {
+    font-size: 0.6rem !important;
+  }
+}
