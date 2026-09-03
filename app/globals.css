@@ -585,4 +585,38 @@ body {
 .prose-rv a:hover {
   color: #fde68a;
 }
-
+/* ── Metal theme (badge + steel / ice-blue) ── */
+.rv-header {
+  background: linear-gradient(180deg, #07080b 0%, #0c0e12 100%) !important;
+  border-bottom: 1px solid #2a3340 !important;
+  box-shadow: 0 1px 0 #c4b08a33;
+}
+.rv-header .rv-logo-text {
+  color: #d5dde6 !important;
+  letter-spacing: 0.12em !important;
+  text-transform: uppercase;
+}
+.rv-header .rv-logo-tagline {
+  color: #8eb7d4 !important;
+  letter-spacing: 0.22em !important;
+}
+.nav-tab.active,
+.mobile-nav-btn.active {
+  color: #5aa6d6 !important;
+}
+.nav-tab.active:after {
+  background: #5aa6d6 !important;
+}
+.mobile-bottom-nav {
+  background: rgb(7 8 11 / 0.96) !important;
+  border-top-color: #2a3340 !important;
+}
+.filter-chip.active {
+  background-color: #1a3a52 !important;
+  border-color: #5aa6d6 !important;
+  color: #e8eef4 !important;
+}
+.rv-header img {
+  border-radius: 0.35rem;
+  box-shadow: 0 0 0 1px #2a3340, 0 0 16px rgb(90 166 214 / 0.25);
+}
