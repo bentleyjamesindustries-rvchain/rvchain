@@ -801,3 +801,38 @@ button[class*="border-emerald-700"][class*="bg-emerald-950"] {
 button[class*="border-slate-800"][class*="bg-slate-900"] {
   display: none !important;
 }
+/* Flagship skin — no file rewrite */
+section[class*="from-violet-950"] {
+  background: #0c0e12 !important;
+  border-color: #2a3340 !important;
+}
+section[class*="from-violet-950"] .text-violet-300 {
+  color: #8eb7d4 !important;
+}
+button[class*="bg-violet-600"],
+a[class*="bg-violet-600"] {
+  background: #5aa6d6 !important;
+  color: #071018 !important;
+}
+span[class*="bg-amber-500"] {
+  display: none !important;
+}
+.rv-header button[class*="bg-amber-500"] {
+  display: none !important;
+}
+button[class*="from-violet-950"] {
+  border-color: #2a3340 !important;
+  background: #0c0e12 !important;
+}
+button[class*="from-amber-950"] {
+  border-color: #5aa6d6 !important;
+  background: #10202c !important;
+}
+.grid.grid-cols-1 > .rounded-3xl img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+.grid .text-amber-300 {
+  color: #7ec8f0 !important;
+  font-size: 1.2rem;
+}
