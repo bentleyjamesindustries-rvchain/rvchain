@@ -836,3 +836,30 @@ button[class*="from-amber-950"] {
   color: #7ec8f0 !important;
   font-size: 1.2rem;
 }
+/* Flagship market skin */
+.rv-header button.bg-amber-500\/20,
+.rv-header .bg-amber-500\/20 {
+  display: none !important;
+}
+
+a.bg-violet-600,
+button.bg-violet-600,
+.rv-hero a.bg-violet-600,
+button[class*="bg-violet-600"] {
+  background: #5aa6d6 !important;
+  color: #071018 !important;
+}
+
+/* Listing cards */
+.grid.grid-cols-1 > .rounded-3xl.border.border-slate-700 {
+  background: #0c0e12 !important;
+  border-color: #2a3340 !important;
+}
+.grid.grid-cols-1 > .rounded-3xl img {
+  aspect-ratio: 1 / 1;
+  object-fit: cover;
+}
+.grid.grid-cols-1 .text-amber-300 {
+  color: #7ec8f0 !important;
+  font-size: 1.25rem;
+}
