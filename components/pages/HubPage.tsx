@@ -1,7 +1,7 @@
 'use client';
 
 import Link from "next/link";
-import { ArrowRight, Camera, Download, LayoutGrid } from "lucide-react";
+import { ArrowRight, Camera, LayoutGrid } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { Button } from "@/components/ui/button";
 import { catLabel, t } from "@/lib/copy";
@@ -86,21 +86,6 @@ export default function Hub() {
             <span className="mt-1.5 block text-sm text-muted">{copy.marketCardSub}</span>
           </Link>
         </div>
-
-        <a
-          href="/rv-chain-desktop.zip"
-          download="rv-chain-desktop.zip"
-          className="rv-glass group flex items-center gap-4 rounded-3xl p-5 transition-transform duration-150 hover:-translate-y-0.5 sm:p-6"
-        >
-          <Download className="size-8 shrink-0 text-primary" />
-          <span>
-            <span className="flex items-center gap-2 font-display text-xl font-semibold">
-              {copy.download}
-              <ArrowRight className="size-4 text-subtle transition-transform duration-150 group-hover:translate-x-0.5" />
-            </span>
-            <span className="mt-1.5 block text-sm text-muted">{copy.downloadHint}</span>
-          </span>
-        </a>
 
         <p className="rv-copy max-w-md text-center text-[11px] text-subtle sm:mx-auto">
           {copy.footer}{" "}

@@ -17,8 +17,6 @@ const EN = {
   marketCard: "Market",
   marketCardSub: "Search those same categories. Racing is Dirt, Asphalt, or Offroad.",
   footer: "Powersports parts. Private-party board. No whole-vehicle sales.",
-  download: "Download files",
-  downloadHint: "Full site folder for your computer — unzip, then open rv-chain.",
   cat: {
     atv: "ATV",
     truck: "Truck",
@@ -194,8 +192,6 @@ const ES: Widen<typeof EN> = {
   marketCard: "Mercado",
   marketCardSub: "Busca en esas mismas categorías. Las carreras son Dirt, Asphalt u Offroad.",
   footer: "Piezas de powersports. Tablero de particulares. Sin venta de vehículos completos.",
-  download: "Descargar archivos",
-  downloadHint: "Carpeta completa del sitio — descomprime y abre rv-chain.",
   cat: {
     atv: "ATV",
     truck: "Camioneta",
