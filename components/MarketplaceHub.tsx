@@ -520,7 +520,8 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
           </select>
         </div>
       )}
-
+
+
 
       {view === 'gear' && (
         <div className="space-y-3">
@@ -655,7 +656,8 @@ export default function MarketplaceHub({ user, displayHandle, onRequestSignIn }:
 
             <div
               className={`space-y-3 ${user && !canPub(sellKind) ? 'opacity-40 pointer-events-none' : ''}`}
-            >
+            >
+
 
               {sellKind === 'gear' && (
                 <>
