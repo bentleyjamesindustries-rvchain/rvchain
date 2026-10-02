@@ -53,9 +53,9 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Link href="/" className="flex min-w-0 items-center gap-2.5">
               <span className="rv-mark size-9 shrink-0 overflow-hidden sm:size-10">
                 <img
-                  src="/rvchain-mark.jpg"
+                  src="/rvchain-shield.jpg"
                   alt=""
-                  className="size-full object-cover object-[center_18%]"
+                  className="size-full bg-black object-contain"
                 />
               </span>
               <span className="min-w-0">

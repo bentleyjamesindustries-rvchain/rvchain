@@ -14,7 +14,14 @@ export default function Hub() {
 
   return (
     <AppShell>
-      <section className="stagger-in space-y-8">
+      <section className="stagger-in space-y-6">
+        <div className="flex justify-center">
+          <img
+            src="/rvchain-lockup.jpg"
+            alt="RV-CHAIN"
+            className="h-[200px] w-auto rounded-2xl sm:h-[240px]"
+          />
+        </div>
         <div className="flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
           <div className="max-w-xl space-y-3">
             <p className="text-xs font-semibold uppercase tracking-[0.22em] text-primary">

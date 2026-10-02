@@ -47,7 +47,7 @@ export const metadata: Metadata = {
   },
   icons: {
     icon: "/favicon.svg",
-    apple: "/rvchain-mark.jpg",
+    apple: "/rvchain-shield.jpg",
   },
 };
 
