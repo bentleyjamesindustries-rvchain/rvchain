@@ -39,11 +39,27 @@ export function SignInBar() {
       );
       return;
     }
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: window.location.href },
-    });
-    if (error) toast.error(error.message);
+    try {
+      const { error } = await supabase.auth.signInWithOAuth({
+        provider,
+        options: { redirectTo: `${window.location.origin}/profile` },
+      });
+      if (error) {
+        toast.error(
+          /fetch|network|failed/i.test(error.message)
+            ? es
+              ? "No se puede llegar a Supabase. Ese proyecto está apagado, así que Google y X no entran."
+              : "Can't reach Supabase. That project is offline, so Google and X can't sign in."
+            : error.message,
+        );
+      }
+    } catch {
+      toast.error(
+        es
+          ? "No se puede llegar a Supabase. Ese proyecto está apagado, así que Google y X no entran."
+          : "Can't reach Supabase. That project is offline, so Google and X can't sign in.",
+      );
+    }
   }
 
   return (
