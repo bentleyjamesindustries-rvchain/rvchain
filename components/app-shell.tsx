@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Camera, Compass, Handshake, LayoutGrid } from "lucide-react";
 import { t } from "@/lib/copy";
 import { useRvStore } from "@/lib/rv-store";
+import { SignInBar } from "@/components/sign-in-bar";
 import { cn } from "@/lib/utils";
 
 export function AppShell({ children }: { children: ReactNode }) {
@@ -105,6 +106,7 @@ export function AppShell({ children }: { children: ReactNode }) {
             </div>
           </div>
         </header>
+        <SignInBar />
 
         <div className="mx-auto w-full max-w-6xl px-4 pb-28 pt-6 sm:pb-12">{children}</div>
 
