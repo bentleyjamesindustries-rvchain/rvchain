@@ -89,7 +89,11 @@ export function AppShell({ children }: { children: ReactNode }) {
                 </Link>
               ))}
             </nav>
-            <div className="flex rounded-xl border border-border bg-bg/40 p-0.5 text-xs font-bold">
+            <div className="flex items-center gap-2">
+              <Link href="/desk" className="text-xs font-semibold text-primary">
+                Desk
+              </Link>
+              <div className="flex rounded-xl border border-border bg-bg/40 p-0.5 text-xs font-bold">
               {(["en", "es"] as const).map((code) => (
                 <button
                   key={code}
@@ -103,6 +107,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                   {code}
                 </button>
               ))}
+              </div>
             </div>
           </div>
         </header>
