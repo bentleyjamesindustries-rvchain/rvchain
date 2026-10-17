@@ -30,7 +30,7 @@ export function SignInBar() {
 
   if (!ready || email) return null;
 
-  async function go(provider: "google" | "twitter") {
+  async function go(provider: "google" | "x") {
     if (!isSupabaseConfigured) {
       toast.error(
         es
@@ -81,7 +81,7 @@ export function SignInBar() {
           </button>
           <button
             type="button"
-            onClick={() => void go("twitter")}
+            onClick={() => void go("x")}
             className="h-10 flex-1 rounded-full bg-fg px-4 text-sm font-semibold text-bg sm:flex-none"
           >
             {es ? "Continuar con X" : "Continue with X"}
