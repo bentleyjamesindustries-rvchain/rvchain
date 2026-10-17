@@ -7,6 +7,7 @@ import { supabase } from "@/lib/supabaseClient";
 import { canPublishListing, createListing, uploadListingImages, type MarketCondition } from "@/lib/marketListings";
 import { loadAgentQueue, saveAgentQueue, type AgentDraft } from "@/lib/agent-queue";
 import { discardHeldDraft, loadHeldDrafts, publishHeldDraft, saveHeldDraft } from "@/lib/agent-hold";
+import { reviewUpload } from "@/lib/identify-client";
 
 type Ad = {
   title: string;
@@ -98,6 +99,11 @@ export default function DeskPage() {
       const body = (await res.json()) as { error?: string; ad?: Ad };
       if (!res.ok || !body.ad) throw new Error(body.error || "The Lister failed");
       const ad = body.ad;
+      const checked = await reviewUpload({
+        imageDataUrl: imageDataUrl.startsWith("data:image/") ? imageDataUrl : undefined,
+        text: `${ad.title}\n${ad.description}`,
+      });
+      if (!checked.ok) throw new Error(checked.error);
       let imageUrl = "";
       if (imageDataUrl.startsWith("data:image/")) {
         const uploaded = await uploadListingImages(userId, [dataUrlToFile(imageDataUrl)]);
@@ -163,6 +169,11 @@ export default function DeskPage() {
     try {
       const gate = await canPublishListing(userId);
       if (!gate.ok) throw new Error(gate.reason || "This account cannot post another listing yet.");
+      const checked = await reviewUpload({
+        imageDataUrl: row.imageDataUrl.startsWith("data:image/") ? row.imageDataUrl : undefined,
+        text: `${row.title}\n${row.description}`,
+      });
+      if (!checked.ok) throw new Error(checked.error);
       if (row.where === "cloud") {
         const published = await publishHeldDraft(userId, {
           id: row.id,
@@ -245,8 +256,8 @@ export default function DeskPage() {
         <h1 className="font-display text-4xl font-semibold leading-none">Lister</h1>
         <p className="text-sm text-muted">
           {email
-            ? `Signed in as ${email}. Nothing posts until you tap Approve.`
-            : "Sign in at the top. The Lister will not post for a guest."}
+            ? `Signed in as ${email}. You approve your own ad. A bad upload is blocked before it posts.`
+            : "Sign in at the top. You approve your own ad."}
         </p>
 
         <div className="rv-glass space-y-3 rounded-3xl p-5">

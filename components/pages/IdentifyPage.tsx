@@ -14,12 +14,13 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
-import { generateAd, identifyPart } from "@/lib/identify-client";
+import { generateAd, identifyPart, reviewUpload } from "@/lib/identify-client";
 import { SAMPLES } from "@/lib/catalog";
 import { compressImage, urlToCompressedDataUrl } from "@/lib/image";
 import { catLabel, condLabel, sampleLabel, surfaceLabel, t } from "@/lib/copy";
 import { useAllListings, useListingsStore } from "@/lib/listings-store";
 import { useRvStore } from "@/lib/rv-store";
+import { supabase } from "@/lib/supabaseClient";
 
 import { matchIdentification } from "@/lib/search";
 import {
@@ -93,6 +94,12 @@ export default function IdentifyPage() {
     setAd(null);
     setReading(true);
     try {
+      const checked = await reviewUpload({ imageDataUrl: dataUrl, text: "Photo for a powersports part listing." });
+      if (!checked.ok) {
+        toast.error(checked.error);
+        setPhoto(null);
+        return;
+      }
       const result = await identifyPart(dataUrl);
       if (!result.ok) {
         toast.error(result.error);
@@ -113,7 +120,8 @@ export default function IdentifyPage() {
         result.identification.summary,
         ...result.identification.tags,
       );
-      setIdn({ ...result.identification, category: guessed, raceSurface: surface });
+      const identified = { ...result.identification, category: guessed, raceSurface: surface };
+      setIdn(identified);
       setName(result.identification.name);
       setCategory(guessed);
       setRaceSurface(surface);
@@ -124,6 +132,30 @@ export default function IdentifyPage() {
           ? String(result.identification.estimatedHigh)
           : "",
       );
+      if (guessed !== "unknown" && !(guessed === "racecar" && !surface)) {
+        const written = await generateAd({
+          identification: {
+            ...identified,
+            conditionGuess: result.identification.conditionGuess,
+          },
+          notes: result.identification.summary,
+          edits: {
+            name: result.identification.name,
+            category: guessed,
+            raceSurface: guessed === "racecar" ? surface : null,
+            fitment: result.identification.fitment,
+            condition: result.identification.conditionGuess,
+            price: result.identification.estimatedHigh || undefined,
+          },
+        });
+        if (written.ok) {
+          setAd(written.ad);
+          setAdTitle(written.ad.title);
+          setAdPrice(String(written.ad.price));
+          setAdBody(written.ad.description);
+          setAdLocation(written.ad.location);
+        }
+      }
     } catch (err) {
       toast.error(err instanceof Error ? err.message : copy.toast.identifyFailed);
       setPhoto(null);
@@ -216,15 +248,30 @@ export default function IdentifyPage() {
     }
   }
 
-  function publish() {
+  async function publish() {
     if (!ad || !photo) return;
+    const { data } = await supabase.auth.getSession();
+    if (!data.session?.user) {
+      toast.error("Sign in first. You approve your own ad.");
+      return;
+    }
+    const title = adTitle.trim() || ad.title;
+    const description = adBody.trim() || ad.description;
+    const checked = await reviewUpload({
+      imageDataUrl: photo,
+      text: `${title}\n${description}\n${adLocation}`,
+    });
+    if (!checked.ok) {
+      toast.error(checked.error);
+      return;
+    }
     const price = Number(adPrice);
     const listingId = crypto.randomUUID();
     addMine({
       id: listingId,
       source: "mine",
-      title: adTitle.trim() || ad.title,
-      description: adBody.trim() || ad.description,
+      title,
+      description,
       category: ad.category,
       raceSurface: ad.category === "racecar" ? ad.raceSurface : null,
       partType: ad.partType,

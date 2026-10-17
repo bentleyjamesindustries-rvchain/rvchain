@@ -41,3 +41,18 @@ export async function generateAd(payload: {
   }
   return { ok: true, ad: data.ad };
 }
+
+export async function reviewUpload(payload: {
+  imageDataUrl?: string;
+  text?: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const res = await fetch("/api/agent/review", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  const data = (await res.json().catch(() => ({}))) as { allowed?: boolean; reason?: string; error?: string };
+  if (!res.ok) return { ok: false, error: data.error || "Upload review failed. Nothing was posted." };
+  if (!data.allowed) return { ok: false, error: data.reason || "This upload is not allowed on the board." };
+  return { ok: true };
+}
