@@ -15,11 +15,16 @@ export function SignInBar() {
     let alive = true;
     void supabase.auth.getSession().then(({ data }) => {
       if (!alive) return;
-      setEmail(data.session?.user.email ?? null);
+      const user = data.session?.user;
+      setEmail(user ? user.email || user.user_metadata?.user_name || user.id : null);
       setReady(true);
     });
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error_description") || params.get("error");
+    if (oauthError) toast.error(oauthError);
     const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      setEmail(session?.user.email ?? null);
+      const user = session?.user;
+      setEmail(user ? user.email || user.user_metadata?.user_name || user.id : null);
       setReady(true);
     });
     return () => {

@@ -12,29 +12,41 @@ export default function ProfilePage() {
   const [offline, setOffline] = useState(false);
   const [ready, setReady] = useState(false);
 
+  const [problem, setProblem] = useState<string | null>(null);
+
   useEffect(() => {
     let alive = true;
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error_description") || params.get("error");
+    if (oauthError) setProblem(oauthError);
+    const apply = (user: { email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined) => {
+      setAccount(
+        user
+          ? {
+              name: String(user.user_metadata?.full_name || user.user_metadata?.name || user.user_metadata?.user_name || user.email || "Account"),
+              email: user.email ?? "",
+            }
+          : null,
+      );
+      setReady(true);
+    };
     const timer = window.setTimeout(() => {
       if (alive) {
         setOffline(true);
         setReady(true);
       }
     }, 6000);
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!alive) return;
+      window.clearTimeout(timer);
+      apply(session?.user);
+    });
     void supabase.auth
       .getSession()
       .then(({ data }) => {
         if (!alive) return;
         window.clearTimeout(timer);
-        const user = data.session?.user;
-        setAccount(
-          user
-            ? {
-                name: String(user.user_metadata?.full_name || user.user_metadata?.name || user.email || "Account"),
-                email: user.email ?? "",
-              }
-            : null,
-        );
-        setReady(true);
+        apply(data.session?.user);
       })
       .catch(() => {
         if (!alive) return;
@@ -45,6 +57,7 @@ export default function ProfilePage() {
     return () => {
       alive = false;
       window.clearTimeout(timer);
+      data.subscription.unsubscribe();
     };
   }, []);
 
@@ -67,7 +80,9 @@ export default function ProfilePage() {
           </div>
         ) : !account ? (
           <p className="rv-glass rounded-3xl p-5 text-muted">
-            Use Google or X at the top. Your name and email land on this profile.
+            {problem
+              ? problem
+              : "Use Google or X at the top. Your name and email land on this profile."}
           </p>
         ) : (
           <div className="rv-glass rounded-3xl p-5">
