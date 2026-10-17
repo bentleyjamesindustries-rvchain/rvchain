@@ -17,7 +17,12 @@ export default function ProfilePage() {
   useEffect(() => {
     let alive = true;
     const params = new URLSearchParams(window.location.search);
-    const oauthError = params.get("error_description") || params.get("error");
+    const hash = new URLSearchParams(window.location.hash.replace(/^#/, ""));
+    const oauthError =
+      params.get("error_description") ||
+      params.get("error") ||
+      hash.get("error_description") ||
+      hash.get("error");
     if (oauthError) setProblem(oauthError);
     const apply = (user: { email?: string | null; user_metadata?: Record<string, unknown> } | null | undefined) => {
       setAccount(
